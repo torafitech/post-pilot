@@ -21,10 +21,11 @@ async function getTwitterAccount(userId: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, imageUrl, userId } = body as {
+    const { text, mediaUrl, mediaType, userId } = body as {
       text?: string;
-      imageUrl?: string; // Cloudinary URL
-      userId?: string;   // Firebase uid (required)
+      mediaUrl?: string;                 // Cloudinary URL (image or video)
+      mediaType?: 'image' | 'video';     // Must be sent by client
+      userId?: string;                   // Firebase uid (required)
     };
 
     console.log('Twitter post request body:', body);
@@ -72,6 +73,14 @@ export async function POST(request: NextRequest) {
     const appKey = process.env.TWITTER_APP_KEY!;
     const appSecret = process.env.TWITTER_APP_SECRET!;
 
+    if (!appKey || !appSecret) {
+      console.error('Missing Twitter app credentials in env');
+      return NextResponse.json(
+        { error: 'Twitter app credentials not configured' },
+        { status: 500 },
+      );
+    }
+
     const userClient = new TwitterApi({
       appKey,
       appSecret,
@@ -83,39 +92,53 @@ export async function POST(request: NextRequest) {
 
     let mediaIds: string[] = [];
 
-    // 4) Optional: download image and upload to X (v1 media upload)
-    if (imageUrl && typeof imageUrl === 'string') {
+    // 4) Optional: download media (image or video) and upload to X
+    if (mediaUrl && typeof mediaUrl === 'string') {
       try {
-        console.log('Fetching image from URL for Twitter:', imageUrl);
+        console.log('Fetching media from URL for Twitter:', mediaUrl);
 
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
+        const mediaResponse = await fetch(mediaUrl);
+        if (!mediaResponse.ok) {
           console.error(
-            'Failed to download image from Cloudinary:',
-            imageResponse.status,
-            imageResponse.statusText,
+            'Failed to download media from Cloudinary:',
+            mediaResponse.status,
+            mediaResponse.statusText,
           );
         } else {
-          const arrayBuffer = await imageResponse.arrayBuffer();
+          const arrayBuffer = await mediaResponse.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
 
-          // Get content-type from response headers
+          // Infer MIME type from response headers
           const contentType =
-            imageResponse.headers.get('content-type') || 'image/jpeg';
+            mediaResponse.headers.get('content-type') || 'application/octet-stream';
 
           console.log('Uploading media to Twitter with type:', contentType);
 
-          // 🔑 IMPORTANT: Must specify type when uploading Buffer
-          const mediaId = await rwClient.v1.uploadMedia(buffer, {
-            type: contentType as any,
-          });
+          let mediaId: string;
+
+          // Decide based on mediaType or contentType
+          const isVideo =
+            mediaType === 'video' || contentType.startsWith('video/');
+
+          if (isVideo) {
+            // Video upload via v1.1 (twitter-api-v2 handles chunked upload)
+            // X/Twitter expects mp4/H.264 with size/duration limits.[web:108][web:113]
+            mediaId = await rwClient.v1.uploadMedia(buffer, {
+              mimeType: 'video/mp4', // Cloudinary should deliver mp4 for videos
+            } as any);
+          } else {
+            // Image upload (jpeg/png/webp)
+            mediaId = await rwClient.v1.uploadMedia(buffer, {
+              mimeType: contentType,
+            } as any);
+          }
 
           mediaIds.push(mediaId);
           console.log('Media uploaded successfully with ID:', mediaId);
         }
       } catch (err) {
-        console.error('Error while fetching/uploading image to Twitter:', err);
-        // fall back to text-only tweet
+        console.error('Error while fetching/uploading media to Twitter:', err);
+        // Fall back to text-only tweet if media fails
       }
     }
 

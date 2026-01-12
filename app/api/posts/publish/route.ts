@@ -38,16 +38,25 @@ export async function POST(request: NextRequest) {
       errors: [] as any[],
     };
 
-    // Publish to Twitter (OAuth1)
+    // -----------------------
+    // Publish to Twitter (X)
+    // -----------------------
     if (platforms.includes('twitter')) {
       try {
         console.log('Publishing to Twitter...');
         const twitterCaption =
           platformContent?.twitter?.caption?.trim() || caption;
+
+        // Prefer video for Twitter if present; else image
+        const twitterMediaUrl = (videoUrl || imageUrl) || undefined;
+        const twitterMediaType =
+          videoUrl ? 'video' : imageUrl ? 'image' : undefined;
+
         const twitterResult = await publishToTwitter(
           userId,
           twitterCaption,
-          imageUrl || undefined,
+          twitterMediaUrl,
+          twitterMediaType,
         );
         results.twitter = twitterResult;
       } catch (error: any) {
@@ -56,7 +65,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // -----------------------
     // Publish to YouTube
+    // -----------------------
     if (platforms.includes('youtube')) {
       try {
         console.log('Publishing to YouTube...');
@@ -64,6 +75,7 @@ export async function POST(request: NextRequest) {
           platformContent?.youtube?.title?.trim() || caption || 'Untitled';
         const ytDescription =
           platformContent?.youtube?.description?.trim() || caption;
+
         const youtubeResult = await publishToYoutube(
           userId,
           ytTitle,
@@ -77,7 +89,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // -----------------------
     // Publish to Instagram
+    // -----------------------
     if (platforms.includes('instagram')) {
       try {
         console.log('Publishing to Instagram...');
@@ -131,16 +145,18 @@ export async function POST(request: NextRequest) {
 async function publishToTwitter(
   userId: string,
   caption: string,
-  imageUrl?: string,
+  mediaUrl?: string,
+  mediaType?: 'image' | 'video',
 ) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const response = await fetch(`${baseUrl}/api/auth/twitter/post`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId, // 🔑 required for account lookup
+      userId,          // required for account lookup
       text: caption,
-      imageUrl: imageUrl || undefined,
+      mediaUrl: mediaUrl || undefined,
+      mediaType: mediaType || undefined,
     }),
   });
 
@@ -164,7 +180,7 @@ async function publishToYoutube(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId, // keep for symmetry / future use
+      userId,
       title,
       description,
       videoUrl: videoUrl || undefined,
@@ -190,7 +206,7 @@ async function publishToInstagram(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId, // for account lookup if needed
+      userId,
       imageUrl: imageUrl || undefined,
       caption,
     }),
