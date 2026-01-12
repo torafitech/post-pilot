@@ -21,7 +21,7 @@ export default function AuthPage() {
       if (mode === 'login') {
         await login(email, password);
       } else {
-        await register(email, password);
+        await register(email, password,email.split("@")[0]);
       }
       router.push('/dashboard');
     } catch (err: any) {

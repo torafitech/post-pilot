@@ -1,8 +1,8 @@
 // app/api/auth/youtube/upload/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import axios from 'axios';
 import { adminDb } from '@/lib/firebaseAdmin';
+import axios from 'axios';
+import { google } from 'googleapis';
+import { NextRequest, NextResponse } from 'next/server';
 
 async function getYouTubeAccount(userId: string) {
   const snap = await adminDb.collection('users').doc(userId).get();
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
       // 🔑 FIX: Use string for 'part', not array
       uploadResponse = await youtube.videos.insert({
-        part: 'snippet,status', // ← STRING, not array
+        part: ["snippet", "status"],
         requestBody: {
           snippet: {
             title: title.trim().substring(0, 100),
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       console.log('Creating metadata-only entry...');
 
       uploadResponse = await youtube.videos.insert({
-        part: 'snippet,status', // ← STRING, not array
+        part: ['snippet', 'status'],
         requestBody: {
           snippet: {
             title: title.trim().substring(0, 100),
