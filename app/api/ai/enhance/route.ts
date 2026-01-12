@@ -66,6 +66,9 @@ export async function POST(req: NextRequest) {
     };
 
     const selectedPlatforms = platforms || [platform];
+     console.log('Selected platforms for time platforms:', platforms);
+     console.log('Selected platforms for time platform:', platform);
+    console.log('Selected platforms for time suggestions:', selectedPlatforms);
     const rules = platformRules[platform] || platformRules['instagram'];
 
     console.log('📤 Generating enhanced caption...');

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { authFetch } from '@/lib/authClient';
 import FileUpload from '@/components/FileUpload';
+import { useAuth } from '@/context/AuthContext';
+import { authFetch } from '@/lib/authClient';
+import { db } from '@/lib/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface PlatformContent {
   caption: string;
@@ -204,12 +204,12 @@ export default function CreatePostPage() {
 
     formData.platforms.forEach((platform) => {
       const times = platformTimes[platform as keyof typeof platformTimes] || ['12:00'];
-      
+
       // Create 2 slots per platform
       times.slice(0, 2).forEach((time, idx) => {
         const date = idx === 0 ? formatDate(now) : formatDate(tomorrow);
         const engagementScore = 80 + Math.floor(Math.random() * 20);
-        
+
         const descriptions = {
           instagram: 'Peak engagement time for Instagram',
           facebook: 'Best time for Facebook reach',
@@ -256,6 +256,25 @@ export default function CreatePostPage() {
       scheduledTime: slot.time,
     }));
   };
+  const getDateForWeekday = (weekday: string): string => {
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+    const targetIndex = weekdays.indexOf(weekday.toLowerCase());
+    if (targetIndex === -1) {
+      // Fallback: today
+      return new Date().toISOString().split('T')[0];
+    }
+
+    const now = new Date();
+    const todayIndex = now.getDay(); // 0-6
+
+    let diff = targetIndex - todayIndex;
+    if (diff < 0) diff += 7; // next occurrence of that weekday
+
+    const result = new Date(now);
+    result.setDate(result.getDate() + diff);
+    return result.toISOString().split('T')[0];
+  };
 
   // =========================
   // AI ENHANCEMENT HANDLERS
@@ -280,12 +299,14 @@ export default function CreatePostPage() {
         body: JSON.stringify({
           caption: baseCaption,
           platform: formData.platforms[0] || 'instagram',
-          platforms: formData.platforms,
+          platforms: ['youtube', 'instagram', 'twitter', 'linkedin', 'tiktok', 'facebook'],
           tone: 'engaging',
           contentType: formData.videoUrl ? 'video' : 'image',
         }),
       });
-
+      if (!response.ok) {
+        throw new Error('AI Enhancement failed');
+      }
       console.log('Response status:', response.status);
 
       const data = await response.json();
@@ -294,20 +315,42 @@ export default function CreatePostPage() {
       if (data.success) {
         setAiSuggestions(data);
         setShowAiComparison(true);
-        
+
         // Extract platformTimes from AI response and convert to AiTimeSlot format
         if (data.platformTimes) {
-          const convertedSlots: AiTimeSlot[] = Object.entries(data.platformTimes).map(
-            ([platform, timeData]: [string, any]) => ({
-              platform,
-              time: timeData.time,
-              date: new Date().toISOString().split('T')[0], // Today's date
-              engagementScore: 85, // Default score since AI doesn't provide numeric score
-              description: timeData.reason || `Best time for ${platform}`,
-            })
-          );
-          setAiTimeSlots(convertedSlots);
-          console.log('✅ Platform times extracted and converted:', convertedSlots);
+          const now = new Date();
+          const today = now.toISOString().split('T')[0];
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+          const slots: AiTimeSlot[] = [];
+
+          Object.entries(data.platformTimes).forEach(([plat, timeInfo]: any) => {
+            let baseDate: string;
+
+            if ((timeInfo.day || '').toLowerCase().includes('tomorrow')) {
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              baseDate = tomorrow.toISOString().split('T')[0];
+            } else if (timeInfo.day) {
+              baseDate = getDateForWeekday(timeInfo.day);
+            } else {
+              baseDate = new Date().toISOString().split('T')[0];
+            }
+
+            slots.push({
+              platform: plat,
+              time: timeInfo.time || '12:00',
+              date: baseDate,
+              engagementScore: 90,
+              description: timeInfo.reason || `AI-recommended time for ${plat}`,
+            });
+          });
+
+
+          slots.sort((a, b) => b.engagementScore - a.engagementScore);
+          setAiTimeSlots(slots);
         }
       } else {
         alert(`AI enhancement failed: ${data.error}`);
@@ -334,7 +377,7 @@ export default function CreatePostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Only allow submission from preview tab
     if (activeTab !== 'preview') {
       console.warn('⚠️ Form submission only allowed from preview tab. Current tab:', activeTab);
@@ -711,11 +754,10 @@ export default function CreatePostPage() {
                   ].map((platform) => (
                     <label
                       key={platform.id}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition ${
-                        formData.platforms.includes(platform.id)
-                          ? 'border-cyan-500 bg-cyan-500/10'
-                          : 'border-gray-700 hover:border-gray-600'
-                      }`}
+                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition ${formData.platforms.includes(platform.id)
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                        }`}
                     >
                       <input
                         type="checkbox"
@@ -818,24 +860,24 @@ export default function CreatePostPage() {
                       </div>
                       {platformContent[platform as keyof PlatformSettings]?.hashtags?.length >
                         0 && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Hashtags
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {platformContent[platform as keyof PlatformSettings]?.hashtags?.map(
-                              (tag, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm"
-                                >
-                                  {tag}
-                                </span>
-                              ),
-                            )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                              Hashtags
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {platformContent[platform as keyof PlatformSettings]?.hashtags?.map(
+                                (tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm"
+                                  >
+                                    {tag}
+                                  </span>
+                                ),
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </div>
@@ -849,7 +891,7 @@ export default function CreatePostPage() {
               {/* Schedule Mode Selection */}
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-4">Schedule Options</h3>
-                
+
                 <div className="grid md:grid-cols-3 gap-4 mb-6">
                   {/* Publish Now */}
                   <label className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'now' ? 'border-cyan-500 bg-cyan-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
@@ -931,8 +973,8 @@ export default function CreatePostPage() {
                             key={index}
                             onClick={() => selectAiTimeSlot(slot)}
                             className={`p-4 border-2 rounded-lg cursor-pointer transition ${formData.scheduledDate === slot.date && formData.scheduledTime === slot.time
-                                ? 'border-cyan-500 bg-cyan-500/10'
-                                : 'border-gray-700 hover:border-gray-600'
+                              ? 'border-cyan-500 bg-cyan-500/10'
+                              : 'border-gray-700 hover:border-gray-600'
                               }`}
                           >
                             <div className="flex items-center justify-between mb-2">
@@ -1096,12 +1138,12 @@ export default function CreatePostPage() {
                         </div>
                         {platformContent[platform as keyof PlatformSettings]?.hashtags?.length >
                           0 && (
-                          <div className="mt-2 text-cyan-400 text-xs">
-                            {platformContent[platform as keyof PlatformSettings]?.hashtags?.join(
-                              ' ',
-                            )}
-                          </div>
-                        )}
+                            <div className="mt-2 text-cyan-400 text-xs">
+                              {platformContent[platform as keyof PlatformSettings]?.hashtags?.join(
+                                ' ',
+                              )}
+                            </div>
+                          )}
                       </>
                     )}
                   </div>
@@ -1154,8 +1196,8 @@ export default function CreatePostPage() {
                 {loading
                   ? 'Processing...'
                   : scheduleMode === 'now'
-                  ? `Publish to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`
-                  : `Schedule to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`}
+                    ? `Publish to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`
+                    : `Schedule to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`}
               </button>
             )}
           </div>
