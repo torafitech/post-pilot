@@ -1,16 +1,18 @@
 // app/api/auth/instagram/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminFieldValue, adminAuth } from '@/lib/firebaseAdmin';
+import { adminDb, adminFieldValue } from '@/lib/firebaseAdmin';
 
 const GRAPH_API_BASE =
   process.env.NEXT_PUBLIC_GRAPH_API_URL || 'https://graph.facebook.com/v18.0';
 
 export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const origin = `${url.protocol}//${url.host}`;
+
   try {
-    const url = new URL(request.url);
-    const origin = `${url.protocol}//${url.host}`;
     const code = url.searchParams.get('code');
     const error = url.searchParams.get('error');
+    const stateUid = url.searchParams.get('state'); // firebase uid from /api/auth/instagram
 
     if (error) {
       console.error('Instagram OAuth error:', error);
@@ -22,6 +24,13 @@ export async function GET(request: NextRequest) {
     if (!code) {
       return NextResponse.redirect(
         `${origin}/dashboard?error=instagram_no_code`,
+      );
+    }
+
+    if (!stateUid) {
+      console.error('Missing uid in OAuth state');
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=instagram_no_user`,
       );
     }
 
@@ -38,22 +47,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Step 1: Exchange code for short-lived access token
+    // 1) Exchange code for short-lived token
     console.log('🔄 Exchanging Instagram auth code for token...');
-    const tokenRes = await fetch(
-      `${GRAPH_API_BASE}/oauth/access_token`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri,
-          code: code,
-        }).toString(),
-      }
-    );
+    const tokenRes = await fetch(`${GRAPH_API_BASE}/oauth/access_token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        code,
+      }).toString(),
+    });
 
     const tokenData = await tokenRes.json();
 
@@ -64,107 +70,106 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let accessToken = tokenData.access_token;
+    let accessToken: string = tokenData.access_token;
     console.log('✅ Got short-lived token');
 
-    // Step 2: Exchange short-lived token for long-lived token
+    // 2) Convert to long-lived token (best effort)
     console.log('🔄 Converting to long-lived token...');
     const longLivedRes = await fetch(
-      `${GRAPH_API_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&access_token=${accessToken}`
+      `${GRAPH_API_BASE}/oauth/access_token` +
+        `?grant_type=fb_exchange_token` +
+        `&client_id=${clientId}` +
+        `&client_secret=${clientSecret}` +
+        `&access_token=${accessToken}`,
     );
 
     const longLivedData = await longLivedRes.json();
-
-    if (longLivedData.access_token) {
+    if (longLivedRes.ok && longLivedData.access_token) {
       accessToken = longLivedData.access_token;
       console.log('✅ Got long-lived token');
+    } else {
+      console.log('⚠️ Could not get long-lived token, using short-lived');
     }
 
-    // Step 3: Get Instagram Business Account info
-    console.log('🔄 Fetching Instagram Business Account...');
-    const meRes = await fetch(
-      `${GRAPH_API_BASE}/me?fields=id,name,username&access_token=${accessToken}`
+    // 3) Get user’s Pages
+    console.log('🔄 Fetching user pages...');
+    const pagesRes = await fetch(
+      `${GRAPH_API_BASE}/me/accounts?access_token=${accessToken}`,
     );
+    const pagesData = await pagesRes.json();
 
-    const meData = await meRes.json();
-
-    if (!meRes.ok || !meData.id) {
-      console.error('Failed to get user info:', meData);
+    if (!pagesRes.ok || !pagesData.data || !pagesData.data.length) {
+      console.error('Failed to get user pages:', pagesData);
       return NextResponse.redirect(
-        `${origin}/dashboard?error=instagram_me_failed`,
+        `${origin}/dashboard?error=instagram_pages_failed`,
       );
     }
 
-    const userId = 'demo_user'; // TODO: Use real authenticated user
+    // For now use first page
+    const page = pagesData.data[0];
+    const pageId: string = page.id;
+    console.log('✅ Got page:', pageId);
 
-    // Get authenticated user ID from Firebase session
-    const sessionCookie = request.cookies.get('__session')?.value;
+    // 4) From Page, get Instagram Business Account
+    console.log('🔄 Fetching Instagram Business Account from page...');
+    const igRes = await fetch(
+      `${GRAPH_API_BASE}/${pageId}` +
+        `?fields=instagram_business_account{name,username,id}` +
+        `&access_token=${accessToken}`,
+    );
+    const igData = await igRes.json();
 
-    if (sessionCookie) {
-      try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-        const actualUserId = decodedClaims.uid;
-        console.log('✅ Got userId from session cookie:', actualUserId);
-        // Use actual user ID instead of demo_user
-        const userIdToUse = actualUserId;
-
-        console.log('💾 Saving Instagram connection to Firestore...');
-        await adminDb
-          .collection('users')
-          .doc(userIdToUse)
-          .set(
-            {
-              connectedAccounts: adminFieldValue.arrayUnion({
-                id: `instagram_${meData.id}`,
-                platform: 'instagram',
-                platformId: meData.id,
-                accountName: meData.username,
-                accountLabel: meData.name,
-                accessToken: accessToken,
-                connectedAt: new Date(),
-              }),
-            },
-            { merge: true }
-          );
-
-        console.log('✅ Instagram account connected successfully');
-
-        return NextResponse.redirect(
-          `${origin}/dashboard?success=instagram_connected&instagram_connected=true`
-        );
-      } catch (sessionErr) {
-        console.log('⚠️ Could not verify session cookie, using demo_user as fallback');
-      }
+    if (
+      !igRes.ok ||
+      !igData.instagram_business_account ||
+      !igData.instagram_business_account.id
+    ) {
+      console.error('Failed to get Instagram business account:', igData);
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=instagram_business_failed`,
+      );
     }
 
-    console.log('💾 Saving Instagram connection to Firestore...');
+    const igBusiness = igData.instagram_business_account;
+    const igBusinessAccountId: string = igBusiness.id;
+    const igUsername: string = igBusiness.username || '';
+    const igName: string = igBusiness.name || igUsername;
+
+    console.log('✅ Got IG Business account:', igBusinessAccountId, igUsername);
+
+    // 5) Save connection in Firestore under users/{uid}
+    const userIdToUse = stateUid;
+
+    console.log(
+      '💾 Saving Instagram connection to Firestore for uid:',
+      userIdToUse,
+    );
     await adminDb
       .collection('users')
-      .doc(userId)
+      .doc(userIdToUse)
       .set(
         {
           connectedAccounts: adminFieldValue.arrayUnion({
-            id: `instagram_${meData.id}`,
+            id: `instagram_${igBusinessAccountId}`,
             platform: 'instagram',
-            platformId: meData.id,
-            accountName: meData.username,
-            accountLabel: meData.name,
-            accessToken: accessToken,
+            platformId: igBusinessAccountId, // used for /{id}/media
+            accountName: igUsername,
+            accountLabel: igName,
+            pageId, // FB Page ID we used
+            accessToken,
             connectedAt: new Date(),
           }),
         },
-        { merge: true }
+        { merge: true },
       );
 
     console.log('✅ Instagram account connected successfully');
 
     return NextResponse.redirect(
-      `${origin}/dashboard?success=instagram_connected&instagram_connected=true`
+      `${origin}/dashboard?success=instagram_connected&instagram_connected=true`,
     );
   } catch (err: any) {
     console.error('Instagram callback error:', err);
-    const url = new URL(request.url);
-    const origin = `${url.protocol}//${url.host}`;
     return NextResponse.redirect(
       `${origin}/dashboard?error=instagram_callback_failed`,
     );

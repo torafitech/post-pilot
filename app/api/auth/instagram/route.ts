@@ -17,12 +17,28 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Basic Instagram OAuth (for an Instagram app configured with Facebook Login)
-  const authUrl = new URL('https://api.instagram.com/oauth/authorize');
+  // uid is sent from Dashboard: /api/auth/instagram?uid=<firebase-uid>
+  const uid = url.searchParams.get('uid') || '';
+
+  const authUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
-  authUrl.searchParams.set('scope', 'user_profile,user_media');
   authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set(
+    'scope',
+    [
+      'instagram_basic',
+      'instagram_content_publish',
+      'pages_read_engagement',
+      'business_management',
+      'pages_show_list',
+    ].join(','),
+  );
+
+  // Use state to carry uid
+  if (uid) {
+    authUrl.searchParams.set('state', uid);
+  }
 
   return NextResponse.redirect(authUrl.toString());
 }

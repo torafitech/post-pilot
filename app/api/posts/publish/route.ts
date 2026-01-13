@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Main publish endpoint that posts to all selected platforms
 export async function POST(request: NextRequest) {
@@ -97,17 +97,28 @@ export async function POST(request: NextRequest) {
         console.log('Publishing to Instagram...');
         const instaCaption =
           platformContent?.instagram?.caption?.trim() || caption;
-        const instagramResult = await publishToInstagram(
-          userId,
-          instaCaption,
-          imageUrl || undefined,
-        );
-        results.instagram = instagramResult;
+
+        const instaMediaUrl = videoUrl || imageUrl || undefined;
+        const instaMediaType =
+          videoUrl ? 'video' : imageUrl ? 'image' : undefined;
+
+        if (!instaMediaUrl || !instaMediaType) {
+          console.log('Skipping Instagram: no mediaUrl/mediaType');
+        } else {
+          const instagramResult = await publishToInstagram(
+            userId,
+            instaCaption,
+            instaMediaUrl,
+            instaMediaType,
+          );
+          results.instagram = instagramResult;
+        }
       } catch (error: any) {
         console.error('Instagram publish error:', error);
         results.errors.push({ platform: 'instagram', error: error.message });
       }
     }
+
 
     // TODO: Implement linkedin / tiktok / facebook similarly using userId
 
@@ -195,26 +206,36 @@ async function publishToYoutube(
   return { id: data.videoId };
 }
 
-// Helper: Publish to Instagram
+// Helper: Publish to Instagram (image or video)
 async function publishToInstagram(
   userId: string,
   caption: string,
-  imageUrl?: string,
+  mediaUrl?: string,
+  mediaType?: 'image' | 'video',
 ) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const response = await fetch(`${baseUrl}/api/instagram/publish`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-call': '1',
+    },
     body: JSON.stringify({
-      userId,
-      imageUrl: imageUrl || undefined,
+      _userId: userId,
+      mediaUrl: mediaUrl || null,
+      mediaType: mediaType || null,
       caption,
     }),
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to publish to Instagram');
+    console.error('Instagram publish failed:', data); // <— LOG FULL DETAILS
+    throw new Error(
+      data.error ||
+        (data.details && data.details.error && data.details.error.message) ||
+        'Failed to publish to Instagram',
+    );
   }
 
   return { id: data.instagramPostId };

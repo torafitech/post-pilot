@@ -157,6 +157,20 @@ export default function DashboardPage() {
         return;
       }
 
+      if (selectedPlatform === 'instagram') {
+        if (!user) {
+          alert('You must be logged in');
+          return;
+        }
+
+        window.location.href = `/api/auth/instagram?uid=${encodeURIComponent(
+          user.uid,
+        )}`;
+        return;
+      }
+
+
+
       const oauthRoutes: { [key: string]: string } = {
         instagram: '/api/auth/instagram',
         youtube: '/api/auth/youtube',
