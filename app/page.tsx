@@ -1,12 +1,13 @@
 'use client';
 
+import { ArrowRight, BarChart3, Brain, CheckCircle, Play, Rocket, Sparkles, TrendingUp, Users, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { ArrowRight, Zap, BarChart3, Sparkles, Users, CheckCircle, TrendingUp, Rocket, Brain, Play, Image as ImageIcon, Layers, Gauge, Lightbulb, Activity, Share2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const [activeStack, setActiveStack] = useState(0);
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+
   const [scrollPosition, setScrollPosition] = useState(0);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function Home() {
             <Link href="/login" className="text-gray-600 hover:text-blue-600 transition font-medium">
               Sign In
             </Link>
-            <Link 
+            <Link
               href="/register"
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-6 py-2.5 rounded-lg font-semibold transition transform hover:scale-105 shadow-lg hover:shadow-xl"
             >
@@ -47,7 +48,7 @@ export default function Home() {
         {/* Animated gradient orbs - lighter */}
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        
+
         <div className="max-w-6xl mx-auto relative z-10">
           {/* Badge */}
           <div className="flex justify-center mb-8">
@@ -72,7 +73,7 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex gap-4 justify-center flex-wrap mb-20">
-            <Link 
+            <Link
               href="/register"
               className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-10 py-4 rounded-xl text-lg font-bold transition transform hover:scale-105 shadow-2xl hover:shadow-2xl"
             >
@@ -227,18 +228,16 @@ export default function Home() {
                 key={idx}
                 onMouseEnter={() => setHoveredCard(idx)}
                 onMouseLeave={() => setHoveredCard(null)}
-                className={`group relative h-80 cursor-pointer transition-all duration-500 transform ${
-                  hoveredCard === idx ? 'scale-105' : ''
-                }`}
+                className={`group relative h-80 cursor-pointer transition-all duration-500 transform ${hoveredCard === idx ? 'scale-105' : ''
+                  }`}
                 style={{
                   perspective: '1000px',
                   transformStyle: 'preserve-3d'
                 }}
               >
                 {/* Card Front */}
-                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-300 bg-gradient-to-br ${feature.bgColor} shadow-lg transition-all duration-500 flex flex-col justify-between ${
-                  hoveredCard === idx ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                }`}>
+                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-300 bg-gradient-to-br ${feature.bgColor} shadow-lg transition-all duration-500 flex flex-col justify-between ${hoveredCard === idx ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                  }`}>
                   <div>
                     <div className={`w-14 h-14 rounded-xl ${feature.iconBg} ${feature.iconColor} flex items-center justify-center mb-4`}>
                       {feature.icon}
@@ -249,9 +248,8 @@ export default function Home() {
                 </div>
 
                 {/* Card Back */}
-                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-900 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl transition-all duration-500 flex items-center justify-center ${
-                  hoveredCard === idx ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                }`}>
+                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-900 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl transition-all duration-500 flex items-center justify-center ${hoveredCard === idx ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+                  }`}>
                   <p className="text-lg text-center font-medium leading-relaxed">{feature.desc}</p>
                 </div>
               </div>
@@ -416,11 +414,10 @@ export default function Home() {
                 highlighted: false
               }
             ].map((plan, idx) => (
-              <div key={idx} className={`rounded-3xl transition transform hover:scale-105 ${
-                plan.highlighted 
-                  ? "border-3 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-2xl p-8 relative" 
+              <div key={idx} className={`rounded-3xl transition transform hover:scale-105 ${plan.highlighted
+                  ? "border-3 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-2xl p-8 relative"
                   : "border-2 border-gray-300 bg-white p-8 hover:border-blue-400 hover:shadow-xl"
-              }`}>
+                }`}>
                 {plan.highlighted && (
                   <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap shadow-lg">
                     Most Popular ⭐
@@ -447,11 +444,10 @@ export default function Home() {
                 </ul>
                 <Link
                   href={plan.name === "Enterprise" ? "mailto:sales@postpilot.io" : "/register"}
-                  className={`w-full block text-center py-4 rounded-xl font-bold text-lg transition transform hover:scale-105 ${
-                    plan.highlighted
+                  className={`w-full block text-center py-4 rounded-xl font-bold text-lg transition transform hover:scale-105 ${plan.highlighted
                       ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg"
                       : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-                  }`}
+                    }`}
                 >
                   {plan.cta}
                 </Link>
@@ -514,7 +510,7 @@ export default function Home() {
             Join thousands of creators and brands using PostPilot to save time, boost engagement, and grow their following with AI.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link 
+            <Link
               href="/register"
               className="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-gray-100 px-12 py-4 rounded-xl text-lg font-bold transition transform hover:scale-105 shadow-2xl"
             >
