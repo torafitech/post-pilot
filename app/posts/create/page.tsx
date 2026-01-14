@@ -1176,9 +1176,12 @@ export default function CreatePostPage() {
             )}
 
             {activeTab !== 'preview' ? (
+              // IMPORTANT: keep this as type="button" and also stop propagation
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();          // <- ensure no submit
+                  e.stopPropagation();         // <- extra safety
                   const tabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
                   const currentIndex = tabs.indexOf(activeTab);
                   setActiveTab(tabs[currentIndex + 1] as TabId);
@@ -1201,6 +1204,7 @@ export default function CreatePostPage() {
               </button>
             )}
           </div>
+
         </form>
       </div>
     </div>
