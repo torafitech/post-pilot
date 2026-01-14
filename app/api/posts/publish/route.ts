@@ -135,6 +135,62 @@ export async function POST(request: NextRequest) {
       publishedAt: new Date(),
       errors: results.errors,
     });
+    // 🔹 Also store per‑platform posts under the user for metrics sync
+    const userPostsRef = adminDb
+      .collection('users')
+      .doc(userId)
+      .collection('posts');
+
+    const basePostData = {
+      caption,
+      createdAt: new Date(),
+      publishedAt: new Date(),
+      metrics: {},
+    };
+
+    // Twitter
+    if (results.twitter?.id) {
+      await userPostsRef.doc(results.twitter.id).set(
+        {
+          ...basePostData,
+          platform: 'twitter',
+          accountId: `twitter_${userId}`,      // or twitterAccount.platformId if you prefer
+          platformPostId: results.twitter.id, // tweet id
+        },
+        { merge: true },
+      );
+    }
+
+    // YouTube
+    // in main publish endpoint
+    // YouTube
+    if (results.youtube?.id) {
+      await userPostsRef.doc(results.youtube.id).set(
+        {
+          ...basePostData,
+          platform: 'youtube',
+          accountId: `youtube_${userId}`,      // or actual channelId
+          platformPostId: results.youtube.id,  // ✅ videoId
+        },
+        { merge: true },
+      );
+    }
+
+
+    // Instagram
+    if (results.instagram?.id) {
+      await userPostsRef.doc(results.instagram.id).set(
+        {
+          ...basePostData,
+          platform: 'instagram',
+          accountId: `instagram_${userId}`,        // or igBusinessId if you have it
+          platformPostId: results.instagram.id,    // IG media id
+          mediaUrl: imageUrl || videoUrl || null,
+        },
+        { merge: true },
+      );
+    }
+
 
     return NextResponse.json({
       success: results.errors.length === 0,
@@ -203,8 +259,9 @@ async function publishToYoutube(
     throw new Error(data.error || 'Failed to publish to YouTube');
   }
 
-  return { id: data.videoId };
+  return { id: data.videoId }; // ✅ this is the real videoId
 }
+
 
 // Helper: Publish to Instagram (image or video)
 async function publishToInstagram(
@@ -233,8 +290,8 @@ async function publishToInstagram(
     console.error('Instagram publish failed:', data); // <— LOG FULL DETAILS
     throw new Error(
       data.error ||
-        (data.details && data.details.error && data.details.error.message) ||
-        'Failed to publish to Instagram',
+      (data.details && data.details.error && data.details.error.message) ||
+      'Failed to publish to Instagram',
     );
   }
 

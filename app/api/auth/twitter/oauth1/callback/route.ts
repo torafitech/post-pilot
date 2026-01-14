@@ -1,7 +1,7 @@
 // app/api/auth/twitter/oauth1/callback/route.ts
+import { adminDb, adminFieldValue } from '@/lib/firebaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 import { TwitterApi } from 'twitter-api-v2';
-import { adminDb, adminFieldValue } from '@/lib/firebaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,16 +54,19 @@ export async function GET(request: NextRequest) {
 
     const me = await loggedClient.v2.me();
 
+
+    // app/api/auth/twitter/oauth1/callback/route.ts (or similar)
     const connection = {
-      id: `twitter_${me.data.id}`,
+      id: `twitter_${uid}`,
       platform: 'twitter',
-      platformId: me.data.id,
+      platformId: me.data.id,   // from Twitter API
       accountName: me.data.username,
       accountLabel: me.data.name,
       oauthToken: accessToken,
       oauthTokenSecret: accessSecret,
       connectedAt: new Date(),
     };
+
 
     await adminDb
       .collection('users')

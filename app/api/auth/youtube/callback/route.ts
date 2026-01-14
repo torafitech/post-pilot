@@ -1,7 +1,7 @@
 // app/api/auth/youtube/callback/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
 import { adminDb, adminFieldValue } from '@/lib/firebaseAdmin';
+import { google } from 'googleapis';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,16 +49,18 @@ export async function GET(request: NextRequest) {
     const channel = me.data.items?.[0];
     const channelName = channel?.snippet?.title || 'YouTube Channel';
 
+    // app/api/auth/youtube/callback/route.ts
     const connection = {
       id: `youtube_${uid}`,
-      platform: 'youtube',
-      platformId: 'youtube',
+      platform: 'youtube',          // ✅ lowercase
+      platformId: channel?.id || 'youtube',
       accountName: channelName,
       accountLabel: channelName,
       accessToken: tokens.access_token ?? '',
       refreshToken: tokens.refresh_token ?? null,
       connectedAt: new Date(),
     };
+
 
     await adminDb
       .collection('users')

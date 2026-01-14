@@ -99,13 +99,14 @@ export async function POST(request: NextRequest) {
       console.log('Uploading to YouTube...');
 
       // 🔑 FIX: Use string for 'part', not array
+      // app/api/auth/youtube/upload/route.ts
+
       uploadResponse = await youtube.videos.insert({
-        part: ["snippet", "status"],
+        part: ['snippet', 'status'],
         requestBody: {
           snippet: {
             title: title.trim().substring(0, 100),
-            description: (description || 'Posted via PostPilot')
-              .substring(0, 5000),
+            description: (description || 'Posted via PostPilot').substring(0, 5000),
             tags: Array.isArray(tags) ? tags.slice(0, 30) : ['postpilot'],
             categoryId: '22',
           },
@@ -119,7 +120,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log('✅ Video uploaded:', uploadResponse.data.id);
+      const videoId = uploadResponse.data.id;
+      console.log('✅ YouTube uploaded, videoId =', videoId);
+
+      return NextResponse.json({
+        success: true,
+        videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+      });
+
     } else {
       console.log('Creating metadata-only entry...');
 

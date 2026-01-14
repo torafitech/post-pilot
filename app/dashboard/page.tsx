@@ -3,14 +3,24 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { SocialPost } from '@/types/post';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  updateDoc,
+} from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface ConnectedAccount {
   id: string;
-  platform: string;      // e.g. "YouTube"
+  platform: string; // e.g. "YouTube"
   accountName: string;
   accessToken: string;
   refreshToken?: string | null;
@@ -28,6 +38,17 @@ export default function DashboardPage() {
   const [enhancingCaption, setEnhancingCaption] = useState(false);
   const [enhancedText, setEnhancedText] = useState('');
 
+  // posts + loading state
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [syncingPosts, setSyncingPosts] = useState(false);
+  // inside DashboardPage component, add this state near other useState:
+  const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<'all' | 'instagram' | 'twitter' | 'youtube'>('all');
+  const filteredPosts = posts.filter((p) =>
+    selectedPlatformFilter === 'all'
+      ? true
+      : p.platform?.toLowerCase() === selectedPlatformFilter,
+  );
   const platforms = [
     'Instagram',
     'TikTok',
@@ -40,36 +61,20 @@ export default function DashboardPage() {
 
   // Check authentication and fetch data
   useEffect(() => {
-    console.log('🔍 DashboardPage: useEffect running, authLoading:', authLoading);
-    if (authLoading) {
-      console.log('⏳ Auth still loading...');
-      return;
-    }
-
+    if (authLoading) return;
     if (!user) {
-      console.log('❌ No user found, redirecting to login');
       router.push('/login');
       return;
     }
 
-    console.log('✅ User authenticated:', {
-      uid: user.uid,
-      email: user.email,
-      displayName: userProfile?.displayName,
-    });
-
     fetchConnectedAccounts();
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router, userProfile]);
 
   const fetchConnectedAccounts = async () => {
-    if (!user) {
-      console.log('❌ fetchConnectedAccounts: No user');
-      return;
-    }
-
+    if (!user) return;
     try {
-      console.log('🔄 Fetching connected accounts for user:', user.uid);
-
       const docRef = doc(db, 'users', user.uid);
       const docSnap = await getDoc(docRef);
 
@@ -78,11 +83,6 @@ export default function DashboardPage() {
       if (docSnap.exists()) {
         const userData = docSnap.data() as any;
         const connectedAccountsList = userData.connectedAccounts || [];
-
-        console.log('✅ Found user document with accounts:', {
-          count: connectedAccountsList.length,
-          accounts: connectedAccountsList,
-        });
 
         connectedAccountsList.forEach((account: any) => {
           const platformKey = account.platform || 'account';
@@ -105,28 +105,59 @@ export default function DashboardPage() {
             connectedAt,
           });
         });
-      } else {
-        console.log('📝 User document does not exist yet');
       }
-
-      console.log('✅ Processed connected accounts:', {
-        count: accounts.length,
-        accounts: accounts.map((a) => ({
-          id: a.id,
-          platform: a.platform,
-          accountName: a.accountName,
-        })),
-      });
 
       setConnectedAccounts(accounts);
     } catch (error: any) {
-      console.error('❌ Error fetching accounts:', {
-        message: error.message,
-        code: error.code,
-        fullError: error,
-      });
+      console.error('❌ Error fetching accounts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // fetch posts for this user
+  const fetchPosts = async () => {
+    if (!user) return;
+    try {
+      setPostsLoading(true);
+      const postsRef = collection(db, 'users', user.uid, 'posts');
+      const q = query(postsRef, orderBy('publishedAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+
+      const list: SocialPost[] = [];
+      snap.forEach((docSnap) =>
+        list.push({ id: docSnap.id, ...(docSnap.data() as any) }),
+      );
+      console.log('[DASHBOARD] Loaded posts', list);
+      setPosts(list);
+    } catch (error: any) {
+      console.error('❌ Error fetching posts:', error);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  // trigger sync metrics API
+  const handleSyncPosts = async () => {
+    if (!user) return;
+    try {
+      setSyncingPosts(true);
+      const res = await fetch('/api/posts/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert('Error syncing posts: ' + (data.error || 'Unknown error'));
+      } else {
+        await fetchPosts();
+      }
+    } catch (error: any) {
+      console.error('❌ Error syncing posts:', error);
+      alert('Error syncing posts: ' + error.message);
+    } finally {
+      setSyncingPosts(false);
     }
   };
 
@@ -158,18 +189,11 @@ export default function DashboardPage() {
       }
 
       if (selectedPlatform === 'instagram') {
-        if (!user) {
-          alert('You must be logged in');
-          return;
-        }
-
         window.location.href = `/api/auth/instagram?uid=${encodeURIComponent(
           user.uid,
         )}`;
         return;
       }
-
-
 
       const oauthRoutes: { [key: string]: string } = {
         instagram: '/api/auth/instagram',
@@ -195,27 +219,12 @@ export default function DashboardPage() {
     }
   };
 
-
-
   const handleDisconnectAccount = async (accountId: string) => {
-    if (!user) {
-      console.log('❌ No user to disconnect');
-      return;
-    }
+    if (!user) return;
 
     try {
-      console.log('🔌 Attempting to disconnect account:', {
-        accountId,
-        userId: user.uid,
-      });
-
       const accountToRemove = connectedAccounts.find((acc) => acc.id === accountId);
-      console.log('🗑️ Removing account:', accountToRemove);
-
-      if (!accountToRemove) {
-        console.log('⚠️ Account not found in state');
-        return;
-      }
+      if (!accountToRemove) return;
 
       const userDocRef = doc(db, 'users', user.uid);
       const snap = await getDoc(userDocRef);
@@ -223,28 +232,17 @@ export default function DashboardPage() {
       if (snap.exists()) {
         const data = snap.data() as any;
         const list = data.connectedAccounts || [];
-
-        // Filter out the account with this id
         const filtered = list.filter((item: any) => item.id !== accountToRemove.id);
 
         await updateDoc(userDocRef, {
           connectedAccounts: filtered,
         });
-
-        console.log('✅ Firestore updated, account removed from array');
       }
 
-      // Update local state
       const updatedAccounts = connectedAccounts.filter((acc) => acc.id !== accountId);
       setConnectedAccounts(updatedAccounts);
-
-      console.log('✅ Account disconnected successfully');
     } catch (error: any) {
-      console.error('❌ Error disconnecting account:', {
-        message: error.message,
-        code: error.code,
-        fullError: error,
-      });
+      console.error('❌ Error disconnecting account:', error);
       alert(`❌ Error disconnecting account: ${error.message}`);
     }
   };
@@ -257,10 +255,6 @@ export default function DashboardPage() {
 
     try {
       setEnhancingCaption(true);
-      console.log('🤖 Calling AI enhance API with:', {
-        text: enhancedText,
-        platform: selectedPlatform,
-      });
 
       const response = await fetch('/api/ai/enhance', {
         method: 'POST',
@@ -274,7 +268,6 @@ export default function DashboardPage() {
       });
 
       const data = await response.json();
-      console.log('✅ AI enhance response:', data);
 
       if (data.success && data.enhancedCaption) {
         alert('✨ Enhanced Caption:\n\n' + data.enhancedCaption);
@@ -291,14 +284,29 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      console.log('👋 Logging out user:', user?.email);
       await logout();
-      console.log('✅ Logout successful, redirecting to home');
       router.push('/');
     } catch (error) {
       console.error('❌ Logout error:', error);
     }
   };
+
+  // compute aggregate BEFORE any early returns, no hooks here
+  const aggregate = (() => {
+    let reach = 0;
+    let views = 0;
+    let likes = 0;
+    let comments = 0;
+
+    posts.forEach((p) => {
+      reach += p.metrics?.reach || 0;
+      views += p.metrics?.views || 0;
+      likes += p.metrics?.likes || 0;
+      comments += p.metrics?.comments || 0;
+    });
+
+    return { reach, views, likes, comments };
+  })();
 
   if (authLoading || loading) {
     return (
@@ -311,9 +319,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -331,7 +337,10 @@ export default function DashboardPage() {
             <Link href="/posts/create" className="text-gray-300 hover:text-white transition">
               Create Post
             </Link>
-            <Link href="/settings/connections" className="text-gray-300 hover:text-white transition">
+            <Link
+              href="/settings/connections"
+              className="text-gray-300 hover:text-white transition"
+            >
               Settings
             </Link>
             <button
@@ -355,32 +364,16 @@ export default function DashboardPage() {
             </span>
           </h1>
           <p className="text-gray-400 text-lg">
-            Manage your social media accounts and create amazing content
+            Manage your social media accounts, track performance, and create amazing content.
           </p>
         </div>
 
         {/* Quick Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-12">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <div className="text-4xl mb-2">📱</div>
-            <p className="text-gray-400 mb-2">Connected Accounts</p>
-            <p className="text-4xl font-bold">{connectedAccounts.length}</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <div className="text-4xl mb-2">📝</div>
-            <p className="text-gray-400 mb-2">Posts Scheduled</p>
-            <p className="text-4xl font-bold">0</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <div className="text-4xl mb-2">👥</div>
-            <p className="text-gray-400 mb-2">Total Followers</p>
-            <p className="text-4xl font-bold">0</p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <div className="text-4xl mb-2">📊</div>
-            <p className="text-gray-400 mb-2">Engagement Rate</p>
-            <p className="text-4xl font-bold">0%</p>
-          </div>
+          <StatCard icon="📱" label="Connected Accounts" value={connectedAccounts.length} />
+          <StatCard icon="📝" label="Posts (tracked)" value={posts.length} />
+          <StatCard icon="📊" label="Total Reach" value={aggregate.reach} />
+          <StatCard icon="👀" label="Total Views" value={aggregate.views} />
         </div>
 
         {/* AI Enhancement Section */}
@@ -391,7 +384,8 @@ export default function DashboardPage() {
 
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
             <p className="text-gray-400 mb-4">
-              Use AI to enhance your captions and make them more engaging for your chosen platform.
+              Use AI to enhance your captions and make them more engaging for your chosen
+              platform.
             </p>
 
             <div className="mb-6">
@@ -417,7 +411,9 @@ export default function DashboardPage() {
                 placeholder="Enter your caption here..."
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white h-32 resize-none"
               />
-              <p className="text-xs text-gray-500 mt-2">{enhancedText.length} characters</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {enhancedText.length} characters
+              </p>
             </div>
 
             <button
@@ -429,10 +425,136 @@ export default function DashboardPage() {
             </button>
 
             <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg text-sm text-purple-300">
-              💡 Tip: AI enhancement will optimize your caption for engagement, add relevant emojis and hashtags based on the platform.
+              💡 Tip: AI enhancement will optimize your caption for engagement, add relevant
+              emojis and hashtags based on the platform.
             </div>
           </div>
         </div>
+
+        {/* Posts & Performance */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Posts & performance</h2>
+              <p className="text-gray-500 text-sm">
+                View metrics fetched directly from each social platform.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSyncPosts}
+                disabled={syncingPosts}
+                className="bg-gray-900 border border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 transition"
+              >
+                {syncingPosts ? '🔄 Syncing...' : '🔁 Sync metrics'}
+              </button>
+              <Link
+                href="/posts/create"
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-4 py-2 rounded-lg font-semibold text-sm"
+              >
+                + New Post
+              </Link>
+            </div>
+          </div>
+
+          {/* Platform filter tabs */}
+          <div className="flex gap-2 mb-4 text-sm">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'instagram', label: 'Instagram' },
+              { key: 'twitter', label: 'Twitter / X' },
+              { key: 'youtube', label: 'YouTube' },
+            ].map((tab) => {
+              const active = selectedPlatformFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedPlatformFilter(tab.key as any)}
+                  className={[
+                    'px-4 py-2 rounded-full border text-xs md:text-sm font-semibold transition',
+                    active
+                      ? 'bg-cyan-500 text-black border-cyan-400'
+                      : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-cyan-500/60',
+                  ].join(' ')}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {postsLoading ? (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
+              Loading posts...
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
+              No posts for this filter yet. Create a post and sync metrics.
+            </div>
+          ) : (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden mb-6">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-950/60 text-gray-400">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Post</th>
+                    <th className="px-4 py-3">Platform</th>
+                    <th className="px-4 py-3">Reach</th>
+                    <th className="px-4 py-3">Views</th>
+                    <th className="px-4 py-3">Likes</th>
+                    <th className="px-4 py-3">Comments</th>
+                    <th className="px-4 py-3">Published</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPosts.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="border-t border-gray-800 hover:bg-gray-800/40"
+                    >
+                      <td className="px-4 py-3 max-w-xs">
+                        <p className="text-gray-100 truncate">{p.caption}</p>
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-300 capitalize">
+                        {p.platform}
+                      </td>
+                      <td className="px-4 py-3 text-center text-cyan-300">
+                        {p.metrics?.reach ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {p.metrics?.views ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {p.metrics?.likes ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {p.metrics?.comments ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-400">
+                        {p.publishedAt?.toDate
+                          ? p.publishedAt.toDate().toLocaleDateString()
+                          : p.publishedAt
+                            ? new Date(p.publishedAt as any).toLocaleDateString()
+                            : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Engagement snapshot still uses aggregate (you already have it) */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+            <h3 className="text-xl font-semibold mb-4">Engagement snapshot</h3>
+            <div className="grid md:grid-cols-4 gap-4 text-center text-sm">
+              <MiniStat label="Reach" value={aggregate.reach} />
+              <MiniStat label="Views" value={aggregate.views} />
+              <MiniStat label="Likes" value={aggregate.likes} />
+              <MiniStat label="Comments" value={aggregate.comments} />
+            </div>
+          </div>
+        </div>
+
 
         {/* Connected Accounts Section */}
         <div className="mb-12">
@@ -460,7 +582,11 @@ export default function DashboardPage() {
                     </div>
                     <button
                       onClick={() => {
-                        if (confirm(`Are you sure you want to disconnect ${account.platform}?`)) {
+                        if (
+                          confirm(
+                            `Are you sure you want to disconnect ${account.platform}?`,
+                          )
+                        ) {
                           handleDisconnectAccount(account.id);
                         }
                       }}
@@ -561,7 +687,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-sm text-blue-300">
-              Note: In production, this will redirect to the platform&apos;s OAuth login
+              Note: In production, this will redirect to the platform&apos;s OAuth login.
             </div>
 
             <div className="flex gap-4">
@@ -581,6 +707,35 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* Small components */
+
+function StatCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <div className="text-4xl mb-2">{icon}</div>
+      <p className="text-gray-400 mb-2">{label}</p>
+      <p className="text-3xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-gray-950/60 border border-gray-800 rounded-xl p-4">
+      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <p className="text-xl font-semibold">{value}</p>
     </div>
   );
 }
