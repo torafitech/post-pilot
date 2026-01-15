@@ -2,6 +2,7 @@
 'use client';
 
 import { AdsenseAd } from '@/components/AdsenseAd';
+import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { SocialPost } from '@/types/post';
@@ -102,6 +103,7 @@ export default function DashboardPage() {
       clearTimeout(timer2);
     };
   }, []);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Check authentication and fetch data
   useEffect(() => {
@@ -422,6 +424,13 @@ export default function DashboardPage() {
             >
               ✨ New post
             </Link>
+            <button
+              onClick={() => setShowPremiumModal(true)}
+              className="px-4 py-2 rounded-xl border border-amber-300 text-xs sm:text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 transition"
+            >
+              ⭐ Premium (coming soon)
+            </button>
+
             <button
               onClick={handleLogout}
               className="px-4 py-2 rounded-xl border border-slate-300 text-sm text-slate-700 bg-white hover:bg-slate-50 transition"
@@ -987,6 +996,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      <PremiumModal
+        open={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+      />
+
     </div>
   );
 }

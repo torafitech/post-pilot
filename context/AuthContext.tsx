@@ -1,24 +1,39 @@
 // context/AuthContext.tsx
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword,
-         createUserWithEmailAndPassword, signOut, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import {
+  browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut,
+  User,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 export interface UserProfile {
   uid: string;
   email: string;
   displayName: string;
   createdAt: Date;
+  mobile?: string;
+  plan?: string;
+  planStatus?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  register(email: string, password: string, displayName: string): Promise<void>;
+  register(
+    email: string,
+    password: string,
+    displayName: string,
+    mobile: string,
+  ): Promise<void>;
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
 }
@@ -32,21 +47,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Set persistence to local
-    setPersistence(auth, browserLocalPersistence).catch(err => console.error(err));
+    setPersistence(auth, browserLocalPersistence).catch((err) =>
+      console.error(err),
+    );
 
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
-        // Fetch user profile from Firestore
         try {
           const userDocRef = doc(db, 'users', u.uid);
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
+            const data = userDoc.data() as any;
             setUserProfile({
               uid: u.uid,
               email: u.email || '',
-              displayName: userDoc.data().displayName || '',
-              createdAt: userDoc.data().createdAt?.toDate?.() || new Date(),
+              displayName: data.displayName || '',
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              mobile: data.mobile,
+              plan: data.plan,
+              planStatus: data.planStatus,
             });
           }
         } catch (error) {
@@ -61,18 +81,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  const register = async (email: string, password: string, displayName: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Save user profile to Firestore
-    const userDocRef = doc(db, 'users', userCredential.user.uid);
-    await setDoc(userDocRef, {
-      uid: userCredential.user.uid,
-      email: email,
-      displayName: displayName,
-      createdAt: new Date(),
-      connectedAccounts: [],
-    });
+  const register = async (
+    email: string,
+    password: string,
+    displayName: string,
+    mobile: string,
+  ) => {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password,
+    );
+
+    const uid = userCredential.user.uid;
+
+    const userDocRef = doc(db, 'users', uid);
+    await setDoc(
+      userDocRef,
+      {
+        uid,
+        email,
+        displayName,
+        mobile,
+        createdAt: serverTimestamp(),
+        connectedAccounts: [],
+        plan: 'freemium',     // your free tier
+        planStatus: 'active', // current status
+      },
+      { merge: true },
+    );
   };
 
   const login = async (email: string, password: string) => {
@@ -84,7 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, register, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, userProfile, loading, register, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

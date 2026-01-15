@@ -1,6 +1,7 @@
 'use client';
 
 import FileUpload from '@/components/FileUpload';
+import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
 import { authFetch } from '@/lib/authClient';
 import { db } from '@/lib/firebase';
@@ -8,7 +9,6 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
 interface PlatformContent {
   caption: string;
   hashtags: string[];
@@ -45,7 +45,7 @@ export default function CreatePostPage() {
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('now');
   const [activeTab, setActiveTab] = useState<TabId>('content');
   const [aiTimeSlots, setAiTimeSlots] = useState<AiTimeSlot[]>([]);
-
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [formData, setFormData] = useState({
     mainCaption: '',
     platforms: [] as string[],
@@ -630,10 +630,8 @@ export default function CreatePostPage() {
                     </button> */}
                     <button
                       type="button"
-                      onClick={() =>
-                        alert('AI caption recommendations are part of the premium plan. You will be notified when it is available.')
-                      }
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-400 rounded-lg font-medium cursor-not-allowed"
+                      onClick={() => setShowPremiumModal(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg font-medium hover:from-cyan-400 hover:to-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span>✨ AI Enhance (Premium)</span>
                     </button>
@@ -666,8 +664,8 @@ export default function CreatePostPage() {
                     <li>📸 Instagram - Visual captions with emojis & hashtags</li>
                     <li>🎥 YouTube - SEO-optimized titles & descriptions</li>
                     <li>🐦 Twitter - Concise 280-char posts</li>
-                    <li>💼 LinkedIn - Professional tone & hashtags</li>
-                    <li>📱 TikTok - Trending hashtags & captions</li>
+                    {/* <li>💼 LinkedIn - Professional tone & hashtags</li>
+                    <li>📱 TikTok - Trending hashtags & captions</li> */}
                   </ul>
                 </div>
 
@@ -759,9 +757,9 @@ export default function CreatePostPage() {
                     { id: 'instagram', name: 'Instagram', icon: '📸', disabled: false },
                     { id: 'youtube', name: 'YouTube', icon: '🎥', disabled: false },
                     { id: 'twitter', name: 'Twitter/X', icon: '🐦', disabled: false },
-                    { id: 'linkedin', name: 'LinkedIn', icon: '💼', disabled: true },
-                    { id: 'tiktok', name: 'TikTok', icon: '📱', disabled: true },
-                    { id: 'facebook', name: 'Facebook', icon: '👍', disabled: true },
+                    // { id: 'linkedin', name: 'LinkedIn', icon: '💼', disabled: true },
+                    // { id: 'tiktok', name: 'TikTok', icon: '📱', disabled: true },
+                    // { id: 'facebook', name: 'Facebook', icon: '👍', disabled: true },
                   ].map((platform) => (
                     <label
                       key={platform.id}
@@ -929,7 +927,8 @@ export default function CreatePostPage() {
                       type="radio"
                       name="scheduleMode"
                       checked={scheduleMode === 'ai'}
-                      onChange={() => setScheduleMode('ai')}
+                      // onChange={() => setScheduleMode('ai')}
+                      onChange={() => setShowPremiumModal(true)}
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3 mb-2">
@@ -947,7 +946,9 @@ export default function CreatePostPage() {
                       type="radio"
                       name="scheduleMode"
                       checked={scheduleMode === 'custom'}
-                      onChange={() => setScheduleMode('custom')}
+                      // onChange={() => setScheduleMode('custom')}
+
+                      onChange={() => setShowPremiumModal(true)}
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3 mb-2">
@@ -1153,6 +1154,11 @@ export default function CreatePostPage() {
 
         </form>
       </div>
+      <PremiumModal
+        open={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+      />
+
     </div>
   );
 }

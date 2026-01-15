@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('');
@@ -12,7 +14,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mobile, setMobile] = useState('');
+  const [mobile, setMobile] = useState<string | undefined>();
 
   const { register } = useAuth();
   const router = useRouter();
@@ -22,30 +24,26 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
-    // Validation
     if (!displayName.trim()) {
       setError('Display name is required');
       setLoading(false);
       return;
     }
-    if (!mobile.trim()) {
+    if (!mobile) {
       setError('Mobile number is required');
       setLoading(false);
       return;
     }
-
     if (!email.trim()) {
       setError('Email is required');
       setLoading(false);
       return;
     }
-
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       setLoading(false);
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -53,7 +51,7 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(email, password, displayName);
+      await register(email, password, displayName, mobile);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -63,23 +61,28 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
+      {/* soft background gradient like dashboard */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/40 via-white to-purple-100/40" />
+
+      <div className="relative w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🚀</div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-2">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center justify-center text-2xl text-white shadow-sm">
+            🚀
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-1">
             PostPilot
           </h1>
-          <p className="text-gray-400">Join thousands of creators</p>
+          <p className="text-slate-500 text-sm">Join thousands of creators</p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold mb-6">Create Account</h2>
+        {/* Form Card (glass / light like dashboard cards) */}
+        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-8 shadow-sm">
+          <h2 className="text-2xl font-bold mb-6 text-slate-900">Create Account</h2>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}
             </div>
           )}
@@ -87,60 +90,77 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Display Name */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Full Name</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Full Name
+              </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
               />
             </div>
-            {/* Mobile */}
+
+            {/* Mobile with react-phone-number-input */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Mobile Number</label>
-              <input
-                type="tel"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                placeholder="+91 98765 43210"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
-              />
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Mobile Number
+              </label>
+              <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 focus-within:border-cyan-500 transition">
+                <PhoneInput
+                  international
+                  defaultCountry="IN"
+                  value={mobile}
+                  onChange={setMobile}
+                  className="text-sm text-slate-900"
+                  placeholder="Enter mobile number"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Stored in international format with country code.
+              </p>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Email Address</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Email Address
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Password</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
               />
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Confirm Password</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Confirm Password
+              </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
               />
             </div>
 
@@ -148,34 +168,37 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition mt-6"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold text-white text-sm shadow-sm transition mt-4"
             >
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
           {/* Login Link */}
-          <p className="text-center text-gray-400 mt-6">
-            Already have an account?{' '}
-            <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-semibold">
+          <p className="text-center text-slate-500 mt-6 text-sm">
+            Already have an account{' '}
+            <Link
+              href="/login"
+              className="text-cyan-600 hover:text-cyan-500 font-semibold"
+            >
               Sign In
             </Link>
           </p>
         </div>
 
-        {/* Benefits */}
-        <div className="mt-8 grid grid-cols-3 gap-4 text-center text-sm">
+        {/* Benefits (light version) */}
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center text-xs">
           <div>
             <div className="text-2xl mb-2">✨</div>
-            <p className="text-gray-400">AI-Powered Content</p>
+            <p className="text-slate-500">AI-Powered Content</p>
           </div>
           <div>
             <div className="text-2xl mb-2">📊</div>
-            <p className="text-gray-400">Smart Analytics</p>
+            <p className="text-slate-500">Smart Analytics</p>
           </div>
           <div>
             <div className="text-2xl mb-2">🚀</div>
-            <p className="text-gray-400">Auto Posting</p>
+            <p className="text-slate-500">Auto Posting</p>
           </div>
         </div>
       </div>
