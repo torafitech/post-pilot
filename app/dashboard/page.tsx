@@ -17,15 +17,50 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 
 interface ConnectedAccount {
   id: string;
-  platform: string; // e.g. "YouTube"
+  platform: string;
   accountName: string;
   accessToken: string;
   refreshToken?: string | null;
   connectedAt: Date;
 }
+
+// Platform icons mapping
+const platformIcons: Record<string, string> = {
+  instagram: '📸',
+  youtube: '🎥',
+  twitter: '🐦',
+  'twitter/x': '🐦',
+  tiktok: '🎵',
+  linkedin: '💼',
+  facebook: '👍',
+  pinterest: '📌',
+};
+
+// Platform colors for charts
+const platformColors: Record<string, string> = {
+  instagram: '#E1306C',
+  youtube: '#FF0000',
+  twitter: '#1DA1F2',
+  'twitter/x': '#1DA1F2',
+  tiktok: '#000000',
+  linkedin: '#0077B5',
+  facebook: '#1877F2',
+  pinterest: '#E60023',
+  default: '#22C55E',
+};
 
 export default function DashboardPage() {
   const { user, userProfile, loading: authLoading, logout } = useAuth();
@@ -35,20 +70,19 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState('instagram');
-  const [enhancingCaption, setEnhancingCaption] = useState(false);
-  const [enhancedText, setEnhancedText] = useState('');
 
   // posts + loading state
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [syncingPosts, setSyncingPosts] = useState(false);
-  // inside DashboardPage component, add this state near other useState:
-  const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<'all' | 'instagram' | 'twitter' | 'youtube'>('all');
-  const filteredPosts = posts.filter((p) =>
-    selectedPlatformFilter === 'all'
-      ? true
-      : p.platform?.toLowerCase() === selectedPlatformFilter,
-  );
+  const [selectedPlatformFilter, setSelectedPlatformFilter] = useState<
+    'all' | 'instagram' | 'twitter' | 'youtube' | 'tiktok' | 'linkedin'
+  >('all');
+
+  // Animation states
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [cardsVisible, setCardsVisible] = useState(false);
+
   const platforms = [
     'Instagram',
     'TikTok',
@@ -58,6 +92,16 @@ export default function DashboardPage() {
     'Facebook',
     'Pinterest',
   ];
+
+  // Trigger animations
+  useEffect(() => {
+    const timer1 = setTimeout(() => setStatsVisible(true), 100);
+    const timer2 = setTimeout(() => setCardsVisible(true), 300);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
 
   // Check authentication and fetch data
   useEffect(() => {
@@ -69,7 +113,6 @@ export default function DashboardPage() {
 
     fetchConnectedAccounts();
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router, userProfile]);
 
   const fetchConnectedAccounts = async () => {
@@ -86,8 +129,7 @@ export default function DashboardPage() {
 
         connectedAccountsList.forEach((account: any) => {
           const platformKey = account.platform || 'account';
-          const platformLabel =
-            platformKey.charAt(0).toUpperCase() + platformKey.slice(1);
+          const platformLabel = platformKey.charAt(0).toUpperCase() + platformKey.slice(1);
 
           let connectedAt: Date = new Date();
           if (account.connectedAt?.toDate) {
@@ -115,7 +157,6 @@ export default function DashboardPage() {
     }
   };
 
-  // fetch posts for this user
   const fetchPosts = async () => {
     if (!user) return;
     try {
@@ -128,7 +169,6 @@ export default function DashboardPage() {
       snap.forEach((docSnap) =>
         list.push({ id: docSnap.id, ...(docSnap.data() as any) }),
       );
-      console.log('[DASHBOARD] Loaded posts', list);
       setPosts(list);
     } catch (error: any) {
       console.error('❌ Error fetching posts:', error);
@@ -137,7 +177,6 @@ export default function DashboardPage() {
     }
   };
 
-  // trigger sync metrics API
   const handleSyncPosts = async () => {
     if (!user) return;
     try {
@@ -247,41 +286,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleEnhanceCaption = async () => {
-    if (!enhancedText.trim()) {
-      alert('Please enter text to enhance');
-      return;
-    }
-
-    try {
-      setEnhancingCaption(true);
-
-      const response = await fetch('/api/ai/enhance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caption: enhancedText,
-          platform: selectedPlatform,
-          tone: 'engaging',
-          contentType: 'post',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.enhancedCaption) {
-        alert('✨ Enhanced Caption:\n\n' + data.enhancedCaption);
-      } else {
-        alert('❌ Error: ' + (data.error || 'Could not enhance caption'));
-      }
-    } catch (error: any) {
-      console.error('❌ Error calling AI enhance API:', error);
-      alert('❌ Error: ' + error.message);
-    } finally {
-      setEnhancingCaption(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -291,7 +295,7 @@ export default function DashboardPage() {
     }
   };
 
-  // compute aggregate BEFORE any early returns, no hooks here
+  // Process data for charts
   const aggregate = (() => {
     let reach = 0;
     let views = 0;
@@ -308,12 +312,84 @@ export default function DashboardPage() {
     return { reach, views, likes, comments };
   })();
 
+  // Prepare data for platform distribution chart
+  const platformDistribution = Object.entries(
+    posts.reduce((acc: Record<string, number>, post) => {
+      const platform = post.platform?.toLowerCase() || 'other';
+      acc[platform] = (acc[platform] || 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([platform, count]) => ({
+    name: platform.charAt(0).toUpperCase() + platform.slice(1),
+    value: count,
+    color: platformColors[platform] || platformColors.default,
+  }));
+
+  // Prepare engagement trend data from real posts (last 7 days)
+  const engagementTrend = (() => {
+    const days = 7;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // init buckets for each of the last 7 days
+    const buckets: { [key: string]: { dateLabel: string; engagement: number; reach: number } } = {};
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      buckets[key] = {
+        dateLabel: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        engagement: 0,
+        reach: 0,
+      };
+    }
+
+    // aggregate posts into those buckets
+    posts.forEach((p) => {
+      const published =
+        p.publishedAt?.toDate?.() ??
+        (p.publishedAt ? new Date(p.publishedAt as any) : null);
+      if (!published) return;
+
+      published.setHours(0, 0, 0, 0);
+      const key = published.toISOString().slice(0, 10);
+      if (!buckets[key]) return; // outside last 7 days
+
+      const likes = p.metrics?.likes || 0;
+      const comments = p.metrics?.comments || 0;
+      const reach = p.metrics?.reach || 0;
+
+      buckets[key].engagement += likes + comments;
+      buckets[key].reach += reach;
+    });
+
+    return Object.values(buckets);
+  })();
+
+  // Top performing posts
+  const topPosts = [...posts]
+    .sort(
+      (a, b) =>
+        (b.metrics?.likes || 0) +
+        (b.metrics?.comments || 0) -
+        ((a.metrics?.likes || 0) + (a.metrics?.comments || 0)),
+    )
+    .slice(0, 5);
+
+  // Filter posts for table
+  const filteredPosts = posts.filter((p) =>
+    selectedPlatformFilter === 'all'
+      ? true
+      : p.platform?.toLowerCase() === selectedPlatformFilter,
+  );
+
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4">🚀</div>
-          <p className="text-gray-400">Loading...</p>
+          <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-500 text-lg">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -322,30 +398,33 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-hidden">
+      {/* Soft background accent */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/40 via-white to-purple-100/40" />
+
       {/* Navigation */}
-      <nav className="border-b border-gray-800 sticky top-0 z-40 bg-black/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-3xl">🚀</div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              PostPilot
-            </span>
+      <nav className="relative z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center text-xl text-white shadow-sm">
+              🚀
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-slate-800">PostPilot</span>
+              <span className="text-xs text-slate-400">Creator analytics</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <Link href="/posts/create" className="text-gray-300 hover:text-white transition">
-              Create Post
-            </Link>
+          <div className="flex items-center gap-3">
             <Link
-              href="/settings/connections"
-              className="text-gray-300 hover:text-white transition"
+              href="/posts/create"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium shadow-sm hover:shadow transition"
             >
-              Settings
+              ✨ New post
             </Link>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg font-semibold transition"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-sm text-slate-700 bg-white hover:bg-slate-50 transition"
             >
               Logout
             </button>
@@ -354,260 +433,252 @@ export default function DashboardPage() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-5xl font-bold mb-2">
-            Welcome back,{' '}
-            <span className="bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              {userProfile?.displayName}
-            </span>
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Manage your social media accounts, track performance, and create amazing content.
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-12">
-          <StatCard icon="📱" label="Connected Accounts" value={connectedAccounts.length} />
-          <StatCard icon="📝" label="Posts (tracked)" value={posts.length} />
-          <StatCard icon="📊" label="Total Reach" value={aggregate.reach} />
-          <StatCard icon="👀" label="Total Views" value={aggregate.views} />
-        </div>
-
-        {/* AI Enhancement Section */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">✨ AI Caption Enhancement</h2>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-            <p className="text-gray-400 mb-4">
-              Use AI to enhance your captions and make them more engaging for your chosen
-              platform.
-            </p>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3">Platform</label>
-              <select
-                value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white"
-              >
-                {platforms.map((p) => (
-                  <option key={p} value={p.toLowerCase()}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3">Your Caption</label>
-              <textarea
-                value={enhancedText}
-                onChange={(e) => setEnhancedText(e.target.value)}
-                placeholder="Enter your caption here..."
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white h-32 resize-none"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                {enhancedText.length} characters
-              </p>
-            </div>
-
-            <button
-              onClick={handleEnhanceCaption}
-              disabled={enhancingCaption || !enhancedText.trim()}
-              className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition"
-            >
-              {enhancingCaption ? '🔄 Enhancing...' : '✨ Enhance Caption'}
-            </button>
-
-            <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg text-sm text-purple-300">
-              💡 Tip: AI enhancement will optimize your caption for engagement, add relevant
-              emojis and hashtags based on the platform.
-            </div>
-          </div>
-        </div>
-
-        {/* Posts & Performance */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-10">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Posts & performance</h2>
-              <p className="text-gray-500 text-sm">
-                View metrics fetched directly from each social platform.
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                Welcome back,{' '}
+                <span className="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                  {userProfile?.displayName}
+                </span>
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                Monitor performance across all your connected platforms.
               </p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={handleSyncPosts}
                 disabled={syncingPosts}
-                className="bg-gray-900 border border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 px-4 py-2 rounded-lg font-semibold text-sm disabled:opacity-50 transition"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-300 bg-white text-xs sm:text-sm text-slate-700 hover:border-cyan-400 hover:bg-cyan-50/60 disabled:opacity-60 transition"
               >
-                {syncingPosts ? '🔄 Syncing...' : '🔁 Sync metrics'}
+                {syncingPosts ? (
+                  <>
+                    <span className="animate-spin">⟳</span>
+                    <span>Syncing…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔁</span>
+                    <span>Sync metrics</span>
+                  </>
+                )}
               </button>
-              <Link
-                href="/posts/create"
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-4 py-2 rounded-lg font-semibold text-sm"
-              >
-                + New Post
-              </Link>
-            </div>
-          </div>
-
-          {/* Platform filter tabs */}
-          <div className="flex gap-2 mb-4 text-sm">
-            {[
-              { key: 'all', label: 'All' },
-              { key: 'instagram', label: 'Instagram' },
-              { key: 'twitter', label: 'Twitter / X' },
-              { key: 'youtube', label: 'YouTube' },
-            ].map((tab) => {
-              const active = selectedPlatformFilter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setSelectedPlatformFilter(tab.key as any)}
-                  className={[
-                    'px-4 py-2 rounded-full border text-xs md:text-sm font-semibold transition',
-                    active
-                      ? 'bg-cyan-500 text-black border-cyan-400'
-                      : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-cyan-500/60',
-                  ].join(' ')}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {postsLoading ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              Loading posts...
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-              No posts for this filter yet. Create a post and sync metrics.
-            </div>
-          ) : (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden mb-6">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-950/60 text-gray-400">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Post</th>
-                    <th className="px-4 py-3">Platform</th>
-                    <th className="px-4 py-3">Reach</th>
-                    <th className="px-4 py-3">Views</th>
-                    <th className="px-4 py-3">Likes</th>
-                    <th className="px-4 py-3">Comments</th>
-                    <th className="px-4 py-3">Published</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPosts.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="border-t border-gray-800 hover:bg-gray-800/40"
-                    >
-                      <td className="px-4 py-3 max-w-xs">
-                        <p className="text-gray-100 truncate">{p.caption}</p>
-                      </td>
-                      <td className="px-4 py-3 text-center text-gray-300 capitalize">
-                        {p.platform}
-                      </td>
-                      <td className="px-4 py-3 text-center text-cyan-300">
-                        {p.metrics?.reach ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {p.metrics?.views ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {p.metrics?.likes ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {p.metrics?.comments ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center text-gray-400">
-                        {p.publishedAt?.toDate
-                          ? p.publishedAt.toDate().toLocaleDateString()
-                          : p.publishedAt
-                            ? new Date(p.publishedAt as any).toLocaleDateString()
-                            : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Engagement snapshot still uses aggregate (you already have it) */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <h3 className="text-xl font-semibold mb-4">Engagement snapshot</h3>
-            <div className="grid md:grid-cols-4 gap-4 text-center text-sm">
-              <MiniStat label="Reach" value={aggregate.reach} />
-              <MiniStat label="Views" value={aggregate.views} />
-              <MiniStat label="Likes" value={aggregate.likes} />
-              <MiniStat label="Comments" value={aggregate.comments} />
             </div>
           </div>
         </div>
 
+        {/* Quick Stats Grid */}
+        <div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+        >
+          <StatCard
+            icon="📱"
+            label="Connected accounts"
+            value={connectedAccounts.length}
+            gradient="from-cyan-400 to-blue-400"
+            delay={0}
+          />
+          <StatCard
+            icon="📝"
+            label="Total posts"
+            value={posts.length}
+            gradient="from-indigo-400 to-fuchsia-400"
+            delay={80}
+          />
+          <StatCard
+            icon="👥"
+            label="Total reach"
+            value={aggregate.reach.toLocaleString()}
+            gradient="from-emerald-400 to-teal-400"
+            delay={160}
+          />
+          <StatCard
+            icon="💬"
+            label="Total interactions"
+            value={(aggregate.likes + aggregate.comments).toLocaleString()}
+            gradient="from-orange-400 to-rose-400"
+            delay={240}
+          />
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          {/* Platform Distribution */}
+          <div
+            className={`bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-slate-900">
+                Platform distribution
+              </h3>
+              <div className="w-8 h-8 rounded-full bg-cyan-50 flex items-center justify-center text-lg">
+                📊
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Number of posts per platform.
+            </p>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={platformDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {platformDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {platformDistribution.map((platform, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200"
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: platform.color }}
+                  />
+                  <span className="text-xs text-slate-700">{platform.name}</span>
+                  <span className="text-xs text-slate-400">({platform.value})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Engagement Trend */}
+          <div
+            className={`bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-slate-900">
+                Engagement trend
+              </h3>
+              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-lg">
+                📈
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Daily engagement over the last 7 days (sampled).
+            </p>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={engagementTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <defs>
+                    <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="engagement"
+                    stroke="#6366F1"
+                    fill="url(#colorEngagement)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
         {/* Connected Accounts Section */}
-        <div className="mb-12">
+        <div
+          className={`mb-10 transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+        >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">Connected Accounts</h2>
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Connected accounts
+              </h2>
+              <p className="text-xs text-slate-500">
+                Manage and monitor your social integrations.
+              </p>
+            </div>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-6 py-2 rounded-lg font-semibold transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium shadow-sm hover:shadow transition"
             >
-              + Connect Account
+              <span className="text-lg">+</span>
+              <span>Connect account</span>
             </button>
           </div>
 
           {connectedAccounts.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {connectedAccounts.map((account) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {connectedAccounts.map((account, index) => (
                 <div
                   key={account.id}
-                  className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-cyan-500/50 transition"
+                  className="group bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-cyan-300 transition"
+                  style={{ animationDelay: `${index * 80}ms` }}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold">{account.platform}</h3>
-                      <p className="text-gray-400">{account.accountName}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xl">
+                        {platformIcons[account.platform.toLowerCase()] || '📱'}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900">
+                          {account.platform}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {account.accountName}
+                        </p>
+                      </div>
                     </div>
+                    <div className="flex items-center gap-1 text-xs text-emerald-500">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Active</span>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 mb-4">
+                    Connected on {account.connectedAt.toLocaleDateString()}
+                  </div>
+
+                  <div className="flex gap-2 text-xs">
                     <button
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Are you sure you want to disconnect ${account.platform}?`,
-                          )
-                        ) {
-                          handleDisconnectAccount(account.id);
-                        }
-                      }}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg transition text-2xl"
-                      title="Disconnect account"
+                      onClick={() =>
+                        router.push(
+                          `/analytics?platform=${account.platform.toLowerCase()}`,
+                        )
+                      }
+                      className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:border-cyan-400 hover:bg-cyan-50/60 transition"
                     >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-500 mb-4">
-                    <div>
-                      🔗 Connected on{' '}
-                      {account.connectedAt instanceof Date
-                        ? account.connectedAt.toLocaleDateString()
-                        : new Date(account.connectedAt).toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-1">ID: {account.id}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <button className="w-full border border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 px-4 py-2 rounded-lg font-semibold transition text-sm">
-                      📊 View Analytics
+                      📊 View analytics
                     </button>
                     <button
                       onClick={() => {
@@ -615,91 +686,288 @@ export default function DashboardPage() {
                           handleDisconnectAccount(account.id);
                         }
                       }}
-                      className="w-full border border-red-500 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-lg font-semibold transition text-sm"
+                      className="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-400 hover:bg-rose-100 transition"
+                      title="Disconnect"
                     >
-                      🔌 Disconnect
+                      ✕
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
-              <div className="text-6xl mb-4">📱</div>
-              <h3 className="text-2xl font-bold mb-2">No Connected Accounts</h3>
-              <p className="text-gray-400 mb-6">
-                Connect your social media accounts to start scheduling posts
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-3xl">
+                📱
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                No connected accounts yet
+              </h3>
+              <p className="text-sm text-slate-500 mb-5 max-w-md mx-auto">
+                Connect your social media accounts to start tracking performance in one
+                place.
               </p>
               <button
                 onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-8 py-3 rounded-lg font-bold transition"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium shadow-sm hover:shadow transition"
               >
-                Connect Your First Account
+                Connect your first account
               </button>
             </div>
           )}
         </div>
 
-        {/* Recent Activity */}
-        <div>
-          <h2 className="text-3xl font-bold mb-6">Recent Activity</h2>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
-            <p className="text-gray-400">No posts yet. Start creating amazing content!</p>
-            <Link
-              href="/posts/create"
-              className="inline-block mt-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-8 py-3 rounded-lg font-bold transition"
-            >
-              Create Your First Post
-            </Link>
+        {/* Posts Performance Section */}
+        <div
+          className={`mb-10 transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Posts performance
+              </h2>
+              <p className="text-xs text-slate-500">
+                See how your recent content is performing.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex bg-white border border-slate-200 rounded-xl p-1 text-xs">
+                {['all', 'instagram', 'twitter', 'youtube', 'tiktok'].map((platform) => (
+                  <button
+                    key={platform}
+                    onClick={() =>
+                      setSelectedPlatformFilter(platform as any)
+                    }
+                    className={`px-3 py-1.5 rounded-lg font-medium transition ${selectedPlatformFilter === platform
+                        ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                        : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                  >
+                    {platform === 'all'
+                      ? 'All'
+                      : platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Top Performing Posts */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              Top performing posts
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {topPosts.slice(0, 3).map((post, index) => (
+                <div
+                  key={post.id}
+                  className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
+                        {platformIcons[post.platform?.toLowerCase() || 'default'] || '📝'}
+                      </div>
+                      <span className="text-xs font-medium text-slate-700 capitalize">
+                        {post.platform}
+                      </span>
+                    </div>
+                    <div
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${index === 0
+                          ? 'bg-amber-100 text-amber-700'
+                          : index === 1
+                            ? 'bg-slate-100 text-slate-700'
+                            : 'bg-orange-100 text-orange-700'
+                        }`}
+                    >
+                      #{index + 1}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-700 mb-3 line-clamp-2">
+                    {post.caption}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <div className="text-sm font-semibold text-cyan-700">
+                        {post.metrics?.likes || 0}
+                      </div>
+                      <div className="text-[10px] text-slate-500">Likes</div>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <div className="text-sm font-semibold text-indigo-700">
+                        {post.metrics?.comments || 0}
+                      </div>
+                      <div className="text-[10px] text-slate-500">Comments</div>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+                      <div className="text-sm font-semibold text-rose-700">
+                        {post.metrics?.reach || 0}
+                      </div>
+                      <div className="text-[10px] text-slate-500">Reach</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Performance Metrics Table */}
+          <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                      Post content
+                    </th>
+                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                      Platform
+                    </th>
+                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                      Engagement
+                    </th>
+                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                      Reach
+                    </th>
+                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                      Published
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredPosts.slice(0, 5).map((post) => (
+                    <tr
+                      key={post.id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-6 py-3">
+                        <div className="max-w-xs">
+                          <p className="text-xs text-slate-800 truncate">
+                            {post.caption}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {(post.caption?.length || 0) + ' characters'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-sm">
+                            {platformIcons[post.platform?.toLowerCase() || 'default'] ||
+                              '📝'}
+                          </div>
+                          <span className="text-xs text-slate-700 capitalize">
+                            {post.platform}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-4">
+                          <div className="text-center">
+                            <div className="text-sm font-semibold text-cyan-700">
+                              {post.metrics?.likes || 0}
+                            </div>
+                            <div className="text-[10px] text-slate-400">Likes</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-sm font-semibold text-indigo-700">
+                              {post.metrics?.comments || 0}
+                            </div>
+                            <div className="text-[10px] text-slate-400">Comments</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="text-sm font-semibold text-rose-700">
+                          {post.metrics?.reach || 0}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="text-xs text-slate-500">
+                          {post.publishedAt?.toDate
+                            ? post.publishedAt.toDate().toLocaleDateString()
+                            : post.publishedAt
+                              ? new Date(post.publishedAt as any).toLocaleDateString()
+                              : '—'}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredPosts.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-6 text-center text-xs text-slate-400"
+                      >
+                        No posts yet for this filter. Create a post and sync metrics.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Connect Account Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold">Connect Account</h3>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-7 max-w-md w-full shadow-lg">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Connect account
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Choose a platform to connect via OAuth.
+                </p>
+              </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="text-slate-400 hover:text-slate-700 text-xl"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-gray-400 mb-6">Select a platform to connect</p>
+            <div className="mb-6">
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
+                Platform
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedPlatform}
+                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 focus:border-cyan-500 focus:outline-none text-sm text-slate-800 appearance-none"
+                >
+                  {platforms.map((p) => (
+                    <option key={p} value={p.toLowerCase()}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                  ▼
+                </div>
+              </div>
+            </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3">Platform</label>
-              <select
-                value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white"
-              >
-                {platforms.map((p) => (
-                  <option key={p} value={p.toLowerCase()}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              <div className="w-full h-1 rounded-full bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400" />
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6 text-sm text-blue-300">
-              Note: In production, this will redirect to the platform&apos;s OAuth login.
-            </div>
-
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 border border-gray-700 hover:border-gray-600 px-4 py-3 rounded-lg font-semibold transition"
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConnectAccount}
-                className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 px-4 py-3 rounded-lg font-semibold transition"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium shadow-sm hover:shadow transition"
               >
                 Connect
               </button>
@@ -711,31 +979,35 @@ export default function DashboardPage() {
   );
 }
 
-/* Small components */
-
+/* Stat Card Component */
 function StatCard({
   icon,
   label,
   value,
+  gradient,
+  delay,
 }: {
   icon: string;
   label: string;
   value: number | string;
+  gradient: string;
+  delay: number;
 }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-      <div className="text-4xl mb-2">{icon}</div>
-      <p className="text-gray-400 mb-2">{label}</p>
-      <p className="text-3xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-gray-950/60 border border-gray-800 rounded-xl p-4">
-      <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <p className="text-xl font-semibold">{value}</p>
+    <div
+      className="group bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-transform duration-300 hover:-translate-y-0.5"
+      style={{
+        animationDelay: `${delay}ms`,
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-2xl">{icon}</div>
+        <div
+          className={`w-9 h-9 rounded-xl bg-gradient-to-r ${gradient} opacity-20 group-hover:opacity-40 transition-opacity`}
+        />
+      </div>
+      <p className="text-xs text-slate-500 mb-1">{label}</p>
+      <p className="text-2xl font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
