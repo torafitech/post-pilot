@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, BarChart3, Brain, CheckCircle, Play, Rocket, Sparkles, TrendingUp, Users, Zap } from 'lucide-react';
+import { ArrowRight, BarChart3, Brain, CheckCircle, Play, Rocket, Sparkles, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -124,133 +124,82 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works - Step by Step */}
+      {/* How It Works - Scroll Stack */}
       <section className="py-32 px-4 border-t border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">How It Works</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Four simple steps to social media mastery</p>
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              How It Works
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Four simple steps to automate your social media
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="space-y-12">
             {[
-              { step: 1, title: "Connect", desc: "Link all your social accounts in seconds", icon: "🔗", color: "from-blue-50 to-blue-100" },
-              { step: 2, title: "Create or Generate", desc: "Write or let AI craft perfect posts", icon: "✨", color: "from-cyan-50 to-cyan-100" },
-              { step: 3, title: "Optimize", desc: "AI suggests best times and hashtags", icon: "🎯", color: "from-blue-50 to-blue-100" },
-              { step: 4, title: "Post & Analyze", desc: "One-click publishing with real-time stats", icon: "📊", color: "from-cyan-50 to-cyan-100" }
+              {
+                step: 'Step 1',
+                title: 'Connect your accounts',
+                desc: 'Link Instagram, YouTube and X in seconds. No complex setup or API headache.',
+                badge: 'Setup in minutes',
+                imageEmoji: '🔗',
+              },
+              {
+                step: 'Step 2',
+                title: 'Create or let AI write',
+                desc: 'Write once or let AI generate platform‑perfect captions and hashtags.',
+                badge: 'AI powered',
+                imageEmoji: '✨',
+              },
+              {
+                step: 'Step 3',
+                title: 'Pick your schedule',
+                desc: 'Post now or use advanced scheduling and AI‑recommended times (coming soon).',
+                badge: 'Smart timing',
+                imageEmoji: '⏰',
+              },
+              {
+                step: 'Step 4',
+                title: 'Track performance',
+                desc: 'See reach, engagement and top posts in a single clean dashboard.',
+                badge: 'Live analytics',
+                imageEmoji: '📊',
+              },
             ].map((item, idx) => (
-              <div key={idx} className="relative group">
-                {idx < 3 && (
-                  <div className="hidden md:block absolute top-24 left-[110%] w-12 h-1 bg-gradient-to-r from-blue-400 to-transparent"></div>
-                )}
-                <div className={`p-8 rounded-2xl border border-gray-300 bg-gradient-to-br ${item.color} hover:border-blue-400 transition transform hover:scale-105 hover:shadow-xl cursor-pointer`}>
-                  <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-4xl mx-auto mb-4 shadow-md border border-gray-100 group-hover:shadow-lg transition">
-                    {item.icon}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm font-bold text-blue-600 mb-2">STEP {item.step}</div>
-                    <h4 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h4>
-                    <p className="text-gray-700">{item.desc}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Features Grid with Card Flip */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">AI-Powered Features</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Everything creators need to dominate their social presence</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Content Generation",
-                desc: "Generate captions, hashtags, and posts powered by GPT-4. Never face writer's block again.",
-                icon: <Sparkles className="w-10 h-10" />,
-                image: "📝",
-                bgColor: "from-blue-50 to-blue-100",
-                iconBg: "bg-blue-100",
-                iconColor: "text-blue-600"
-              },
-              {
-                title: "Smart Scheduling",
-                desc: "AI predicts the perfect time to post on each platform for maximum engagement.",
-                icon: <TrendingUp className="w-10 h-10" />,
-                image: "⏰",
-                bgColor: "from-cyan-50 to-cyan-100",
-                iconBg: "bg-cyan-100",
-                iconColor: "text-cyan-600"
-              },
-              {
-                title: "Auto Hashtags",
-                desc: "Get trending, relevant hashtags automatically to boost visibility and reach.",
-                icon: <Zap className="w-10 h-10" />,
-                image: "#️⃣",
-                bgColor: "from-blue-50 to-blue-100",
-                iconBg: "bg-blue-100",
-                iconColor: "text-blue-600"
-              },
-              {
-                title: "Multi-Platform Sync",
-                desc: "Post once, adapt for all platforms. AI customizes content for each network.",
-                icon: <Users className="w-10 h-10" />,
-                image: "🌐",
-                bgColor: "from-cyan-50 to-cyan-100",
-                iconBg: "bg-cyan-100",
-                iconColor: "text-cyan-600"
-              },
-              {
-                title: "Predictive Analytics",
-                desc: "Know which content will perform before you post with AI-powered insights.",
-                icon: <BarChart3 className="w-10 h-10" />,
-                image: "📈",
-                bgColor: "from-blue-50 to-blue-100",
-                iconBg: "bg-blue-100",
-                iconColor: "text-blue-600"
-              },
-              {
-                title: "Auto-Reposting",
-                desc: "Automatically repost your best content to different audiences. 2-3x more reach.",
-                icon: <Rocket className="w-10 h-10" />,
-                image: "🚀",
-                bgColor: "from-cyan-50 to-cyan-100",
-                iconBg: "bg-cyan-100",
-                iconColor: "text-cyan-600"
-              }
-            ].map((feature, idx) => (
               <div
                 key={idx}
-                onMouseEnter={() => setHoveredCard(idx)}
-                onMouseLeave={() => setHoveredCard(null)}
-                className={`group relative h-80 cursor-pointer transition-all duration-500 transform ${hoveredCard === idx ? 'scale-105' : ''
-                  }`}
-                style={{
-                  perspective: '1000px',
-                  transformStyle: 'preserve-3d'
-                }}
+                className="grid md:grid-cols-2 gap-10 items-center"
               >
-                {/* Card Front */}
-                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-300 bg-gradient-to-br ${feature.bgColor} shadow-lg transition-all duration-500 flex flex-col justify-between ${hoveredCard === idx ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                  }`}>
-                  <div>
-                    <div className={`w-14 h-14 rounded-xl ${feature.iconBg} ${feature.iconColor} flex items-center justify-center mb-4`}>
-                      {feature.icon}
+                {/* Left: image / mock card */}
+                <div className="order-1 md:order-none">
+                  <div className="relative group">
+                    <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/30 to-cyan-200/30 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition" />
+                    <div className="relative rounded-3xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-xl overflow-hidden group-hover:shadow-2xl transform group-hover:scale-[1.02] transition">
+                      <div className="aspect-video flex items-center justify-center">
+                        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-5xl text-white shadow-2xl group-hover:scale-110 transition-transform">
+                          {item.imageEmoji}
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                   </div>
-                  <div className="text-5xl text-center">{feature.image}</div>
                 </div>
 
-                {/* Card Back */}
-                <div className={`absolute w-full h-full p-8 rounded-2xl border-2 border-gray-900 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-xl transition-all duration-500 flex items-center justify-center ${hoveredCard === idx ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                  }`}>
-                  <p className="text-lg text-center font-medium leading-relaxed">{feature.desc}</p>
+                {/* Right: text */}
+                <div className="space-y-3">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
+                    {item.step}
+                  </span>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {item.title}
+                  </h3>
+                  <p className="text-base text-gray-600">
+                    {item.desc}
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200 text-xs font-semibold text-blue-700">
+                    <Sparkles className="w-4 h-4" />
+                    <span>{item.badge}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -258,51 +207,188 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-white">
+
+      {/* AI Features - Scroll Stack */}
+      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Why PostPilot Wins</h2>
-            <p className="text-xl text-gray-600">The most advanced AI social media tool available</p>
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              AI that actually does the work
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              PostPilot handles the heavy lifting so you can focus on creating.
+            </p>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-gray-300 shadow-xl">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-                  <th className="px-6 py-5 text-left font-bold text-lg">Feature</th>
-                  <th className="px-6 py-5 text-center font-bold text-lg">PostPilot</th>
-                  <th className="px-6 py-5 text-center font-bold text-lg">Buffer</th>
-                  <th className="px-6 py-5 text-center font-bold text-lg">Hootsuite</th>
-                  <th className="px-6 py-5 text-center font-bold text-lg">SocialBee</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {[
-                  { feature: "Advanced AI Content Gen", postpilot: "✓ GPT-4", others: ["Basic", "Basic", "Basic"] },
-                  { feature: "Auto-Reposting (AI)", postpilot: "✓ Yes", others: ["✗", "✗", "✗"] },
-                  { feature: "Predictive Analytics", postpilot: "✓ Yes", others: ["✗", "✗", "✗"] },
-                  { feature: "Smart Platform Adaptation", postpilot: "✓ AI", others: ["Manual", "Manual", "Manual"] },
-                  { feature: "Platforms Supported", postpilot: "12+", others: ["11", "8+", "10+"] },
-                  { feature: "AI Included (No Extra)", postpilot: "✓ Yes", others: ["Extra", "Extra", "Extra"] },
-                  { feature: "Starting Price", postpilot: "$19/mo", others: ["$15", "$49", "$35"] }
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50 transition">
-                    <td className="px-6 py-4 font-semibold text-gray-900">{row.feature}</td>
-                    <td className="px-6 py-4 text-center"><span className="font-bold text-green-600">{row.postpilot}</span></td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.others[0]}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.others[1]}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{row.others[2]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: hero image / mock dashboard with hover zoom */}
+            <div className="order-1 md:order-none">
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/40 to-cyan-200/40 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition" />
+                <div className="relative rounded-3xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-2xl overflow-hidden transform group-hover:scale-[1.02] transition">
+                  <div className="aspect-video flex flex-col justify-between p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl">
+                          🤖
+                        </div>
+                        <span className="text-sm font-semibold text-gray-800">
+                          AI Assistant
+                        </span>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
+                        Smart Mode
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                        <p className="text-[11px] text-gray-500">Best time today</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">7:30 PM</p>
+                      </div>
+                      <div className="rounded-xl bg-cyan-50 border border-cyan-100 p-3">
+                        <p className="text-[11px] text-gray-500">Caption ideas</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">12</p>
+                      </div>
+                      <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                        <p className="text-[11px] text-gray-500">Hashtags</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">#growth</p>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-gray-900 text-white px-4 py-3 text-xs flex items-center justify-between">
+                      <span className="opacity-80">
+                        “Drafted an Instagram + YouTube post and picked the best time at 7:30 PM.”
+                      </span>
+                      <span className="ml-3 text-blue-300 font-semibold whitespace-nowrap">
+                        Preview →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: bullet feature list */}
+            <div className="space-y-5">
+              <h3 className="text-3xl font-bold text-gray-900">
+                All the AI you actually need
+              </h3>
+              <p className="text-base text-gray-600">
+                Instead of throwing random AI features at you, PostPilot focuses on the tasks
+                that move your numbers: writing, timing, and distribution.
+              </p>
+
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 text-blue-600">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      AI content & hashtags
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Generate high‑performing captions and relevant hashtags in one click.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 text-blue-600">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      Smart posting times
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Let AI suggest the best time to post for each platform (premium / coming soon).
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 text-blue-600">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      Platform‑aware drafts
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Adapt the same idea into platform‑specific versions without rewriting everything.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 text-blue-600">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">
+                      Engagement‑driven suggestions
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      See which posts and formats are working so you can double down on winners.
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      {/* What You Get with PostPilot */}
+      <section className="py-32 px-4 border-t border-gray-200 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              Everything in one place
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              PostPilot combines creation, scheduling, and analytics into a single, creator‑friendly
+              workspace.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Create',
+                desc: 'Draft once or use AI to generate ready‑to‑post content tailored to each platform.',
+                icon: '📝',
+              },
+              {
+                title: 'Schedule',
+                desc: 'Post now or schedule ahead – with upcoming premium features for AI timing and advanced controls.',
+                icon: '⏱️',
+              },
+              {
+                title: 'Analyze',
+                desc: 'See reach, engagement and top posts without jumping between apps or spreadsheets.',
+                icon: '📊',
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="p-8 rounded-2xl border border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-blue-500 hover:shadow-xl transition"
+              >
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl mb-4">
+                  {item.icon}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Testimonials - Scroll Stack Effect */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+      {/* <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Loved by Creators</h2>
@@ -354,10 +440,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Pricing */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-white">
+      {/* <section className="py-32 px-4 border-t border-gray-200 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Simple Pricing</h2>
@@ -415,8 +501,8 @@ export default function Home() {
               }
             ].map((plan, idx) => (
               <div key={idx} className={`rounded-3xl transition transform hover:scale-105 ${plan.highlighted
-                  ? "border-3 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-2xl p-8 relative"
-                  : "border-2 border-gray-300 bg-white p-8 hover:border-blue-400 hover:shadow-xl"
+                ? "border-3 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-2xl p-8 relative"
+                : "border-2 border-gray-300 bg-white p-8 hover:border-blue-400 hover:shadow-xl"
                 }`}>
                 {plan.highlighted && (
                   <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap shadow-lg">
@@ -445,8 +531,8 @@ export default function Home() {
                 <Link
                   href={plan.name === "Enterprise" ? "mailto:sales@postpilot.io" : "/register"}
                   className={`w-full block text-center py-4 rounded-xl font-bold text-lg transition transform hover:scale-105 ${plan.highlighted
-                      ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg"
-                      : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg"
+                    : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
                     }`}
                 >
                   {plan.cta}
@@ -455,7 +541,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ Section */}
       <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
