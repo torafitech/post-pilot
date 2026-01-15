@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('');
@@ -12,7 +12,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const [mobile, setMobile] = useState('');
+
   const { register } = useAuth();
   const router = useRouter();
 
@@ -24,6 +25,11 @@ export default function RegisterPage() {
     // Validation
     if (!displayName.trim()) {
       setError('Display name is required');
+      setLoading(false);
+      return;
+    }
+    if (!mobile.trim()) {
+      setError('Mobile number is required');
       setLoading(false);
       return;
     }
@@ -87,6 +93,17 @@ export default function RegisterPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="John Doe"
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+              />
+            </div>
+            {/* Mobile */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Mobile Number</label>
+              <input
+                type="tel"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                placeholder="+91 98765 43210"
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
               />
             </div>

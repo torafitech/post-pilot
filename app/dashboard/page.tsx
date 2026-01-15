@@ -1,6 +1,7 @@
 // app/dashboard/page.tsx
 'use client';
 
+import { AdsenseAd } from '@/components/AdsenseAd';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { SocialPost } from '@/types/post';
@@ -82,17 +83,16 @@ export default function DashboardPage() {
   // Animation states
   const [statsVisible, setStatsVisible] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
-
   const platforms = [
     'Instagram',
-    'TikTok',
     'YouTube',
     'Twitter/X',
-    'LinkedIn',
-    'Facebook',
-    'Pinterest',
+    // premium-only for future:
+    // 'TikTok',
+    // 'LinkedIn',
+    // 'Facebook',
+    // 'Pinterest',
   ];
-
   // Trigger animations
   useEffect(() => {
     const timer1 = setTimeout(() => setStatsVisible(true), 100);
@@ -469,7 +469,13 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
+        {/* Ad #1 - banner under welcome */}
+        <div className="mb-8">
+          <AdsenseAd
+            slot="1111111111" // <-- replace with your AdSense slot ID
+            className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-white/80"
+          />
+        </div>
         {/* Quick Stats Grid */}
         <div
           className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
@@ -740,8 +746,8 @@ export default function DashboardPage() {
                       setSelectedPlatformFilter(platform as any)
                     }
                     className={`px-3 py-1.5 rounded-lg font-medium transition ${selectedPlatformFilter === platform
-                        ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                        : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                      : 'text-slate-500 hover:text-slate-800'
                       }`}
                   >
                     {platform === 'all'
@@ -775,10 +781,10 @@ export default function DashboardPage() {
                     </div>
                     <div
                       className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${index === 0
-                          ? 'bg-amber-100 text-amber-700'
-                          : index === 1
-                            ? 'bg-slate-100 text-slate-700'
-                            : 'bg-orange-100 text-orange-700'
+                        ? 'bg-amber-100 text-amber-700'
+                        : index === 1
+                          ? 'bg-slate-100 text-slate-700'
+                          : 'bg-orange-100 text-orange-700'
                         }`}
                     >
                       #{index + 1}
@@ -811,7 +817,13 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-
+          {/* Ad #2 - between top cards and table */}
+          <div className="mb-6">
+            <AdsenseAd
+              slot="2222222222" // <-- replace with second AdSense slot ID
+              className="w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-white/80"
+            />
+          </div>
           {/* Performance Metrics Table */}
           <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">

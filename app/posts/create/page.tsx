@@ -610,7 +610,7 @@ export default function CreatePostPage() {
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-semibold">Main Caption</label>
-                    <button
+                    {/* <button
                       type="button"
                       onClick={handleAiEnhance}
                       disabled={aiEnhancing || !formData.mainCaption}
@@ -627,7 +627,18 @@ export default function CreatePostPage() {
                           <span>Enhance with AI</span>
                         </>
                       )}
+                    </button> */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert('AI caption recommendations are part of the premium plan. You will be notified when it is available.')
+                      }
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-400 rounded-lg font-medium cursor-not-allowed"
+                    >
+                      <span>✨ AI Enhance (Premium)</span>
                     </button>
+
+
                   </div>
                   <textarea
                     placeholder="Write your caption here... (will auto-optimize for each platform)"
@@ -745,12 +756,12 @@ export default function CreatePostPage() {
                 <label className="block text-sm font-semibold mb-4">Select Platforms</label>
                 <div className="grid md:grid-cols-2 gap-4">
                   {[
-                    { id: 'instagram', name: 'Instagram', icon: '📸' },
-                    { id: 'youtube', name: 'YouTube', icon: '🎥' },
-                    { id: 'twitter', name: 'Twitter/X', icon: '🐦' },
-                    { id: 'linkedin', name: 'LinkedIn', icon: '💼' },
-                    { id: 'tiktok', name: 'TikTok', icon: '📱' },
-                    { id: 'facebook', name: 'Facebook', icon: '👍' },
+                    { id: 'instagram', name: 'Instagram', icon: '📸', disabled: false },
+                    { id: 'youtube', name: 'YouTube', icon: '🎥', disabled: false },
+                    { id: 'twitter', name: 'Twitter/X', icon: '🐦', disabled: false },
+                    { id: 'linkedin', name: 'LinkedIn', icon: '💼', disabled: true },
+                    { id: 'tiktok', name: 'TikTok', icon: '📱', disabled: true },
+                    { id: 'facebook', name: 'Facebook', icon: '👍', disabled: true },
                   ].map((platform) => (
                     <label
                       key={platform.id}
@@ -764,6 +775,7 @@ export default function CreatePostPage() {
                         checked={formData.platforms.includes(platform.id)}
                         onChange={() => togglePlatform(platform.id)}
                         className="w-4 h-4 rounded accent-cyan-500"
+                        disabled={platform.disabled}
                       />
                       <span className="text-2xl">{platform.icon}</span>
                       <span className="text-gray-300">{platform.name}</span>
@@ -949,86 +961,20 @@ export default function CreatePostPage() {
                 </div>
 
                 {/* AI Recommended Slots */}
+                {/* if scheduleMode === 'ai' show premium upsell instead of real feature */}
                 {scheduleMode === 'ai' && (
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-cyan-300">AI Recommended Time Slots</h4>
-                      <button
-                        type="button"
-                        onClick={generateDefaultTimeSlots}
-                        disabled={formData.platforms.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg hover:bg-cyan-500/30 transition disabled:opacity-50"
-                      >
-                        <>
-                          <span>🔄</span>
-                          <span>Use Default Times</span>
-                        </>
-                      </button>
-                    </div>
-
-                    {aiTimeSlots.length > 0 ? (
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {aiTimeSlots.map((slot, index) => (
-                          <div
-                            key={index}
-                            onClick={() => selectAiTimeSlot(slot)}
-                            className={`p-4 border-2 rounded-lg cursor-pointer transition ${formData.scheduledDate === slot.date && formData.scheduledTime === slot.time
-                              ? 'border-cyan-500 bg-cyan-500/10'
-                              : 'border-gray-700 hover:border-gray-600'
-                              }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">
-                                  {{
-                                    instagram: '📸',
-                                    youtube: '🎥',
-                                    twitter: '🐦',
-                                    linkedin: '💼',
-                                    tiktok: '📱',
-                                    facebook: '👍',
-                                  }[slot.platform]}
-                                </span>
-                                <span className="font-medium capitalize">{slot.platform}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-cyan-400">★</span>
-                                <span className="font-bold text-cyan-300">{slot.engagementScore}%</span>
-                              </div>
-                            </div>
-                            <div className="mb-2">
-                              <div className="text-lg font-semibold text-white">
-                                {formatTimeDisplay(slot.date, slot.time)}
-                              </div>
-                              <div className="text-sm text-gray-400">{slot.description}</div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {slot.date} at {slot.time}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 bg-gray-800/50 rounded-lg">
-                        <div className="text-4xl mb-4">✨</div>
-                        <p className="text-gray-400 mb-2">No AI recommendations available</p>
-                        <p className="text-sm text-gray-500 mb-4">
-                          {formData.platforms.length === 0
-                            ? '👆 Select platforms first'
-                            : '📝 Enhance your caption with AI to get smart recommendations'}
-                        </p>
-                        {formData.platforms.length > 0 && (
-                          <button
-                            onClick={() => generateDefaultTimeSlots()}
-                            className="text-xs px-3 py-2 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 transition"
-                          >
-                            Use Default Times
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  <div className="mt-4 p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm text-gray-300">
+                    AI recommended posting times are part of the premium plan.
+                    <button
+                      type="button"
+                      className="mt-3 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-semibold"
+                      onClick={() => alert('Premium plan coming soon. You will be notified when it is available.')}
+                    >
+                      Upgrade to unlock (coming soon)
+                    </button>
                   </div>
                 )}
+
 
                 {/* Custom Time Input */}
                 {scheduleMode === 'custom' && (
