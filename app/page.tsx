@@ -1,13 +1,10 @@
 'use client';
 
-import { ArrowRight, BarChart3, Brain, CheckCircle, Play, Rocket, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, BarChart3, Brain, Clock, Globe, MessageSquare, Play, Rocket, Shield, Sparkles, TrendingUp, Users, Users2, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const [activeStack, setActiveStack] = useState(0);
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-
   const [scrollPosition, setScrollPosition] = useState(0);
 
   useEffect(() => {
@@ -19,110 +16,201 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-blue-50 text-gray-900 overflow-hidden">
       {/* Navigation */}
-      <nav className="fixed w-full top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <nav className="fixed w-full top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-200/50 shadow-sm transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
+            <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow duration-300">
               <Rocket className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent">
+            <span className="text-2xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent animate-gradient">
               PostPilot
             </span>
           </div>
           <div className="flex gap-4 items-center">
-            <Link href="/login" className="text-gray-600 hover:text-blue-600 transition font-medium">
+            <Link href="/login" className="hidden md:inline text-gray-600 hover:text-blue-600 transition font-medium px-3 py-2 rounded-lg hover:bg-blue-50">
               Sign In
             </Link>
             <Link
               href="/register"
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-6 py-2.5 rounded-lg font-semibold transition transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl active:scale-95"
             >
-              Get Started
+              Get Started Free
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section with Animated Background */}
+      {/* Hero Section */}
       <section className="pt-32 pb-32 px-4 relative overflow-hidden">
-        {/* Animated gradient orbs - lighter */}
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        {/* Animated Background Elements */}
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200/10 rounded-full blur-2xl"></div>
 
         <div className="max-w-6xl mx-auto relative z-10">
           {/* Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200 backdrop-blur-sm shadow-sm">
+          <div className="flex justify-center mb-8 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow duration-300">
               <Brain className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-semibold text-blue-700">AI-Powered Social Media Intelligence</span>
             </div>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-6xl md:text-7xl font-black text-center mb-6 leading-tight text-gray-900">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-center mb-6 leading-tight text-gray-900 animate-fade-in-up">
             Post Smarter,
             <br />
-            <span className="bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent animate-gradient">
               Not Harder
             </span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-gray-600 text-center mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-600 text-center mb-12 max-w-3xl mx-auto leading-relaxed font-light animate-fade-in-up delay-100">
             One click to post everywhere. AI writes captions, picks hashtags, and finds the perfect time to post. Your reach multiplies automatically.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex gap-4 justify-center flex-wrap mb-20">
+          <div className="flex gap-4 justify-center flex-wrap mb-16 animate-fade-in-up delay-200">
             <Link
               href="/register"
-              className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-10 py-4 rounded-xl text-lg font-bold transition transform hover:scale-105 shadow-2xl hover:shadow-2xl"
+              className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-xl text-lg font-bold transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-2xl active:scale-95"
             >
-              Start Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+              Start Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="#demo"
-              className="inline-flex items-center gap-2 border-2 border-gray-300 hover:border-blue-600 text-gray-900 px-10 py-4 rounded-xl text-lg font-bold transition hover:bg-blue-50 backdrop-blur-sm"
-            >
-              <Play className="w-5 h-5" /> Watch Demo
-            </Link>
+            <button className="group inline-flex items-center gap-2 border-2 border-gray-300 hover:border-blue-600 text-gray-900 px-8 sm:px-10 py-3 sm:py-4 rounded-xl text-lg font-bold transition-all duration-300 hover:bg-blue-50 backdrop-blur-sm">
+              <Play className="w-5 h-5 group-hover:scale-110 transition-transform" /> Watch Demo
+            </button>
           </div>
 
-          {/* Stats with Cards */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-24">
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-20 animate-fade-in-up delay-300">
             {[
-              { num: "300%", label: "Avg. Reach Increase" },
-              { num: "10 min", label: "Time per Post" },
-              { num: "12+", label: "Platforms" }
+              { num: "300%", label: "Avg. Reach Increase", icon: "📈" },
+              { num: "10 min", label: "Time per Post", icon: "⏱️" },
+              { num: "12+", label: "Platforms", icon: "🌐" }
             ].map((stat, idx) => (
-              <div key={idx} className="text-center p-6 rounded-2xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition transform hover:scale-105">
-                <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">{stat.num}</div>
+              <div
+                key={idx}
+                className="text-center p-6 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 hover:border-blue-300"
+              >
+                <div className="text-4xl mb-2">{stat.icon}</div>
+                <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">{stat.num}</div>
                 <div className="text-sm text-gray-600 mt-2 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Dashboard Preview with Scroll Animation */}
+        {/* Dashboard Preview */}
         <div className="relative max-w-6xl mx-auto" style={{ transform: `translateY(${scrollPosition * 0.05}px)` }}>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-200/20 to-cyan-200/20 blur-3xl rounded-3xl"></div>
-          <div className="relative bg-gradient-to-br from-white to-gray-50 border border-gray-300/50 rounded-3xl p-3 overflow-hidden shadow-2xl">
-            <div className="bg-gradient-to-br from-blue-50 to-gray-50 rounded-2xl aspect-video flex items-center justify-center border border-gray-200 relative overflow-hidden">
-              {/* Animated background elements */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-10 right-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
-                <div className="absolute bottom-10 left-10 w-40 h-40 bg-cyan-100 rounded-full blur-3xl opacity-50"></div>
+          <div className="relative bg-gradient-to-br from-white to-gray-50 border border-gray-300/50 rounded-3xl p-3 overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500">
+            {/* Dashboard Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
-              <div className="text-center relative z-10">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                  <Sparkles className="w-14 h-14 text-white" />
+              <div className="text-sm font-medium text-gray-600">PostPilot Dashboard</div>
+              <div className="w-20 h-2 bg-gray-200 rounded-full"></div>
+            </div>
+
+            {/* Dashboard Content */}
+            <div className="bg-gradient-to-br from-blue-50/50 to-gray-50/50 rounded-2xl aspect-video flex items-center justify-center relative overflow-hidden">
+              {/* Mock Dashboard Elements */}
+              <div className="absolute inset-0 flex flex-col p-6">
+                {/* Top Stats Row */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  {[
+                    { label: "Engagement", value: "4.8K", trend: "+12%" },
+                    { label: "Reach", value: "48.2K", trend: "+24%" },
+                    { label: "Posts", value: "156", trend: "+8%" },
+                    { label: "Growth", value: "42%", trend: "+15%" }
+                  ].map((stat, idx) => (
+                    <div key={idx} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm">
+                      <div className="text-xs text-gray-500 mb-1">{stat.label}</div>
+                      <div className="text-xl font-bold text-gray-900">{stat.value}</div>
+                      <div className="text-xs text-green-600 font-medium">{stat.trend}</div>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-2xl font-bold text-gray-900">Dashboard Preview</p>
-                <p className="text-gray-600 mt-3 font-medium">Post, schedule & analyze across all platforms</p>
+
+                {/* Chart Area */}
+                <div className="flex-1 grid grid-cols-3 gap-6">
+                  {/* Left - Platform Distribution */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm">
+                    <div className="text-sm font-semibold text-gray-900 mb-4">Platform Distribution</div>
+                    <div className="space-y-3">
+                      {[
+                        { platform: "Instagram", percentage: 45, color: "bg-gradient-to-r from-pink-500 to-purple-600" },
+                        { platform: "Twitter", percentage: 25, color: "bg-gradient-to-r from-blue-400 to-cyan-500" },
+                        { platform: "YouTube", percentage: 20, color: "bg-gradient-to-r from-red-500 to-red-600" },
+                        { platform: "LinkedIn", percentage: 10, color: "bg-gradient-to-r from-blue-600 to-blue-800" }
+                      ].map((item, idx) => (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-700">{item.platform}</span>
+                            <span className="font-medium">{item.percentage}%</span>
+                          </div>
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${item.color} rounded-full transition-all duration-1000`}
+                              style={{ width: `${item.percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Center - Main Chart */}
+                  <div className="col-span-2 bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-200/50 shadow-sm">
+                    <div className="text-sm font-semibold text-gray-900 mb-4">Engagement Trend</div>
+                    <div className="flex items-end h-32 gap-2">
+                      {[30, 45, 60, 75, 65, 80, 95].map((height, idx) => (
+                        <div key={idx} className="flex-1 flex flex-col items-center">
+                          <div
+                            className="w-full bg-gradient-to-t from-blue-500 to-cyan-500 rounded-t-lg transition-all duration-500 hover:opacity-80"
+                            style={{ height: `${height}%` }}
+                          ></div>
+                          <div className="text-xs text-gray-500 mt-2">Day {idx + 1}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Logo Cloud */}
+      <section className="py-16 px-4 bg-gradient-to-b from-white to-gray-50 border-t border-gray-200/50">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-center text-gray-500 text-sm font-medium mb-8">Trusted by innovative teams at</p>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-8 opacity-60">
+            {[
+              { name: "TechCrunch", emoji: "📰" },
+              { name: "Forbes", emoji: "💼" },
+              { name: "StartupXYZ", emoji: "🚀" },
+              { name: "GrowthHack", emoji: "📈" },
+              { name: "SocialPro", emoji: "👥" },
+              { name: "CreatorHub", emoji: "🎨" }
+            ].map((company, idx) => (
+              <div
+                key={idx}
+                className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/50 border border-gray-200/50 hover:border-blue-300 hover:shadow-md transition-all duration-300"
+              >
+                <div className="text-3xl mb-2">{company.emoji}</div>
+                <div className="text-sm font-semibold text-gray-700">{company.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* How It Works - Scroll Stack */}
       <section className="py-32 px-4 border-t border-gray-200 bg-white">
@@ -208,378 +296,320 @@ export default function Home() {
       </section>
 
 
-      {/* AI Features - Scroll Stack */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+
+
+
+      {/* AI Features */}
+      <section className="py-24 px-4 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">
-              AI that actually does the work
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 border border-blue-200 mb-4">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-700">AI-Powered Intelligence</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              Smarter Social Media
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              PostPilot handles the heavy lifting so you can focus on creating.
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              Advanced AI features that handle the heavy lifting while you focus on creativity
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left: hero image / mock dashboard with hover zoom */}
-            <div className="order-1 md:order-none">
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-br from-blue-200/40 to-cyan-200/40 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition" />
-                <div className="relative rounded-3xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-2xl overflow-hidden transform group-hover:scale-[1.02] transition">
-                  <div className="aspect-video flex flex-col justify-between p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl">
-                          🤖
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* AI Dashboard Mockup */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 blur-3xl rounded-3xl"></div>
+              <div className="relative bg-white rounded-3xl border border-gray-200/50 shadow-2xl overflow-hidden">
+                {/* Dashboard Header */}
+                <div className="p-6 border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                        <Brain className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900">AI Content Studio</h3>
+                        <p className="text-sm text-gray-600">Real-time optimization</p>
+                      </div>
+                    </div>
+                    <div className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                      Active
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Recommendations */}
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-xl p-4">
+                      <div className="text-xs text-blue-700 font-medium mb-2">Best Time to Post</div>
+                      <div className="text-lg font-bold text-gray-900">7:30 PM</div>
+                      <div className="text-xs text-gray-600">Expected engagement: 92%</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-xl p-4">
+                      <div className="text-xs text-purple-700 font-medium mb-2">Hashtag Score</div>
+                      <div className="text-lg font-bold text-gray-900">87/100</div>
+                      <div className="text-xs text-gray-600">Top performer: #socialmedia</div>
+                    </div>
+                  </div>
+
+                  {/* Content Suggestions */}
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-gray-900">Content Suggestions</div>
+                    <div className="space-y-2">
+                      {[
+                        { text: "Create a carousel post about productivity tips", score: "95%" },
+                        { text: "Share behind-the-scenes video", score: "88%" },
+                        { text: "Post customer testimonial", score: "92%" }
+                      ].map((suggestion, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors">
+                          <span className="text-sm text-gray-700">{suggestion.text}</span>
+                          <span className="text-xs font-semibold text-green-600">{suggestion.score}</span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-800">
-                          AI Assistant
-                        </span>
-                      </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold">
-                        Smart Mode
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                        <p className="text-[11px] text-gray-500">Best time today</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">7:30 PM</p>
-                      </div>
-                      <div className="rounded-xl bg-cyan-50 border border-cyan-100 p-3">
-                        <p className="text-[11px] text-gray-500">Caption ideas</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">12</p>
-                      </div>
-                      <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
-                        <p className="text-[11px] text-gray-500">Hashtags</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">#growth</p>
-                      </div>
-                    </div>
-                    <div className="rounded-2xl bg-gray-900 text-white px-4 py-3 text-xs flex items-center justify-between">
-                      <span className="opacity-80">
-                        “Drafted an Instagram + YouTube post and picked the best time at 7:30 PM.”
-                      </span>
-                      <span className="ml-3 text-blue-300 font-semibold whitespace-nowrap">
-                        Preview →
-                      </span>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: bullet feature list */}
-            <div className="space-y-5">
-              <h3 className="text-3xl font-bold text-gray-900">
-                All the AI you actually need
-              </h3>
-              <p className="text-base text-gray-600">
-                Instead of throwing random AI features at you, PostPilot focuses on the tasks
-                that move your numbers: writing, timing, and distribution.
-              </p>
-
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 text-blue-600">
-                    <Sparkles className="w-5 h-5" />
+            {/* Feature List */}
+            <div className="space-y-8">
+              {[
+                {
+                  icon: <Sparkles className="w-6 h-6" />,
+                  title: "AI Content Generation",
+                  desc: "Generate high-performing captions and relevant hashtags based on your audience and industry trends.",
+                  color: "text-blue-600 bg-blue-50"
+                },
+                {
+                  icon: <TrendingUp className="w-6 h-6" />,
+                  title: "Smart Timing",
+                  desc: "AI analyzes when your audience is most active and suggests optimal posting times for maximum reach.",
+                  color: "text-emerald-600 bg-emerald-50"
+                },
+                {
+                  icon: <Users className="w-6 h-6" />,
+                  title: "Audience Insights",
+                  desc: "Get detailed analytics about your audience demographics, interests, and engagement patterns.",
+                  color: "text-purple-600 bg-purple-50"
+                },
+                {
+                  icon: <BarChart3 className="w-6 h-6" />,
+                  title: "Performance Predictions",
+                  desc: "AI predicts how your content will perform before you even post it.",
+                  color: "text-amber-600 bg-amber-50"
+                }
+              ].map((feature, idx) => (
+                <div
+                  key={idx}
+                  className="flex gap-4 p-4 rounded-xl bg-white border border-gray-200/50 hover:border-blue-300 hover:shadow-lg transition-all duration-300 group"
+                >
+                  <div className={`w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    {feature.icon}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      AI content & hashtags
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Generate high‑performing captions and relevant hashtags in one click.
-                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
+                    <p className="text-gray-600">{feature.desc}</p>
                   </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 text-blue-600">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      Smart posting times
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Let AI suggest the best time to post for each platform (premium / coming soon).
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 text-blue-600">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      Platform‑aware drafts
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Adapt the same idea into platform‑specific versions without rewriting everything.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="mt-1 text-blue-600">
-                    <BarChart3 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">
-                      Engagement‑driven suggestions
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      See which posts and formats are working so you can double down on winners.
-                    </p>
-                  </div>
-                </li>
-              </ul>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-
-      {/* What You Get with PostPilot */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-white">
+      {/* Benefits */}
+      <section className="py-24 px-4 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">
-              Everything in one place
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              Why Choose PostPilot?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              PostPilot combines creation, scheduling, and analytics into a single, creator‑friendly
-              workspace.
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              Everything you need to grow your social media presence efficiently
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: 'Create',
-                desc: 'Draft once or use AI to generate ready‑to‑post content tailored to each platform.',
-                icon: '📝',
+                icon: <Zap className="w-8 h-8" />,
+                title: "Save Time",
+                desc: "Reduce social media management from hours to minutes with automation",
+                stats: "10x faster",
+                color: "from-amber-500 to-orange-500"
               },
               {
-                title: 'Schedule',
-                desc: 'Post now or schedule ahead – with upcoming premium features for AI timing and advanced controls.',
-                icon: '⏱️',
+                icon: <Globe className="w-8 h-8" />,
+                title: "Multi-Platform",
+                desc: "Manage all your social accounts from one unified dashboard",
+                stats: "12+ platforms",
+                color: "from-blue-500 to-cyan-500"
               },
               {
-                title: 'Analyze',
-                desc: 'See reach, engagement and top posts without jumping between apps or spreadsheets.',
-                icon: '📊',
+                icon: <Shield className="w-8 h-8" />,
+                title: "Enterprise Security",
+                desc: "Bank-level security with encrypted data and secure API connections",
+                stats: "99.9% uptime",
+                color: "from-emerald-500 to-green-500"
               },
-            ].map((item, idx) => (
+              {
+                icon: <Clock className="w-8 h-8" />,
+                title: "24/7 Scheduling",
+                desc: "Schedule posts for any time zone and automate your content calendar",
+                stats: "Unlimited posts",
+                color: "from-purple-500 to-pink-500"
+              },
+              {
+                icon: <MessageSquare className="w-8 h-8" />,
+                title: "Engagement Tools",
+                desc: "Monitor comments, mentions, and engage with your audience effectively",
+                stats: "Auto-responses",
+                color: "from-indigo-500 to-purple-500"
+              },
+              {
+                icon: <Users2 className="w-8 h-8" />,
+                title: "Team Collaboration",
+                desc: "Invite team members, assign roles, and collaborate in real-time",
+                stats: "Unlimited seats",
+                color: "from-rose-500 to-red-500"
+              }
+            ].map((benefit, idx) => (
               <div
                 key={idx}
-                className="p-8 rounded-2xl border border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-blue-500 hover:shadow-xl transition"
+                className="group relative p-8 rounded-2xl bg-white border border-gray-200/50 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all duration-500 hover:scale-105"
               >
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl mb-4">
-                  {item.icon}
+                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${benefit.color} rounded-t-2xl`}></div>
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${benefit.color} flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform`}>
+                  {benefit.icon}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {item.desc}
-                </p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{benefit.title}</h3>
+                <p className="text-gray-600 mb-4">{benefit.desc}</p>
+                <div className="text-lg font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  {benefit.stats}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials - Scroll Stack Effect */}
-      {/* <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+      {/* Testimonials */}
+      <section className="py-24 px-4 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Loved by Creators</h2>
-            <p className="text-xl text-gray-600">See how creators are transforming with PostPilot</p>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              Loved by Creators
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              Join thousands of creators and brands growing with PostPilot
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                stars: 5,
-                quote: "PostPilot increased my reach by 400%. I went from struggling to handling 10 accounts effortlessly.",
-                author: "Sarah Chen",
-                role: "Content Creator • 250K followers",
+                content: "PostPilot increased our social media reach by 300% in just 3 months. The AI recommendations are incredibly accurate.",
+                author: "Sarah Johnson",
+                role: "Marketing Director, TechStart",
+                avatar: "👩‍💼",
+                rating: 5,
+                growth: "+300% reach"
+              },
+              {
+                content: "As a content creator, saving 15 hours a week on social media management has been life-changing. The auto-scheduling is brilliant.",
+                author: "Alex Chen",
+                role: "Content Creator, 500K followers",
                 avatar: "🎬",
-                color: "from-blue-50 to-blue-100"
+                rating: 5,
+                growth: "15 hours/week saved"
               },
               {
-                stars: 5,
-                quote: "The auto-reposting feature alone saves me 15 hours per week. Best investment ever.",
+                content: "The multi-platform support and analytics helped our agency scale social media management for 50+ clients efficiently.",
                 author: "Marcus Williams",
-                role: "Agency Owner",
+                role: "CEO, SocialGrowth Agency",
                 avatar: "💼",
-                color: "from-cyan-50 to-cyan-100"
-              },
-              {
-                stars: 5,
-                quote: "Best ROI I've seen. The platform keeps getting smarter and my engagement keeps growing.",
-                author: "Emma Rodriguez",
-                role: "E-commerce Brand Owner",
-                avatar: "🚀",
-                color: "from-blue-50 to-blue-100"
+                rating: 5,
+                growth: "50+ clients managed"
               }
             ].map((testimonial, idx) => (
-              <div key={idx} className={`p-8 rounded-2xl border-2 border-gray-300 bg-gradient-to-br ${testimonial.color} hover:border-blue-500 transition transform hover:scale-105 hover:shadow-xl cursor-pointer`}>
-                <div className="flex gap-1 mb-6 text-yellow-500">
-                  {"⭐".repeat(testimonial.stars)}
+              <div
+                key={idx}
+                className="group p-8 rounded-2xl bg-white border border-gray-200/50 shadow-lg hover:shadow-2xl hover:border-blue-300 transition-all duration-500 hover:scale-105"
+              >
+                <div className="flex gap-1 mb-6 text-amber-500">
+                  {"⭐".repeat(testimonial.rating)}
                 </div>
-                <p className="text-gray-800 mb-8 text-lg font-medium italic leading-relaxed">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-4 pt-6 border-t border-gray-300">
-                  <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-3xl font-bold border border-gray-200 shadow-md">
-                    {testimonial.avatar}
+                <p className="text-gray-700 mb-8 text-lg leading-relaxed italic">"{testimonial.content}"</p>
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center text-2xl font-bold">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{testimonial.author}</p>
+                      <p className="text-sm text-gray-600">{testimonial.role}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-gray-900">{testimonial.author}</p>
-                    <p className="text-sm text-gray-600">{testimonial.role}</p>
+                  <div className="text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                    {testimonial.growth}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Pricing */}
-      {/* <section className="py-32 px-4 border-t border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Simple Pricing</h2>
-            <p className="text-xl text-gray-600">All plans include AI features. No hidden costs.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Starter",
-                price: 19,
-                desc: "Perfect for individuals",
-                features: [
-                  "4 social accounts",
-                  "AI Content Generation",
-                  "Smart Scheduling",
-                  "Basic Analytics",
-                  "Auto-Reposting (2x/month)"
-                ],
-                cta: "Get Started",
-                highlighted: false
-              },
-              {
-                name: "Professional",
-                price: 49,
-                desc: "For growing teams",
-                features: [
-                  "Unlimited accounts",
-                  "Advanced AI Features",
-                  "Predictive Analytics",
-                  "Unlimited Auto-Reposting",
-                  "Team Collaboration",
-                  "Priority Support",
-                  "Custom Reports"
-                ],
-                cta: "Start Free Trial",
-                highlighted: true
-              },
-              {
-                name: "Enterprise",
-                price: null,
-                priceText: "Custom",
-                desc: "For large organizations",
-                features: [
-                  "Everything in Pro",
-                  "Dedicated Manager",
-                  "Custom AI Models",
-                  "API Access",
-                  "White Label",
-                  "24/7 Support",
-                  "SLA Guarantee"
-                ],
-                cta: "Contact Sales",
-                highlighted: false
-              }
-            ].map((plan, idx) => (
-              <div key={idx} className={`rounded-3xl transition transform hover:scale-105 ${plan.highlighted
-                ? "border-3 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-2xl p-8 relative"
-                : "border-2 border-gray-300 bg-white p-8 hover:border-blue-400 hover:shadow-xl"
-                }`}>
-                {plan.highlighted && (
-                  <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-full text-sm font-bold whitespace-nowrap shadow-lg">
-                    Most Popular ⭐
-                  </div>
-                )}
-                <h3 className="text-3xl font-bold mb-2 text-gray-900">{plan.name}</h3>
-                <p className="text-gray-600 mb-8 font-medium">{plan.desc}</p>
-                <div className="text-5xl font-black mb-8 text-blue-600">
-                  {plan.price ? (
-                    <>
-                      ${plan.price}<span className="text-lg text-gray-500 font-semibold">/mo</span>
-                    </>
-                  ) : (
-                    <span className="text-3xl">{plan.priceText}/mo</span>
-                  )}
-                </div>
-                <ul className="space-y-4 mb-10">
-                  {plan.features.map((feature, fidx) => (
-                    <li key={fidx} className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                      <span className="text-gray-700 font-medium">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={plan.name === "Enterprise" ? "mailto:sales@postpilot.io" : "/register"}
-                  className={`w-full block text-center py-4 rounded-xl font-bold text-lg transition transform hover:scale-105 ${plan.highlighted
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg"
-                    : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-                    }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section> */}
-
-      {/* FAQ Section */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+      {/* FAQ */}
+      <section className="py-24 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black mb-4 text-gray-900">Questions?</h2>
-            <p className="text-xl text-gray-600">Everything you need to know about PostPilot</p>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-gray-900">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-600">
+              Everything you need to know about PostPilot
+            </p>
           </div>
 
           <div className="space-y-4">
             {[
               {
-                q: "How does AI auto-reposting work?",
-                a: "Our AI analyzes engagement metrics and automatically reposts your best-performing content to different audience segments at optimal times. This can increase reach by 2-3x."
+                q: "How does the AI content generation work?",
+                a: "Our AI analyzes millions of successful posts across industries to generate optimized captions, hashtags, and content suggestions tailored to your audience and goals."
               },
               {
-                q: "Which platforms are supported?",
-                a: "PostPilot supports Instagram, TikTok, YouTube, Twitter/X, LinkedIn, Facebook, Pinterest, Threads, Bluesky, and more. New platforms added regularly."
+                q: "Which social media platforms do you support?",
+                a: "We support Instagram, Facebook, Twitter/X, LinkedIn, TikTok, YouTube, Pinterest, Threads, Bluesky, and more. New platforms are added regularly based on user demand."
               },
               {
-                q: "Is there a free trial?",
-                a: "Yes! 7-day free trial of our Professional plan. No credit card required. Full access to all AI features."
+                q: "Is there a free trial available?",
+                a: "Yes! We offer a 14-day free trial with full access to all features. No credit card required to start. You can upgrade, downgrade, or cancel anytime."
               },
               {
-                q: "Can I cancel anytime?",
-                a: "Absolutely. Cancel anytime, no questions asked. Your data remains accessible for 30 days after cancellation."
+                q: "Can I schedule posts in advance?",
+                a: "Absolutely. You can schedule unlimited posts in advance with our visual calendar. Set specific times, create recurring posts, and manage your entire content calendar."
               },
               {
-                q: "How accurate is the AI?",
-                a: "Our AI is trained on millions of posts using machine learning. It continuously improves based on your results and engagement patterns."
+                q: "How secure is my data with PostPilot?",
+                a: "We use enterprise-grade encryption, secure API connections, and comply with global data protection regulations. Your data is never shared or sold to third parties."
+              },
+              {
+                q: "Do you offer team collaboration features?",
+                a: "Yes! You can invite unlimited team members, assign different roles and permissions, collaborate on content creation, and manage approvals all within the platform."
               }
             ].map((item, idx) => (
-              <details key={idx} className="p-6 rounded-xl border-2 border-gray-300 bg-white hover:border-blue-400 transition cursor-pointer group">
-                <summary className="flex items-center justify-between font-bold text-lg text-gray-900 hover:text-blue-600 transition">
-                  <span>{item.q}</span>
-                  <span className="text-blue-600 group-open:rotate-180 transition text-2xl">+</span>
+              <details
+                key={idx}
+                className="group p-6 rounded-xl bg-gray-50/50 border border-gray-200/50 hover:border-blue-300 transition-all duration-300 open:bg-blue-50/30 open:border-blue-300"
+              >
+                <summary className="flex items-center justify-between cursor-pointer list-none">
+                  <span className="text-lg font-semibold text-gray-900 group-open:text-blue-600">{item.q}</span>
+                  <span className="text-blue-600 text-2xl group-open:rotate-45 transition-transform">+</span>
                 </summary>
-                <p className="text-gray-700 mt-4 leading-relaxed font-medium">{item.a}</p>
+                <p className="text-gray-700 mt-4 leading-relaxed">{item.a}</p>
               </details>
             ))}
           </div>
@@ -587,28 +617,39 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-5xl md:text-6xl font-black mb-6">
-            Ready to Win at Social?
+      <section className="py-24 px-4 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 text-white relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute -top-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-400/20 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6">
+            Ready to Transform Your Social Media?
           </h2>
-          <p className="text-xl mb-12 leading-relaxed opacity-95">
+          <p className="text-lg sm:text-xl mb-12 leading-relaxed opacity-95 max-w-2xl mx-auto">
             Join thousands of creators and brands using PostPilot to save time, boost engagement, and grow their following with AI.
           </p>
+
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-gray-100 px-12 py-4 rounded-xl text-lg font-bold transition transform hover:scale-105 shadow-2xl"
+              className="group inline-flex items-center gap-2 bg-white text-blue-600 hover:bg-gray-100 px-8 sm:px-12 py-3 sm:py-4 rounded-xl text-lg font-bold transition-all duration-300 transform hover:scale-105 shadow-2xl"
             >
-              Start Free Trial <ArrowRight className="w-5 h-5" />
+              Start Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 border-2 border-white text-white hover:bg-white/10 px-12 py-4 rounded-xl text-lg font-bold transition transform hover:scale-105"
+              className="inline-flex items-center gap-2 border-2 border-white text-white hover:bg-white/10 px-8 sm:px-12 py-3 sm:py-4 rounded-xl text-lg font-bold transition-all duration-300 transform hover:scale-105"
             >
               Sign In
             </Link>
           </div>
+
+          <p className="mt-8 text-sm opacity-80">
+            No credit card required • 14-day free trial • Cancel anytime
+          </p>
         </div>
       </section>
 
@@ -618,45 +659,112 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center text-white">
-                  <Rocket className="w-5 h-5" />
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                  <Rocket className="w-6 h-6" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">PostPilot</h3>
               </div>
-              <p className="text-gray-600 font-medium">AI-powered social media management for creators and brands.</p>
+              <p className="text-gray-600 font-medium">
+                AI-powered social media management for creators and brands who want to grow faster.
+              </p>
+              <div className="flex gap-4 mt-6">
+                {["🐦", "📘", "💼", "📷"].map((icon, idx) => (
+                  <div key={idx} className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-lg hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer">
+                    {icon}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold mb-4 text-gray-900">Product</h4>
-              <ul className="space-y-2 text-gray-600">
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Features</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Pricing</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Security</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Updates</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-gray-900">Company</h4>
-              <ul className="space-y-2 text-gray-600">
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">About</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Blog</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Careers</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4 text-gray-900">Legal</h4>
-              <ul className="space-y-2 text-gray-600">
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Privacy</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Terms</Link></li>
-                <li><Link href="#" className="hover:text-blue-600 transition font-medium">Cookies</Link></li>
-              </ul>
-            </div>
+
+            {[
+              {
+                title: "Product",
+                links: ["Features", "Pricing", "Platforms", "Security", "Updates", "Roadmap"]
+              },
+              {
+                title: "Resources",
+                links: ["Blog", "Documentation", "API", "Tutorials", "Community", "Help Center"]
+              },
+              {
+                title: "Company",
+                links: ["About", "Careers", "Contact", "Partners", "Press", "Legal"]
+              }
+            ].map((column, idx) => (
+              <div key={idx}>
+                <h4 className="font-bold mb-4 text-gray-900">{column.title}</h4>
+                <ul className="space-y-3">
+                  {column.links.map((link, linkIdx) => (
+                    <li key={linkIdx}>
+                      <Link href="#" className="text-gray-600 hover:text-blue-600 transition font-medium">
+                        {link}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-          <div className="border-t border-gray-300 pt-8 text-center text-gray-600 font-medium">
-            <p>&copy; 2026 PostPilot. All rights reserved. | Built with ❤️ for creators</p>
+
+          <div className="border-t border-gray-300 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-600 font-medium">
+              &copy; {new Date().getFullYear()} PostPilot. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-gray-600 font-medium">
+              <Link href="#" className="hover:text-blue-600 transition">Privacy Policy</Link>
+              <Link href="#" className="hover:text-blue-600 transition">Terms of Service</Link>
+              <Link href="#" className="hover:text-blue-600 transition">Cookie Policy</Link>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Add global animations */}
+      <style jsx global>{`
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient {
+          background-size: 200% auto;
+          animation: gradient 3s ease infinite;
+        }
+        
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 1s ease-out;
+        }
+        
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out;
+        }
+        
+        .delay-100 {
+          animation-delay: 100ms;
+        }
+        .delay-200 {
+          animation-delay: 200ms;
+        }
+        .delay-300 {
+          animation-delay: 300ms;
+        }
+      `}</style>
     </div>
   );
 }
