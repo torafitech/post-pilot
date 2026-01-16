@@ -402,13 +402,13 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-hidden">
       {/* Soft background accent */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/40 via-white to-purple-100/40" />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/50 via-white to-sky-100/60" />
 
       {/* Navigation */}
-      <nav className="relative z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0">
+      <nav className="relative z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center text-xl text-white shadow-sm">
+            <div className="w-9 h-9 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl flex items-center justify-center text-xl text-white shadow-md">
               🚀
             </div>
             <div className="flex flex-col">
@@ -482,7 +482,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <AdsenseAd
             slot="1111111111" // <-- replace with your AdSense slot ID
-            className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-white/80"
+            className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden border border-sky-100 bg-white/90 shadow-sm"
           />
         </div>
         {/* Quick Stats Grid */}
@@ -524,7 +524,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           {/* Platform Distribution */}
           <div
-            className={`bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            className={`bg-white/90 backdrop-blur-sm border border-sky-100 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
               }`}
           >
             <div className="flex items-center justify-between mb-4">
@@ -657,7 +657,7 @@ export default function DashboardPage() {
               {connectedAccounts.map((account, index) => (
                 <div
                   key={account.id}
-                  className="group bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-cyan-300 transition"
+                  className="group bg-white/90 backdrop-blur-sm border border-sky-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-sky-300 transition"
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -830,7 +830,7 @@ export default function DashboardPage() {
           <div className="mb-6">
             <AdsenseAd
               slot="2222222222" // <-- replace with second AdSense slot ID
-              className="w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-slate-200 bg-white/80"
+             className="w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-sky-100 bg-white/90 shadow-sm"
             />
           </div>
           {/* Performance Metrics Table */}

@@ -1,6 +1,6 @@
 'use client';
-
-import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   BarChart3,
@@ -11,14 +11,15 @@ import {
   Hash,
   Heart,
   MessageCircle,
+  MessageSquare,
   MoreVertical,
   Rocket,
   Share2,
   Shield,
   Sparkles,
-  TrendingUp,
   Users
 } from 'lucide-react';
+
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
@@ -27,96 +28,95 @@ export default function Home() {
   const [activeCard, setActiveCard] = useState(0);
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     const handleScroll = () => setScrollPosition(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-const socialPosts = [
-  {
-    platform: 'instagram',
-    username: '@creative.design',
-    likes: '2.4K',
-    comments: '128',
-    time: '2h ago',
-    content:
-      '🎨 Just launched our new brand identity! Swipe to see the process →',
-    imageUrl: '/images/posts/instagram-1.jpg',
-    imageColor: 'bg-gradient-to-br from-sky-400 to-indigo-500',
-    badgeColor: 'from-sky-50 to-indigo-50 text-sky-700',
-    avatarBg: 'from-sky-400 to-indigo-500',
-  },
-  {
-    platform: 'twitter',
-    username: '@techthoughts',
-    likes: '856',
-    comments: '42',
-    time: '1h ago',
-    content:
-      'AI is changing how we create content. With @PostPilot, our team saves 15+ hours weekly on social media management.',
-    imageUrl: '/images/posts/twitter-1.jpg',
-    imageColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
-    badgeColor: 'from-sky-50 to-cyan-50 text-sky-700',
-    avatarBg: 'from-blue-400 to-cyan-500',
-  },
-  {
-    platform: 'linkedin',
-    username: 'Marketing Pro',
-    likes: '1.2K',
-    comments: '89',
-    time: '4h ago',
-    content:
-      '📈 Case Study: How we increased social engagement by 300% using AI-powered scheduling and analytics.',
-    imageUrl: '/images/posts/linkedin-1.jpg',
-    imageColor: 'bg-gradient-to-br from-sky-600 to-blue-800',
-    badgeColor: 'from-sky-50 to-blue-50 text-sky-700',
-    avatarBg: 'from-sky-600 to-blue-800',
-  },
-  {
-    platform: 'tiktok',
-    username: '@contentcreator',
-    likes: '15.2K',
-    comments: '421',
-    time: 'Just now',
-    content:
-      'Behind the scenes: How I manage 5 social platforms in 30 minutes daily! #SocialMediaTips',
-    imageUrl: '/images/posts/tiktok-1.jpg',
-    imageColor: 'bg-gradient-to-br from-cyan-500 to-blue-600',
-    badgeColor: 'from-cyan-50 to-sky-50 text-cyan-700',
-    avatarBg: 'from-cyan-500 to-blue-600',
-  },
-];
+  const socialPosts = [
+    {
+      platform: 'instagram',
+      username: '@creative.design',
+      likes: '2.4K',
+      comments: '128',
+      time: '2h ago',
+      content:
+        '🎨 Just launched our new brand identity! Swipe to see the process →',
+      imageUrl: '/images/image2.png',
+      imageColor: 'bg-gradient-to-br from-sky-400 to-indigo-500',
+      badgeColor: 'from-sky-50 to-indigo-50 text-sky-700',
+      avatarBg: 'from-sky-400 to-indigo-500',
+    },
+    {
+      platform: 'twitter',
+      username: '@techthoughts',
+      likes: '856',
+      comments: '42',
+      time: '1h ago',
+      content:
+        'AI is changing how we create content. With @PostPilot, our team saves 15+ hours weekly on social media management.',
+      imageUrl: '/images/image1.png',
+      imageColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
+      badgeColor: 'from-sky-50 to-cyan-50 text-sky-700',
+      avatarBg: 'from-blue-400 to-cyan-500',
+    },
+    {
+      platform: 'linkedin',
+      username: 'Marketing Pro',
+      likes: '1.2K',
+      comments: '89',
+      time: '4h ago',
+      content:
+        '📈 Case Study: How we increased social engagement by 300% using AI-powered scheduling and analytics.',
+      imageUrl: '/images/image3.png',
+      imageColor: 'bg-gradient-to-br from-sky-600 to-blue-800',
+      badgeColor: 'from-sky-50 to-blue-50 text-sky-700',
+      avatarBg: 'from-sky-600 to-blue-800',
+    },
+    {
+      platform: 'tiktok',
+      username: '@contentcreator',
+      likes: '15.2K',
+      comments: '421',
+      time: 'Just now',
+      content:
+        'Behind the scenes: How I manage 5 social platforms in 30 minutes daily! #SocialMediaTips',
+      imageUrl: '/images/image4.png',
+      imageColor: 'bg-gradient-to-br from-cyan-500 to-blue-600',
+      badgeColor: 'from-cyan-50 to-sky-50 text-cyan-700',
+      avatarBg: 'from-cyan-500 to-blue-600',
+    },
+  ];
 
 
   const features = [
     {
       title: 'AI Caption Writer',
-      desc: 'Generate viral captions in your brand voice',
-      icon: <MessageCircle className="w-6 h-6" />,
-      image: '✍️',
-      stats: '95% engagement boost',
+      description: 'Generate viral captions in your brand voice.',
+      icon: MessageCircle,
+      gradient: 'from-sky-500 to-blue-600',
+      image: '/images/feature1.png'
     },
     {
       title: 'Smart Hashtags',
-      desc: 'Discover trending hashtags automatically',
-      icon: <Hash className="w-6 h-6" />,
-      image: '🏷️',
-      stats: '200% more discoverability',
+      description: 'Discover trending, relevant hashtags automatically.',
+      icon: Hash,
+      gradient: 'from-cyan-500 to-sky-600',
+      image: '/images/feature2.png'
     },
     {
       title: 'Optimal Timing',
-      desc: 'Post when your audience is most active',
-      icon: <Calendar className="w-6 h-6" />,
-      image: '⏰',
-      stats: '3x higher reach',
+      description: 'Post when your audience is most active.',
+      icon: Calendar,
+      gradient: 'from-indigo-500 to-sky-600',
+      image: '/images/feature3.png'
     },
     {
-      title: 'Cross-Platform',
-      desc: 'One click posts to 12+ platforms',
-      icon: <Share2 className="w-6 h-6" />,
-      image: '🔄',
-      stats: 'Save 10+ hours/week',
+      title: 'Cross-Platform Posting',
+      description: 'One-click publishing to all your social channels.',
+      icon: Share2,
+      gradient: 'from-violet-500 to-indigo-600',
+      image: '/images/feature4.png'
     },
   ];
 
@@ -164,6 +164,12 @@ const socialPosts = [
 
       {/* Hero */}
       <section className="pt-28 pb-20 px-4 relative overflow-hidden">
+        {/* Hero background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{ backgroundImage: "url('/images/hero-bg.png')" }}
+        />
+
         {/* floating icons, toned down */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
@@ -277,17 +283,17 @@ const socialPosts = [
 
                     <div className="p-4">
                       <p className="text-slate-800 mb-4">{post.content}</p>
-                      <div
-                        className={`aspect-video ${post.imageColor} rounded-xl mb-4 flex items-center justify-center text-white text-4xl`}
-                      >
-                        {post.platform === 'instagram'
-                          ? '📸'
-                          : post.platform === 'twitter'
-                            ? '🐦'
-                            : post.platform === 'linkedin'
-                              ? '💼'
-                              : '🎵'}
+                      <div className="aspect-video rounded-xl mb-4 overflow-hidden relative">
+                        <div
+                          className={`absolute inset-0 ${post.imageColor} opacity-50 mix-blend-multiply`}
+                        />
+                        <img
+                          src={post.imageUrl}
+                          alt={`${post.platform} post preview`}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                        />
                       </div>
+
 
                       <div className="flex items-center justify-between text-slate-600">
                         <div className="flex items-center gap-4">
@@ -316,61 +322,182 @@ const socialPosts = [
         </div>
       </section>
 
-      {/* Features – still 4 cards but blue */}
-      <section className="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-black mb-6">
-              Everything You Need to
+      {/* Features - Card Swap Section */}
+      <section className="relative py-32 px-6 bg-gradient-to-b from-white to-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-5xl md:text-6xl font-black mb-6"
+            >
+              Everything You Need
               <br />
               <span className="bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
-                Go Viral
+                All in One Place
               </span>
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              AI-powered tools designed for the modern creator
-            </p>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-xl text-slate-600 max-w-2xl mx-auto"
+            >
+              Powerful features designed to save time and boost engagement.
+            </motion.p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                className="relative group"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                onHoverStart={() => setHoveredFeature(index)}
-                onHoverEnd={() => setHoveredFeature(null)}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-sky-400/12 to-indigo-500/12 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {/* Desktop: Side-by-side with animated card swap */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Feature List */}
+            <div className="space-y-6">
+              {features.map((feature, idx) => {
+                const Icon = feature.icon;
+                return (
+                  <motion.div
+                    key={idx}
+                    className={`p-6 rounded-2xl cursor-pointer transition-all duration-500 ${activeCard === idx
+                        ? 'bg-white border-2 border-sky-500/60 shadow-xl'
+                        : 'bg-white/70 border border-slate-200 hover:bg-white'
+                      }`}
+                    onClick={() => setActiveCard(idx)}
+                    whileHover={{ x: 6 }}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center flex-shrink-0`}
+                      >
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                          {feature.title}
+                        </h3>
+                        <p className="text-slate-600 text-sm">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
 
-                <div className="relative bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-sky-300 h-full">
-                  <div className="mb-6">
-                    <motion.div
-                      className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white text-2xl mb-4"
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      {feature.image}
-                    </motion.div>
+            {/* Right: Animated Image Card */}
+            <div className="relative h-[520px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeCard}
+                  initial={{ opacity: 0, x: 80, rotateY: -15 }}
+                  animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                  exit={{ opacity: 0, x: -80, rotateY: 15 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-slate-900"
+                >
+                  <Image
+                    src={features[activeCard].image}
+                    alt={features[activeCard].title}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/60 to-transparent" />
+
+                  {/* Overlay Stats */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="absolute bottom-0 left-0 right-0 p-8"
+                  >
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                        <Heart className="w-5 h-5 text-rose-300 mb-2" />
+                        <div className="text-xl font-bold text-white">12.4K</div>
+                        <div className="text-[11px] text-slate-200">Likes</div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                        <MessageSquare className="w-5 h-5 text-sky-300 mb-2" />
+                        <div className="text-xl font-bold text-white">2.1K</div>
+                        <div className="text-[11px] text-slate-200">Comments</div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                        <Share2 className="w-5 h-5 text-emerald-300 mb-2" />
+                        <div className="text-xl font-bold text-white">892</div>
+                        <div className="text-[11px] text-slate-200">Shares</div>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {features[activeCard].title}
+                    </h3>
+                    <p className="text-sm text-slate-100">
+                      {features[activeCard].description}
+                    </p>
+                  </motion.div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Card indicators */}
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+                {features.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveCard(idx)}
+                    className={`h-2 rounded-full transition-all ${idx === activeCard ? 'w-8 bg-sky-500' : 'w-2 bg-slate-300'
+                      }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile: Stacked cards */}
+          <div className="lg:hidden space-y-8 mt-8">
+            {features.map((feature, idx) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white"
+                >
+                  <div className="relative h-64">
+                    <Image
+                      src={feature.image}
+                      alt={feature.title}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/50 to-transparent" />
                   </div>
-
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-slate-600 mb-4">{feature.desc}</p>
-
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-sky-50 to-cyan-50 border border-sky-200 text-sm font-semibold text-sky-700">
-                    <TrendingUp className="w-4 h-4" />
-                    {feature.stats}
+                  <div className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center flex-shrink-0`}
+                      >
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
+
 
       {/* Analytics (kept dark for contrast) */}
       <section className="py-20 px-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">

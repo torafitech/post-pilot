@@ -610,7 +610,7 @@ export default function CreatePostPage() {
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-semibold">Main Caption</label>
-                    {/* <button
+                    <button
                       type="button"
                       onClick={handleAiEnhance}
                       disabled={aiEnhancing || !formData.mainCaption}
@@ -627,14 +627,14 @@ export default function CreatePostPage() {
                           <span>Enhance with AI</span>
                         </>
                       )}
-                    </button> */}
-                    <button
+                    </button>
+                    {/* <button
                       type="button"
                       onClick={() => setShowPremiumModal(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg font-medium hover:from-cyan-400 hover:to-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span>✨ AI Enhance (Premium)</span>
-                    </button>
+                    </button> */}
 
 
                   </div>
