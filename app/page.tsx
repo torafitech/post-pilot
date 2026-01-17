@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -19,6 +18,7 @@ import {
   Sparkles,
   Users
 } from 'lucide-react';
+import Image from 'next/image';
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -201,16 +201,15 @@ export default function Home() {
               </div>
 
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-black mb-6 leading-tight">
-                Your Social Media
+                Post Smarter
                 <br />
                 <span className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent animate-gradient">
-                  Supercharged
+                  Not Harder
                 </span>
               </h1>
 
               <p className="text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-                Create, schedule, and analyze content across all platforms with AI
-                that understands your audience. Go viral faster.
+                One click to post everywhere. AI writes captions, picks hashtags, and finds the perfect time to post. Your reach multiplies automatically.
               </p>
 
               <div className="flex gap-4 flex-wrap">
@@ -359,8 +358,8 @@ export default function Home() {
                   <motion.div
                     key={idx}
                     className={`p-6 rounded-2xl cursor-pointer transition-all duration-500 ${activeCard === idx
-                        ? 'bg-white border-2 border-sky-500/60 shadow-xl'
-                        : 'bg-white/70 border border-slate-200 hover:bg-white'
+                      ? 'bg-white border-2 border-sky-500/60 shadow-xl'
+                      : 'bg-white/70 border border-slate-200 hover:bg-white'
                       }`}
                     onClick={() => setActiveCard(idx)}
                     whileHover={{ x: 6 }}
@@ -806,7 +805,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-4 bg-gradient-to-r from-sky-600 via-blue-600 to-rose-600 text-white relative overflow-hidden">
+      <section className="py-32 px-4 border-t border-gray-200 bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(15)].map((_, i) => (
             <motion.div
