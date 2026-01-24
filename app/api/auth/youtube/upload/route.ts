@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
         requestBody: {
           snippet: {
             title: title.trim().substring(0, 100),
-            description: (description || 'Posted via PostPilot').substring(0, 5000),
-            tags: Array.isArray(tags) ? tags.slice(0, 30) : ['postpilot'],
+            description: (description || 'Posted via StarlingPost').substring(0, 5000),
+            tags: Array.isArray(tags) ? tags.slice(0, 30) : ['starlingpost'],
             categoryId: '22',
           },
           status: {
@@ -137,9 +137,9 @@ export async function POST(request: NextRequest) {
         requestBody: {
           snippet: {
             title: title.trim().substring(0, 100),
-            description: (description || 'Posted via PostPilot')
+            description: (description || 'Posted via StarlingPost')
               .substring(0, 5000),
-            tags: Array.isArray(tags) ? tags.slice(0, 30) : ['postpilot'],
+            tags: Array.isArray(tags) ? tags.slice(0, 30) : ['starlingpost'],
             categoryId: '22',
           },
           status: {

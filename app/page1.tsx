@@ -9,7 +9,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <div className="text-2xl">✨</div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              PostPilot
+              StarlingPost
             </h1>
           </div>
           <nav className="flex gap-4">

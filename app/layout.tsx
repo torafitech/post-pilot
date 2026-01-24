@@ -2,12 +2,13 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import Script from 'next/script';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        {/* Google AdSense script */}
         <Script
           id="adsense-script"
           async
@@ -17,7 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-white text-gray-900 antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <Navbar />
+          <main className="min-h-screen pt-16">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

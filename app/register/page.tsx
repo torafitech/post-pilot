@@ -72,7 +72,7 @@ export default function RegisterPage() {
             🚀
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-1">
-            PostPilot
+            StarlingPost
           </h1>
           <p className="text-slate-500 text-sm">Join thousands of creators</p>
         </div>

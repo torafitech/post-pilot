@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const router = useRouter();
 
@@ -48,23 +49,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Logo/Header */}
+        {/* Logo/Header – matches hero branding */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🚀</div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-2">
-            PostPilot
+          <div className="flex justify-center mb-4">
+            {/* <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg"> */}
+              {/* If you have a logo image, swap this for <Image src="/images/logo6.png" ... /> */}
+              {/* <Image
+                src="/images/logo6.png"
+                alt="StarlingPost logo"
+                width={48}
+                height={48}
+                className="rounded-xl"
+              /> */}
+            {/* </div> */}
+          </div>
+          <h1 className="text-3xl font-black bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+            StarlingPost
           </h1>
-          <p className="text-gray-400">Welcome back</p>
+          <p className="text-slate-600 text-sm">Welcome back to your AI-powered social suite</p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold mb-6">Sign In</h2>
+        {/* Form Card – light, soft border like hero pills */}
+        <div className="bg-white/90 border border-sky-100 rounded-2xl p-8 shadow-lg backdrop-blur-sm">
+          <h2 className="text-2xl font-bold mb-6 text-slate-900">Sign in</h2>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}
             </div>
           )}
@@ -72,52 +84,52 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Email Address</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Email address
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:ring-1 focus:ring-sky-300 focus:outline-none transition"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">Password</label>
+              <label className="block text-sm font-semibold mb-2 text-slate-700">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:ring-1 focus:ring-sky-300 focus:outline-none transition"
               />
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button – same gradient vibe as “Start Creating Free” */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-bold transition mt-6"
+              className="w-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-full font-bold text-white transition-all duration-300 transform hover:scale-[1.02] shadow-md"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
-          {/* Register Link */}
-          <p className="text-center text-gray-400 mt-6">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-cyan-400 hover:text-cyan-300 font-semibold">
+          {/* Register Link – same colors as hero text */}
+          <p className="text-center text-slate-600 mt-6 text-sm">
+            Don&apos;t have an account?{' '}
+            <Link
+              href="/register"
+              className="text-sky-600 hover:text-sky-700 font-semibold"
+            >
               Create one
             </Link>
           </p>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-8 bg-gray-900 border border-gray-800 rounded-2xl p-6">
-          <p className="text-sm text-gray-400 mb-3">Test Account:</p>
-          <p className="text-sm font-mono text-cyan-400 mb-2">Email: test@example.com</p>
-          <p className="text-sm font-mono text-cyan-400">Password: password123</p>
         </div>
       </div>
     </div>

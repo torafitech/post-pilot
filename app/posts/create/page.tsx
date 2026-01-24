@@ -518,20 +518,20 @@ export default function CreatePostPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
+      {/* Navigation
       <nav className="border-b border-gray-800 sticky top-0 z-40 bg-black/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="text-3xl">🚀</div>
             <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-              PostPilot
+              StarlingPost
             </span>
           </Link>
           <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
             Back to Dashboard
           </Link>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -658,7 +658,7 @@ export default function CreatePostPage() {
                     <h3 className="font-semibold text-cyan-300">AI Optimization</h3>
                   </div>
                   <p className="text-sm text-gray-300">
-                    PostPilot automatically adapts your content for each platform:
+                    StarlingPost automatically adapts your content for each platform:
                   </p>
                   <ul className="text-sm text-gray-400 mt-3 space-y-2">
                     <li>📸 Instagram - Visual captions with emojis & hashtags</li>

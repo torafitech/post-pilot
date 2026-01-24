@@ -54,7 +54,7 @@ export default function Home() {
       comments: '42',
       time: '1h ago',
       content:
-        'AI is changing how we create content. With @PostPilot, our team saves 15+ hours weekly on social media management.',
+        'AI is changing how we create content. With @StarlingPost, our team saves 15+ hours weekly on social media management.',
       imageUrl: '/images/image1.png',
       imageColor: 'bg-gradient-to-br from-blue-400 to-cyan-500',
       badgeColor: 'from-sky-50 to-cyan-50 text-sky-700',
@@ -122,7 +122,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-900 overflow-hidden">
-      {/* Navigation */}
+      {/* Navigation
       <nav className="fixed w-full top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -130,7 +130,7 @@ export default function Home() {
               <Rocket className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-black bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent animate-gradient">
-              PostPilot
+              StarlingPost
             </span>
           </div>
 
@@ -160,7 +160,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </nav>
+      </nav> */}
 
       {/* Hero */}
       <section className="pt-28 pb-20 px-4 relative overflow-hidden">
@@ -743,7 +743,7 @@ export default function Home() {
                 handle: "@alexcreates",
                 role: "Content Creator • 500K followers",
                 avatar: "🎨",
-                content: "PostPilot cut my social media time in half while doubling my engagement. The AI captions are pure magic!",
+                content: "StarlingPost cut my social media time in half while doubling my engagement. The AI captions are pure magic!",
                 platform: "Instagram",
                 growth: "+245% engagement"
               },
@@ -871,7 +871,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer
       <footer className="bg-gray-900 text-gray-400 py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
@@ -879,7 +879,7 @@ export default function Home() {
               <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center">
                 <Rocket className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">PostPilot</span>
+              <span className="text-xl font-bold text-white">StarlingPost</span>
             </div>
 
             <div className="flex gap-6">
@@ -892,11 +892,11 @@ export default function Home() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            &copy; {new Date().getFullYear()} PostPilot. All rights reserved.
+            &copy; {new Date().getFullYear()} StarlingPost. All rights reserved.
           </div>
         </div>
       </footer>
-
+ */}
 
       {/* Global */}
       <style jsx global>{`

@@ -75,13 +75,13 @@ export default function ConnectionsPage() {
         id: 'youtube',
         name: 'YouTube',
         icon: '🎥',
-        help: 'Use the channel you want PostPilot to upload to.',
+        help: 'Use the channel you want StarlingPost to upload to.',
       },
       {
         id: 'twitter',
         name: 'Twitter/X',
         icon: '🐦',
-        help: 'Authorize PostPilot to post tweets on your behalf.',
+        help: 'Authorize StarlingPost to post tweets on your behalf.',
       },
       {
         id: 'linkedin',
@@ -152,7 +152,7 @@ export default function ConnectionsPage() {
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="text-2xl">✨</div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              PostPilot
+              StarlingPost
             </h1>
           </Link>
           <Link
@@ -170,7 +170,7 @@ export default function ConnectionsPage() {
             Connected Accounts
           </h2>
           <p className="text-gray-600">
-            Connect your social profiles so PostPilot can publish on your behalf.
+            Connect your social profiles so StarlingPost can publish on your behalf.
           </p>
         </div>
 

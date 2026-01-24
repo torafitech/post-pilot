@@ -38,7 +38,7 @@ export default function AuthPage() {
         className="w-full max-w-md bg-white border rounded-xl shadow p-6 space-y-4"
       >
         <h1 className="text-2xl font-bold">
-          {mode === 'login' ? 'Sign in to PostPilot' : 'Create your PostPilot account'}
+          {mode === 'login' ? 'Sign in to StarlingPost' : 'Create your StarlingPost account'}
         </h1>
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div>
