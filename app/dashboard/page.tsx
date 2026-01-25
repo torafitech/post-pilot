@@ -104,6 +104,43 @@ export default function DashboardPage() {
     fetchPosts();
   }, [user, authLoading, router, userProfile]);
 
+  useEffect(() => {
+    if (!user || authLoading) return;
+
+    // Optional: simple guard so you don't sync too often
+    const lastSynced = window.localStorage.getItem('lastSyncAt');
+    const lastSyncedAt = lastSynced ? new Date(lastSynced).getTime() : 0;
+    const now = Date.now();
+
+    // e.g. only auto-sync if last sync > 15 minutes ago
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    if (now - lastSyncedAt < FIFTEEN_MIN) {
+      return;
+    }
+
+    const autoSync = async () => {
+      try {
+        console.log('[DASHBOARD] Auto-syncing posts on load');
+        const res = await fetch('/api/posts/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.uid }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.warn('[DASHBOARD] Auto-sync error:', data.error);
+        } else {
+          window.localStorage.setItem('lastSyncAt', new Date().toISOString());
+          await fetchPosts(); // reuse your existing loader
+        }
+      } catch (err) {
+        console.error('[DASHBOARD] Auto-sync exception:', err);
+      }
+    };
+
+    autoSync();
+  }, [user, authLoading]);
+
   const fetchConnectedAccounts = async () => {
     if (!user) return;
     try {
@@ -701,8 +738,8 @@ export default function DashboardPage() {
                         setSelectedPlatformFilter(platform as any)
                       }
                       className={`px-3 py-1.5 rounded-lg font-medium transition ${selectedPlatformFilter === platform
-                          ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                          : 'text-slate-500 hover:text-slate-800'
+                        ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                        : 'text-slate-500 hover:text-slate-800'
                         }`}
                     >
                       {platform === 'all'
@@ -738,10 +775,10 @@ export default function DashboardPage() {
                     </div>
                     <div
                       className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${index === 0
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : index === 1
-                            ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : index === 1
+                          ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }`}
                     >
                       #{index + 1}
@@ -955,6 +992,14 @@ export default function DashboardPage() {
         open={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
       />
+      <button
+        onClick={handleSyncPosts}
+        disabled={syncingPosts}
+        className="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-medium shadow-sm hover:bg-sky-700 disabled:opacity-60"
+      >
+        {syncingPosts ? 'Syncing…' : 'Sync metrics'}
+      </button>
+
     </div>
   );
 }
