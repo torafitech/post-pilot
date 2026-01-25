@@ -1,11 +1,22 @@
 // app/api/auth/youtube/route.ts
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const uid = url.searchParams.get('uid'); // passed from client
+  const uid = url.searchParams.get('uid');
+
+  console.log('YouTube auth START', {
+    url: request.url,
+    uid,
+    origin: url.origin,
+    clientId: process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID,
+    redirectEnv: process.env.YOUTUBE_REDIRECT_URI,
+  });
 
   if (!uid) {
+    console.warn('YouTube auth missing uid');
     return NextResponse.redirect(`${url.origin}/login?error=missing_uid`);
   }
 
@@ -27,11 +38,12 @@ export async function GET(request: NextRequest) {
     access_type: 'offline',
     scope: scopes.join(' '),
     include_granted_scopes: 'true',
-    state: uid, // IMPORTANT: carries Firebase uid
+    state: uid,
     prompt: 'consent',
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  console.log('YouTube auth redirecting to', authUrl);
 
   return NextResponse.redirect(authUrl);
 }
