@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET!;
     const redirectUri =
       process.env.LINKEDIN_REDIRECT_URI ||
-      'http://localhost:3000/api/auth/linkedin/callback';
+      'https://www.starlingpost.com/api/auth/linkedin/callback';
 
     const tokenRes = await fetch(
       'https://www.linkedin.com/oauth/v2/accessToken',

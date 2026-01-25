@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 // Function to publish to Instagram immediately
 export async function publishToInstagram(imageUrl: string, caption: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/instagram/publish`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com'}/api/instagram/publish`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

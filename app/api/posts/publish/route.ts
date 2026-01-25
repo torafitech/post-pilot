@@ -215,7 +215,7 @@ async function publishToTwitter(
   mediaUrl?: string,
   mediaType?: 'image' | 'video',
 ) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
   const response = await fetch(`${baseUrl}/api/auth/twitter/post`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -242,7 +242,7 @@ async function publishToYoutube(
   description: string,
   videoUrl?: string,
 ) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
   const response = await fetch(`${baseUrl}/api/auth/youtube/upload`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -270,7 +270,7 @@ async function publishToInstagram(
   mediaUrl?: string,
   mediaType?: 'image' | 'video',
 ) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
   const response = await fetch(`${baseUrl}/api/instagram/publish`, {
     method: 'POST',
     headers: {

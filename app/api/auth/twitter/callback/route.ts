@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const clientSecret = process.env.TWITTER_CLIENT_SECRET!;
     const redirectUri =
       process.env.TWITTER_REDIRECT_URI ||
-      'http://localhost:3000/api/auth/twitter/callback';
+      'https://www.starlingpost.com/api/auth/twitter/callback';
 
     const twitterClient = new TwitterApi({ clientId, clientSecret });
 
