@@ -8,6 +8,14 @@ export async function fetchYouTubeMetrics(
   videoId: string,
 ): Promise<PostMetrics> {
   const apiKey = process.env.YOUTUBE_API_KEY;
+
+  console.log('[YT METRICS] Starting fetchYouTubeMetrics', {
+    hasApiKey: !!apiKey,
+    videoId,
+    channelId,
+    nodeEnv: process.env.NODE_ENV,
+  });
+
   if (!apiKey) {
     console.error('[YT METRICS] Missing YOUTUBE_API_KEY env');
     return {};
@@ -18,29 +26,68 @@ export async function fetchYouTubeMetrics(
     return {};
   }
 
-  const url =
-    `${YT_API_BASE}/videos?` +
-    new URLSearchParams({
-      id: videoId,
-      key: apiKey,
-      part: 'statistics',
-    }).toString();
+  const params = new URLSearchParams({
+    id: videoId,
+    key: apiKey,
+    part: 'statistics',
+  });
 
-  console.log('[YT METRICS] Fetching stats', { videoId, url });
+  const url = `${YT_API_BASE}/videos?${params.toString()}`;
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('[YT METRICS] YouTube stats error', res.status, text);
+  console.log('[YT METRICS] Fetching stats from YouTube', {
+    videoId,
+    url,
+  });
+
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    console.error('[YT METRICS] Network/Fetch error calling YouTube', {
+      error: err,
+    });
     return {};
   }
 
-  const json: any = await res.json();
-  console.log('[YT METRICS] API raw response', JSON.stringify(json));
+  console.log('[YT METRICS] YouTube response status', {
+    status: res.status,
+    ok: res.ok,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch((err) => {
+      console.error('[YT METRICS] Error reading error body', { err });
+      return '';
+    });
+
+    console.error('[YT METRICS] YouTube stats error', {
+      status: res.status,
+      statusText: res.statusText,
+      body: text,
+    });
+
+    return {};
+  }
+
+  let json: any;
+  try {
+    json = await res.json();
+  } catch (err) {
+    console.error('[YT METRICS] Failed to parse JSON from YouTube', {
+      error: err,
+    });
+    return {};
+  }
+
+  console.log('[YT METRICS] API raw response (truncated)', {
+    kind: json.kind,
+    etag: json.etag,
+    itemCount: json.items?.length,
+  });
 
   const item = json.items?.[0];
   if (!item) {
-    console.warn('[YT METRICS] No items for videoId', videoId);
+    console.warn('[YT METRICS] No items for videoId', { videoId, json });
     return {};
   }
 
