@@ -415,7 +415,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="rounded-2xl border border-sky-100 bg-white/90 shadow-sm">
             <AdsenseAd
-              slot="1111111111"
+              slot="8490208307"
               className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden"
             />
           </div>
@@ -779,7 +779,7 @@ export default function DashboardPage() {
           <div className="mb-6">
             <div className="rounded-2xl border border-sky-100 bg-white/90 shadow-sm max-w-3xl mx-auto">
               <AdsenseAd
-                slot="2222222222"
+                slot="6951047306"
                 className="w-full rounded-2xl overflow-hidden"
               />
             </div>
