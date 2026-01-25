@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const clientSecret = process.env.YOUTUBE_CLIENT_SECRET!;
     const redirectUri =
       process.env.YOUTUBE_REDIRECT_URI ||
-      'http://localhost:3000/api/auth/youtube/callback';
+      'https://www.starlingpost.com/api/auth/youtube/callback';
 
     const oauth2Client = new google.auth.OAuth2(
       clientId,
