@@ -9,6 +9,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
 interface PlatformContent {
   caption: string;
   hashtags: string[];
@@ -46,13 +47,15 @@ export default function CreatePostPage() {
   const [activeTab, setActiveTab] = useState<TabId>('content');
   const [aiTimeSlots, setAiTimeSlots] = useState<AiTimeSlot[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
   const [formData, setFormData] = useState({
     mainCaption: '',
     platforms: [] as string[],
     imageUrl: '',
     videoUrl: '',
     scheduledDate: '',
-    scheduledTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
+    // only time part; we’ll pair it with scheduledDate
+    scheduledTime: new Date(Date.now() + 3600000).toISOString().slice(11, 16),
   });
 
   const [platformContent, setPlatformContent] = useState<PlatformSettings>({
@@ -108,14 +111,12 @@ export default function CreatePostPage() {
     }
   }, [formData.mainCaption]);
 
-  // Note: AI time slots are now fetched from handleAiEnhance() 
-  // when user enhances the caption, not from a separate endpoint
   // Auto-generate default times when AI mode is selected
   useEffect(() => {
     if (scheduleMode === 'ai' && aiTimeSlots.length === 0 && formData.platforms.length > 0) {
       generateDefaultTimeSlots();
     }
-  }, [scheduleMode, formData.platforms]);
+  }, [scheduleMode, formData.platforms]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generatePlatformContent = (mainCaption: string) => {
     const hashtags = mainCaption.match(/#[\w]+/g) || [];
@@ -186,13 +187,11 @@ export default function CreatePostPage() {
   };
 
   const generateDefaultTimeSlots = () => {
-    // Fallback: Generate default time slots if AI enhancement hasn't been used
     const slots: AiTimeSlot[] = [];
     const now = new Date();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Default platform-specific best times
     const platformTimes = {
       instagram: ['09:00', '13:00', '17:00', '20:00'],
       facebook: ['08:00', '12:00', '15:00', '19:00'],
@@ -200,12 +199,12 @@ export default function CreatePostPage() {
       linkedin: ['08:00', '11:00', '14:00', '17:00'],
       tiktok: ['09:00', '12:00', '18:00', '22:00'],
       youtube: ['10:00', '14:00', '18:00', '21:00'],
-    };
+    } as const;
 
     formData.platforms.forEach((platform) => {
-      const times = platformTimes[platform as keyof typeof platformTimes] || ['12:00'];
+      const times =
+        platformTimes[platform as keyof typeof platformTimes] || ['12:00'];
 
-      // Create 2 slots per platform
       times.slice(0, 2).forEach((time, idx) => {
         const date = idx === 0 ? formatDate(now) : formatDate(tomorrow);
         const engagementScore = 80 + Math.floor(Math.random() * 20);
@@ -217,14 +216,16 @@ export default function CreatePostPage() {
           linkedin: 'Professional hours for LinkedIn',
           tiktok: 'Trending time on TikTok',
           youtube: 'Optimal YouTube viewing time',
-        };
+        } as const;
 
         slots.push({
           platform,
           time,
           date,
           engagementScore,
-          description: descriptions[platform as keyof typeof descriptions] || 'Recommended time',
+          description:
+            descriptions[platform as keyof typeof descriptions] ||
+            'Recommended time',
         });
       });
     });
@@ -249,37 +250,34 @@ export default function CreatePostPage() {
     });
   };
 
-  const selectAiTimeSlot = (slot: AiTimeSlot) => {
-    setFormData((prev) => ({
-      ...prev,
-      scheduledDate: slot.date,
-      scheduledTime: slot.time,
-    }));
-  };
   const getDateForWeekday = (weekday: string): string => {
-    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const weekdays = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
 
     const targetIndex = weekdays.indexOf(weekday.toLowerCase());
     if (targetIndex === -1) {
-      // Fallback: today
       return new Date().toISOString().split('T')[0];
     }
 
     const now = new Date();
-    const todayIndex = now.getDay(); // 0-6
+    const todayIndex = now.getDay();
 
     let diff = targetIndex - todayIndex;
-    if (diff < 0) diff += 7; // next occurrence of that weekday
+    if (diff < 0) diff += 7;
 
     const result = new Date(now);
     result.setDate(result.getDate() + diff);
     return result.toISOString().split('T')[0];
   };
 
-  // =========================
-  // AI ENHANCEMENT HANDLERS
-  // =========================
-
+  // AI enhancement handler
   const handleAiEnhance = async () => {
     const baseCaption = formData.mainCaption;
 
@@ -291,8 +289,6 @@ export default function CreatePostPage() {
     setAiEnhancing(true);
 
     try {
-      console.log('🚀 Calling AI Enhancement API...');
-
       const response = await fetch('/api/ai/enhance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -307,23 +303,14 @@ export default function CreatePostPage() {
       if (!response.ok) {
         throw new Error('AI Enhancement failed');
       }
-      console.log('Response status:', response.status);
 
       const data = await response.json();
-      console.log('✅ API Response:', data);
 
       if (data.success) {
         setAiSuggestions(data);
         setShowAiComparison(true);
 
-        // Extract platformTimes from AI response and convert to AiTimeSlot format
         if (data.platformTimes) {
-          const now = new Date();
-          const today = now.toISOString().split('T')[0];
-          const tomorrow = new Date(now);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
           const slots: AiTimeSlot[] = [];
 
           Object.entries(data.platformTimes).forEach(([plat, timeInfo]: any) => {
@@ -348,7 +335,6 @@ export default function CreatePostPage() {
             });
           });
 
-
           slots.sort((a, b) => b.engagementScore - a.engagementScore);
           setAiTimeSlots(slots);
         }
@@ -356,7 +342,7 @@ export default function CreatePostPage() {
         alert(`AI enhancement failed: ${data.error}`);
       }
     } catch (error: any) {
-      console.error('❌ AI Error:', error);
+      console.error('AI Error:', error);
       alert(`Failed to enhance caption: ${error.message}`);
     } finally {
       setAiEnhancing(false);
@@ -372,89 +358,81 @@ export default function CreatePostPage() {
     }));
 
     setShowAiComparison(false);
-    setActiveTab('platforms'); // jump to platforms to review
+    setActiveTab('platforms');
   };
 
+  // === MAIN SUBMIT: NOW vs SCHEDULE ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Only allow submission from preview tab
     if (activeTab !== 'preview') {
-      console.warn('⚠️ Form submission only allowed from preview tab. Current tab:', activeTab);
+      console.warn('Form submission only allowed from preview tab. Current tab:', activeTab);
+      return;
+    }
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    if (!formData.mainCaption.trim()) {
+      alert('Please write a caption');
+      return;
+    }
+
+    if (formData.platforms.length === 0) {
+      alert('Please select at least one platform');
+      return;
+    }
+
+    if (scheduleMode !== 'now' && (!formData.scheduledDate || !formData.scheduledTime)) {
+      alert('Please set a schedule time');
       return;
     }
 
     setLoading(true);
 
     try {
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      if (!formData.mainCaption.trim()) {
-        alert('Please write a caption');
-        setLoading(false);
-        return;
-      }
-
-      if (formData.platforms.length === 0) {
-        alert('Please select at least one platform');
-        setLoading(false);
-        return;
-      }
-
-      if (scheduleMode !== 'now' && (!formData.scheduledDate || !formData.scheduledTime)) {
-        alert('Please set a schedule time');
-        setLoading(false);
-        return;
-      }
-
       const postsRef = collection(db, 'posts');
+      const scheduledTime =
+        scheduleMode === 'now'
+          ? new Date()
+          : new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+
       const postDocRef = await addDoc(postsRef, {
         userId: user.uid,
         caption: formData.mainCaption,
         platforms: formData.platforms,
-        platformContent: platformContent,
+        platformContent,
         imageUrl: formData.imageUrl || null,
         videoUrl: formData.videoUrl || null,
-        scheduledTime: scheduleMode === 'now'
-          ? new Date()
-          : new Date(`${formData.scheduledDate}T${formData.scheduledTime}`),
+        scheduledTime,
         status: scheduleMode === 'now' ? 'publishing' : 'scheduled',
-        scheduleMode: scheduleMode,
+        scheduleMode,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      // If publishing immediately, call the publish API
       if (scheduleMode === 'now') {
         try {
-          console.log('Publishing post to platforms...', {
-            postId: postDocRef.id,
-            platforms: formData.platforms,
-          });
-
           const publishResponse = await authFetch('/api/posts/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               postId: postDocRef.id,
-              userId: user.uid, // important for all social publishers
               platforms: formData.platforms,
               caption: formData.mainCaption,
               imageUrl: formData.imageUrl || null,
               videoUrl: formData.videoUrl || null,
-              platformContent: platformContent,
+              platformContent,
             }),
           });
 
           const publishData = await publishResponse.json();
-          console.log('Publish response:', publishData);
 
-          if (!publishResponse.ok) {
+          if (!publishResponse.ok || !publishData.success) {
             alert(
-              `Warning: Some platforms may have failed to publish:\n${publishData.error}`,
+              `Post saved but failed to publish. You can retry from dashboard.\n${publishData.error || ''}`,
             );
           } else {
             alert('Post published successfully to all platforms!');
@@ -465,6 +443,8 @@ export default function CreatePostPage() {
             'Post saved but failed to publish. Please try again from dashboard.',
           );
         }
+      } else {
+        alert('Post scheduled successfully! It will be auto-published.');
       }
 
       setFormData({
@@ -473,14 +453,24 @@ export default function CreatePostPage() {
         imageUrl: '',
         videoUrl: '',
         scheduledDate: '',
-        scheduledTime: new Date(Date.now() + 3600000)
-          .toISOString()
-          .slice(0, 16),
+        scheduledTime: new Date(Date.now() + 3600000).toISOString().slice(11, 16),
       });
 
-      if (scheduleMode !== 'now') {
-        alert('Post scheduled successfully!');
-      }
+      setPlatformContent({
+        instagram: { caption: '', hashtags: [], tags: [] },
+        youtube: {
+          title: '',
+          description: '',
+          caption: '',
+          hashtags: [],
+          tags: [],
+        },
+        twitter: { caption: '', hashtags: [], tags: [] },
+        linkedin: { caption: '', hashtags: [], tags: [] },
+        tiktok: { caption: '', hashtags: [], tags: [] },
+        facebook: { caption: '', hashtags: [], tags: [] },
+      });
+
       router.push('/dashboard');
     } catch (error) {
       console.error('Error creating post:', error);
@@ -518,7 +508,7 @@ export default function CreatePostPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Navigation
+      {/* Navigation */}
       <nav className="border-b border-gray-800 sticky top-0 z-40 bg-black/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -531,7 +521,7 @@ export default function CreatePostPage() {
             Back to Dashboard
           </Link>
         </div>
-      </nav> */}
+      </nav>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -553,8 +543,8 @@ export default function CreatePostPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabId)}
                 className={`flex-1 px-6 py-4 font-semibold transition ${activeTab === tab.id
-                  ? 'border-b-2 border-cyan-500 text-cyan-400'
-                  : 'text-gray-400 hover:text-white'
+                    ? 'border-b-2 border-cyan-500 text-cyan-400'
+                    : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <span className="mr-2">{tab.icon}</span>
@@ -585,20 +575,23 @@ export default function CreatePostPage() {
                   />
                 </div>
 
-                {/* Current Files */}
                 {(formData.imageUrl || formData.videoUrl) && (
                   <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
                     <h3 className="text-sm font-semibold mb-4">Uploaded Files</h3>
                     {formData.imageUrl && (
                       <div className="mb-4">
                         <p className="text-xs text-gray-400 mb-2">Image:</p>
-                        <p className="text-xs text-cyan-400 break-all truncate">{formData.imageUrl}</p>
+                        <p className="text-xs text-cyan-400 break-all truncate">
+                          {formData.imageUrl}
+                        </p>
                       </div>
                     )}
                     {formData.videoUrl && (
                       <div>
                         <p className="text-xs text-gray-400 mb-2">Video:</p>
-                        <p className="text-xs text-cyan-400 break-all truncate">{formData.videoUrl}</p>
+                        <p className="text-xs text-cyan-400 break-all truncate">
+                          {formData.videoUrl}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -628,15 +621,6 @@ export default function CreatePostPage() {
                         </>
                       )}
                     </button>
-                    {/* <button
-                      type="button"
-                      onClick={() => setShowPremiumModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg font-medium hover:from-cyan-400 hover:to-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span>✨ AI Enhance (Premium)</span>
-                    </button> */}
-
-
                   </div>
                   <textarea
                     placeholder="Write your caption here... (will auto-optimize for each platform)"
@@ -649,7 +633,9 @@ export default function CreatePostPage() {
                     }
                     className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none transition text-white placeholder-gray-500 min-h-48 resize-none"
                   />
-                  <p className="text-gray-400 text-sm mt-2">{formData.mainCaption.length} characters</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {formData.mainCaption.length} characters
+                  </p>
                 </div>
 
                 <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-2xl p-6">
@@ -664,22 +650,20 @@ export default function CreatePostPage() {
                     <li>📸 Instagram - Visual captions with emojis & hashtags</li>
                     <li>🎥 YouTube - SEO-optimized titles & descriptions</li>
                     <li>🐦 Twitter - Concise 280-char posts</li>
-                    {/* <li>💼 LinkedIn - Professional tone & hashtags</li>
-                    <li>📱 TikTok - Trending hashtags & captions</li> */}
                   </ul>
                 </div>
 
-                {/* AI Comparison Modal */}
                 {showAiComparison && aiSuggestions && (
                   <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
                     <div className="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                       <div className="p-6 border-b border-gray-800 bg-gradient-to-r from-cyan-500 to-purple-600">
                         <h3 className="text-2xl font-bold text-white">AI Enhancement Results</h3>
-                        <p className="text-gray-200 mt-1">Compare and choose the best version</p>
+                        <p className="text-gray-200 mt-1">
+                          Compare and choose the best version
+                        </p>
                       </div>
 
                       <div className="p-6 grid md:grid-cols-2 gap-6">
-                        {/* Original */}
                         <div className="border-2 border-gray-700 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-semibold text-gray-300">Original</h4>
@@ -692,12 +676,13 @@ export default function CreatePostPage() {
                           </div>
                         </div>
 
-                        {/* AI Enhanced */}
                         <div className="border-2 border-cyan-500 rounded-lg p-4 bg-cyan-500/5">
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-semibold text-cyan-400">AI Enhanced</h4>
                             <span className="text-sm text-cyan-400">
-                              {aiSuggestions.enhancedLength || aiSuggestions.enhancedCaption.length} chars
+                              {aiSuggestions.enhancedLength ||
+                                aiSuggestions.enhancedCaption.length}{' '}
+                              chars
                             </span>
                           </div>
                           <div className="bg-gray-800 p-4 rounded-lg min-h-[200px] whitespace-pre-wrap text-gray-300">
@@ -706,23 +691,24 @@ export default function CreatePostPage() {
                         </div>
                       </div>
 
-                      {/* Hashtags */}
                       <div className="px-6 pb-4">
-                        <h4 className="font-semibold text-gray-300 mb-2">Suggested Hashtags</h4>
+                        <h4 className="font-semibold text-gray-300 mb-2">
+                          Suggested Hashtags
+                        </h4>
                         <div className="bg-gray-800 p-4 rounded-lg text-gray-300">
                           {aiSuggestions.hashtags}
                         </div>
                       </div>
 
-                      {/* Best time */}
                       <div className="px-6 pb-4">
-                        <h4 className="font-semibold text-gray-300 mb-2">Best Time To Post</h4>
+                        <h4 className="font-semibold text-gray-300 mb-2">
+                          Best Time To Post
+                        </h4>
                         <div className="bg-gray-800 p-4 rounded-lg text-gray-300">
                           {aiSuggestions.bestTime}
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="p-6 border-t border-gray-800 bg-gray-800/50 flex gap-3">
                         <button
                           type="button"
@@ -749,23 +735,21 @@ export default function CreatePostPage() {
           {/* TAB 2: PLATFORMS */}
           {activeTab === 'platforms' && (
             <div className="space-y-6">
-              {/* Select Platforms */}
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <label className="block text-sm font-semibold mb-4">Select Platforms</label>
+                <label className="block text-sm font-semibold mb-4">
+                  Select Platforms
+                </label>
                 <div className="grid md:grid-cols-2 gap-4">
                   {[
                     { id: 'instagram', name: 'Instagram', icon: '📸', disabled: false },
                     { id: 'youtube', name: 'YouTube', icon: '🎥', disabled: false },
                     { id: 'twitter', name: 'Twitter/X', icon: '🐦', disabled: false },
-                    // { id: 'linkedin', name: 'LinkedIn', icon: '💼', disabled: true },
-                    // { id: 'tiktok', name: 'TikTok', icon: '📱', disabled: true },
-                    // { id: 'facebook', name: 'Facebook', icon: '👍', disabled: true },
                   ].map((platform) => (
                     <label
                       key={platform.id}
                       className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition ${formData.platforms.includes(platform.id)
-                        ? 'border-cyan-500 bg-cyan-500/10'
-                        : 'border-gray-700 hover:border-gray-600'
+                          ? 'border-cyan-500 bg-cyan-500/10'
+                          : 'border-gray-700 hover:border-gray-600'
                         }`}
                     >
                       <input
@@ -782,9 +766,11 @@ export default function CreatePostPage() {
                 </div>
               </div>
 
-              {/* Platform-specific editors */}
               {formData.platforms.map((platform) => (
-                <div key={platform} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                <div
+                  key={platform}
+                  className="bg-gray-900 border border-gray-800 rounded-2xl p-6"
+                >
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl">
                       {{
@@ -855,7 +841,8 @@ export default function CreatePostPage() {
                         </label>
                         <textarea
                           value={
-                            platformContent[platform as keyof PlatformSettings]?.caption || ''
+                            platformContent[platform as keyof PlatformSettings]?.caption ||
+                            ''
                           }
                           onChange={(e) =>
                             updatePlatformContent(
@@ -868,8 +855,8 @@ export default function CreatePostPage() {
                           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-cyan-500 focus:outline-none text-white resize-none"
                         />
                       </div>
-                      {platformContent[platform as keyof PlatformSettings]?.hashtags?.length >
-                        0 && (
+                      {platformContent[platform as keyof PlatformSettings]?.hashtags
+                        ?.length > 0 && (
                           <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">
                               Hashtags
@@ -898,13 +885,17 @@ export default function CreatePostPage() {
           {/* TAB 3: SCHEDULE */}
           {activeTab === 'schedule' && (
             <div className="space-y-6">
-              {/* Schedule Mode Selection */}
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-4">Schedule Options</h3>
 
                 <div className="grid md:grid-cols-3 gap-4 mb-6">
                   {/* Publish Now */}
-                  <label className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'now' ? 'border-cyan-500 bg-cyan-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
+                  <label
+                    className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'now'
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                      }`}
+                  >
                     <input
                       type="radio"
                       name="scheduleMode"
@@ -913,75 +904,116 @@ export default function CreatePostPage() {
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'now' ? 'border-cyan-500' : 'border-gray-600'}`}>
-                        {scheduleMode === 'now' && <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>}
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'now'
+                            ? 'border-cyan-500'
+                            : 'border-gray-600'
+                          }`}
+                      >
+                        {scheduleMode === 'now' && (
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                        )}
                       </div>
                       <span className="text-lg font-semibold">Publish Now</span>
                     </div>
-                    <p className="text-sm text-gray-400">Post immediately to all selected platforms</p>
+                    <p className="text-sm text-gray-400">
+                      Post immediately to all selected platforms
+                    </p>
                   </label>
 
-                  {/* AI Recommended */}
-                  <label className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'ai' ? 'border-cyan-500 bg-cyan-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
+                  {/* AI Recommended (upsell for now) */}
+                  <label
+                    className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'ai'
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                      }`}
+                  >
                     <input
                       type="radio"
                       name="scheduleMode"
                       checked={scheduleMode === 'ai'}
-                      // onChange={() => setScheduleMode('ai')}
-                      onChange={() => setShowPremiumModal(true)}
+                      onChange={() => {
+                        setScheduleMode('ai');
+                        setShowPremiumModal(true);
+                      }}
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'ai' ? 'border-cyan-500' : 'border-gray-600'}`}>
-                        {scheduleMode === 'ai' && <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>}
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'ai'
+                            ? 'border-cyan-500'
+                            : 'border-gray-600'
+                          }`}
+                      >
+                        {scheduleMode === 'ai' && (
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                        )}
                       </div>
                       <span className="text-lg font-semibold">AI Recommended</span>
                     </div>
-                    <p className="text-sm text-gray-400">Best times for maximum engagement</p>
+                    <p className="text-sm text-gray-400">
+                      Best times for maximum engagement
+                    </p>
                   </label>
 
                   {/* Custom Time */}
-                  <label className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'custom' ? 'border-cyan-500 bg-cyan-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
+                  <label
+                    className={`cursor-pointer p-4 border-2 rounded-lg transition ${scheduleMode === 'custom'
+                        ? 'border-cyan-500 bg-cyan-500/10'
+                        : 'border-gray-700 hover:border-gray-600'
+                      }`}
+                  >
                     <input
                       type="radio"
                       name="scheduleMode"
                       checked={scheduleMode === 'custom'}
-                      // onChange={() => setScheduleMode('custom')}
-
-                      onChange={() => setShowPremiumModal(true)}
+                      onChange={() => setScheduleMode('custom')}
                       className="sr-only"
                     />
                     <div className="flex items-center gap-3 mb-2">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'custom' ? 'border-cyan-500' : 'border-gray-600'}`}>
-                        {scheduleMode === 'custom' && <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>}
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${scheduleMode === 'custom'
+                            ? 'border-cyan-500'
+                            : 'border-gray-600'
+                          }`}
+                      >
+                        {scheduleMode === 'custom' && (
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                        )}
                       </div>
                       <span className="text-lg font-semibold">Custom Time</span>
                     </div>
-                    <p className="text-sm text-gray-400">Set your own date and time</p>
+                    <p className="text-sm text-gray-400">
+                      Set your own date and time
+                    </p>
                   </label>
                 </div>
 
-                {/* AI Recommended Slots */}
-                {/* if scheduleMode === 'ai' show premium upsell instead of real feature */}
+                {/* AI Recommended slots upsell */}
                 {scheduleMode === 'ai' && (
                   <div className="mt-4 p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm text-gray-300">
                     AI recommended posting times are part of the premium plan.
                     <button
                       type="button"
                       className="mt-3 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-semibold"
-                      onClick={() => alert('Premium plan coming soon. You will be notified when it is available.')}
+                      onClick={() =>
+                        alert(
+                          'Premium plan coming soon. You will be notified when it is available.',
+                        )
+                      }
                     >
                       Upgrade to unlock (coming soon)
                     </button>
                   </div>
                 )}
 
-
                 {/* Custom Time Input */}
                 {scheduleMode === 'custom' && (
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Date
+                      </label>
                       <input
                         type="date"
                         value={formData.scheduledDate}
@@ -996,7 +1028,9 @@ export default function CreatePostPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Time</label>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Time
+                      </label>
                       <input
                         type="time"
                         value={formData.scheduledTime}
@@ -1013,20 +1047,26 @@ export default function CreatePostPage() {
                   </div>
                 )}
 
-                {/* Selected Time Display */}
-                {(scheduleMode === 'ai' || scheduleMode === 'custom') && formData.scheduledDate && formData.scheduledTime && (
-                  <div className="mt-6 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-cyan-300 mb-1">Selected Schedule</div>
-                        <div className="text-lg font-semibold text-white">
-                          {formatTimeDisplay(formData.scheduledDate, formData.scheduledTime)}
+                {(scheduleMode === 'ai' || scheduleMode === 'custom') &&
+                  formData.scheduledDate &&
+                  formData.scheduledTime && (
+                    <div className="mt-6 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-cyan-300 mb-1">
+                            Selected Schedule
+                          </div>
+                          <div className="text-lg font-semibold text-white">
+                            {formatTimeDisplay(
+                              formData.scheduledDate,
+                              formData.scheduledTime,
+                            )}
+                          </div>
                         </div>
+                        <div className="text-cyan-400 text-2xl">⏰</div>
                       </div>
-                      <div className="text-cyan-400 text-2xl">⏰</div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           )}
@@ -1035,7 +1075,10 @@ export default function CreatePostPage() {
           {activeTab === 'preview' && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {formData.platforms.map((platform) => (
-                <div key={platform} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+                <div
+                  key={platform}
+                  className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden"
+                >
                   <div className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white p-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">
@@ -1083,12 +1126,12 @@ export default function CreatePostPage() {
                         <div className="text-sm text-gray-300 whitespace-pre-wrap line-clamp-6">
                           {platformContent[platform as keyof PlatformSettings]?.caption}
                         </div>
-                        {platformContent[platform as keyof PlatformSettings]?.hashtags?.length >
-                          0 && (
+                        {platformContent[platform as keyof PlatformSettings]?.hashtags
+                          ?.length > 0 && (
                             <div className="mt-2 text-cyan-400 text-xs">
-                              {platformContent[platform as keyof PlatformSettings]?.hashtags?.join(
-                                ' ',
-                              )}
+                              {platformContent[
+                                platform as keyof PlatformSettings
+                              ]?.hashtags?.join(' ')}
                             </div>
                           )}
                       </>
@@ -1123,12 +1166,11 @@ export default function CreatePostPage() {
             )}
 
             {activeTab !== 'preview' ? (
-              // IMPORTANT: keep this as type="button" and also stop propagation
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault();          // <- ensure no submit
-                  e.stopPropagation();         // <- extra safety
+                  e.preventDefault();
+                  e.stopPropagation();
                   const tabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
                   const currentIndex = tabs.indexOf(activeTab);
                   setActiveTab(tabs[currentIndex + 1] as TabId);
@@ -1146,19 +1188,20 @@ export default function CreatePostPage() {
                 {loading
                   ? 'Processing...'
                   : scheduleMode === 'now'
-                    ? `Publish to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`
-                    : `Schedule to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''}`}
+                    ? `Publish to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''
+                    }`
+                    : `Schedule to ${formData.platforms.length} Platform${formData.platforms.length !== 1 ? 's' : ''
+                    }`}
               </button>
             )}
           </div>
-
         </form>
       </div>
+
       <PremiumModal
         open={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
       />
-
     </div>
   );
 }
