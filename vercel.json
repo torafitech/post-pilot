@@ -1,8 +1,0 @@
-{
-    "cron": [
-        {
-            "path": "/api/cron/publish-scheduled-posts",
-            "schedule": "0 0 * * *"
-        }
-    ]
-}
