@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest) {
     try {
         const now = new Date();
 
-        // 1) Find due scheduled posts
+        // 1) Find due scheduled posts 
         const snapshot = await adminDb
             .collection('posts')
             .where('status', '==', 'scheduled')
