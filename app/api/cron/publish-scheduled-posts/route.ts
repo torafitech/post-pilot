@@ -88,7 +88,7 @@ export async function GET(_req: NextRequest) {
                     });
                 } else {
                     // publish route itself updates status to published/partially_published,
-                    // but we also mark it as processed here to be safe
+                    // but we also mark it as processed here to be safe 
                     batch.update(doc.ref, {
                         updatedAt: new Date(),
                     });
