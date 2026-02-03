@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // uid is sent from Dashboard: /api/auth/instagram?uid=<firebase-uid>
+  // uid is sent from Dashboard: /api/auth/instagram?uid=<firebase-uid> 
   const uid = url.searchParams.get('uid') || '';
 
   const authUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
