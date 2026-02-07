@@ -64,7 +64,7 @@ export function Navbar({ variant }: NavbarProps) {
     <Link href="/" className="flex items-center gap-2 group">
       <div className="relative h-9 w-36 md:h-10 md:w-40 transition-transform group-hover:scale-105">
         <Image
-          src="/images/logo6.png"
+          src="/images/logo.png"
           alt="StarlingPost"
           fill
           className="object-contain"

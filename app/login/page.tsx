@@ -54,16 +54,6 @@ export default function LoginPage() {
         {/* Logo/Header – matches hero branding */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            {/* <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg"> */}
-              {/* If you have a logo image, swap this for <Image src="/images/logo6.png" ... /> */}
-              {/* <Image
-                src="/images/logo6.png"
-                alt="StarlingPost logo"
-                width={48}
-                height={48}
-                className="rounded-xl"
-              /> */}
-            {/* </div> */}
           </div>
           <h1 className="text-3xl font-black bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
             StarlingPost
