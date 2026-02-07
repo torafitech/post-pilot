@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-white text-gray-900 antialiased">
         <AuthProvider>
           <Navbar />
-          <main className="min-h-screen pt-16">{children}</main>
+          <main className="min-h-screen">{children}</main>
           <Footer />
         </AuthProvider>
       </body>

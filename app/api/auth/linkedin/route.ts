@@ -1,51 +1,117 @@
-// app/api/auth/linkedin/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { adminDb, adminFieldValue, adminAuth } from '@/lib/firebaseAdmin';
 
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
+    const code = url.searchParams.get('code');
+    const error = url.searchParams.get('error');
+
     const origin = `${url.protocol}//${url.host}`;
 
-    const clientId = process.env.LINKEDIN_CLIENT_ID;
-    const redirectUri =
-      process.env.LINKEDIN_REDIRECT_URI ||
-      `${origin}/api/auth/linkedin/callback`;
-
-    if (!clientId) {
-      console.error('Missing LINKEDIN_CLIENT_ID env var');
-      return NextResponse.json(
-        { error: 'LinkedIn env vars missing' },
-        { status: 500 },
+    if (error) {
+      console.error('LinkedIn OAuth error param:', error);
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=linkedin_oauth_denied`,
       );
     }
 
-    // Generate random state for CSRF protection
-    const state = Math.random().toString(36).substring(7);
+    if (!code) {
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=linkedin_no_code`,
+      );
+    }
 
-    // Build LinkedIn OAuth URL
-    const authUrl = new URL('https://www.linkedin.com/oauth/v2/authorization');
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('scope', 'openid profile email');
+    const clientId = process.env.LINKEDIN_CLIENT_ID!;
+    const clientSecret = process.env.LINKEDIN_CLIENT_SECRET!;
+    const redirectUri =
+      process.env.LINKEDIN_REDIRECT_URI ||
+      'https://www.starlingpost.com/api/auth/linkedin/callback';
 
-    // Store state in httpOnly cookie
-    const res = NextResponse.redirect(authUrl.toString());
-    res.cookies.set('linkedin_oauth_state', state, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 600, // 10 minutes
-    });
+    const tokenRes = await fetch(
+      'https://www.linkedin.com/oauth/v2/accessToken',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      },
+    );
 
-    console.log('🔀 Redirecting to LinkedIn OAuth:', authUrl.toString());
-    return res;
-  } catch (error: any) {
-    console.error('LinkedIn OAuth start error:', error);
-    return NextResponse.json(
-      { error: 'Failed to start LinkedIn OAuth' },
-      { status: 500 },
+    const tokenData = await tokenRes.json();
+
+    if (!tokenRes.ok) {
+      console.error('LinkedIn token error:', tokenData);
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=linkedin_token_failed`,
+      );
+    }
+
+    const accessToken = tokenData.access_token as string;
+
+    // Fetch profile name
+    const profileRes = await fetch(
+      'https://api.linkedin.com/v2/me?projection=(localizedFirstName,localizedLastName)',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+    const profile = await profileRes.json();
+    const profileName = `${profile.localizedFirstName || ''} ${
+      profile.localizedLastName || ''
+    }`.trim() || 'LinkedIn Profile';
+
+    // Get authenticated user ID from Firebase session
+    const sessionCookie = request.cookies.get('__session')?.value;
+    let userId = 'demo_user'; // fallback
+
+    if (sessionCookie) {
+      try {
+        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+        userId = decodedClaims.uid;
+        console.log('✅ Got userId from session cookie:', userId);
+      } catch (err) {
+        console.log('⚠️ Could not verify session cookie, using demo_user');
+      }
+    }
+
+    // Save to users/{userId}/connectedAccounts array
+    await adminDb
+      .collection('users')
+      .doc(userId)
+      .set(
+        {
+          connectedAccounts: adminFieldValue.arrayUnion({
+            id: `linkedin_${userId}`,
+            platform: 'linkedin',
+            platformId: 'linkedin',
+            accountName: profileName,
+            accountLabel: profileName,
+            accessToken,
+            connectedAt: new Date(),
+          }),
+        },
+        { merge: true },
+      );
+
+    const redirectUrl =
+      `${origin}/dashboard?success=linkedin_connected` +
+      `&linkedin_connected=true`;
+
+    return NextResponse.redirect(redirectUrl);
+  } catch (err: any) {
+    console.error('LinkedIn callback error:', err);
+    const url = new URL(request.url);
+    const origin = `${url.protocol}//${url.host}`;
+    return NextResponse.redirect(
+      `${origin}/dashboard?error=linkedin_callback_failed`,
     );
   }
 }

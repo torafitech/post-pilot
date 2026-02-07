@@ -1,3 +1,4 @@
+// app/api/auth/linkedin/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, adminFieldValue, adminAuth } from '@/lib/firebaseAdmin';
 
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
       process.env.LINKEDIN_REDIRECT_URI ||
       'https://www.starlingpost.com/api/auth/linkedin/callback';
 
+    // 1) Exchange code for access token
     const tokenRes = await fetch(
       'https://www.linkedin.com/oauth/v2/accessToken',
       {
@@ -54,9 +56,9 @@ export async function GET(request: NextRequest) {
 
     const accessToken = tokenData.access_token as string;
 
-    // Fetch profile name
+    // 2) Fetch profile to get name + member URN
     const profileRes = await fetch(
-      'https://api.linkedin.com/v2/me?projection=(localizedFirstName,localizedLastName)',
+      'https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName)',
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -64,17 +66,24 @@ export async function GET(request: NextRequest) {
       },
     );
     const profile = await profileRes.json();
-    const profileName = `${profile.localizedFirstName || ''} ${
-      profile.localizedLastName || ''
-    }`.trim() || 'LinkedIn Profile';
+    const profileName =
+      `${profile.localizedFirstName || ''} ${
+        profile.localizedLastName || ''
+      }`.trim() || 'LinkedIn Profile';
 
-    // Get authenticated user ID from Firebase session
+    const linkedinMemberId = profile.id as string; // e.g. "AbCdEfGhIj"
+    const authorUrn = `urn:li:person:${linkedinMemberId}`;
+
+    // 3) Get authenticated userId from Firebase session
     const sessionCookie = request.cookies.get('__session')?.value;
-    let userId = 'demo_user'; // fallback
+    let userId = 'demo_user';
 
     if (sessionCookie) {
       try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+        const decodedClaims = await adminAuth.verifySessionCookie(
+          sessionCookie,
+          true,
+        );
         userId = decodedClaims.uid;
         console.log('✅ Got userId from session cookie:', userId);
       } catch (err) {
@@ -82,16 +91,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Save to users/{userId}/connectedAccounts array
+    // 4) Save LinkedIn account under user
     await adminDb
       .collection('users')
       .doc(userId)
       .set(
         {
           connectedAccounts: adminFieldValue.arrayUnion({
-            id: `linkedin_${userId}`,
+            id: `linkedin_${userId}`, // internal id
             platform: 'linkedin',
-            platformId: 'linkedin',
+            platformId: linkedinMemberId, // raw member id
+            authorUrn, // full URN used for posting
             accountName: profileName,
             accountLabel: profileName,
             accessToken,

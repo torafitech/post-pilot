@@ -1,6 +1,6 @@
 // app/dashboard/page.tsx
 'use client';
-
+import React from 'react';
 import { AdsenseAd } from '@/components/AdsenseAd';
 import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
@@ -21,13 +21,48 @@ import { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
+  RadialBar,
+  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
+import {
+  BarChart3,
+  Bell,
+  Calendar,
+  CheckCircle,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  Filter,
+  Globe,
+  Heart,
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  MoreVertical,
+  RefreshCw,
+  Search,
+  Settings,
+  Share2,
+  TrendingUp,
+  Twitter,
+  Users,
+  Video,
+  Youtube,
+  Zap,
+} from 'lucide-react';
 
 interface ConnectedAccount {
   id: string;
@@ -38,29 +73,48 @@ interface ConnectedAccount {
   connectedAt: Date;
 }
 
-// Emojis for platforms
-const platformIcons: Record<string, string> = {
-  instagram: '📸',
-  youtube: '🎥',
-  twitter: '🐦',
-  'twitter/x': '🐦',
-  tiktok: '🎵',
-  linkedin: '💼',
-  facebook: '👍',
-  pinterest: '📌',
-};
-
-// Chart colors
-const platformColors: Record<string, string> = {
-  instagram: '#F97316',
-  youtube: '#EF4444',
-  twitter: '#0EA5E9',
-  'twitter/x': '#0EA5E9',
-  tiktok: '#111827',
-  linkedin: '#0EA5E9',
-  facebook: '#2563EB',
-  pinterest: '#EC4899',
-  default: '#22C55E',
+// Platform data with icons and colors
+const platformData: Record<string, { icon: React.ReactNode; color: string; gradient: string }> = {
+  instagram: {
+    icon: <Instagram size={20} />,
+    color: '#E4405F',
+    gradient: 'from-[#E4405F] to-[#405DE6]',
+  },
+  youtube: {
+    icon: <Youtube size={20} />,
+    color: '#FF0000',
+    gradient: 'from-[#FF0000] to-[#282828]',
+  },
+  twitter: {
+    icon: <Twitter size={20} />,
+    color: '#1DA1F2',
+    gradient: 'from-[#1DA1F2] to-[#14171A]',
+  },
+  'twitter/x': {
+    icon: <Twitter size={20} />,
+    color: '#1DA1F2',
+    gradient: 'from-[#1DA1F2] to-[#14171A]',
+  },
+  tiktok: {
+    icon: <Video size={20} />,
+    color: '#000000',
+    gradient: 'from-[#000000] to-[#69C9D0]',
+  },
+  linkedin: {
+    icon: <Linkedin size={20} />,
+    color: '#0A66C2',
+    gradient: 'from-[#0A66C2] to-[#378FE9]',
+  },
+  facebook: {
+    icon: <Globe size={20} />,
+    color: '#1877F2',
+    gradient: 'from-[#1877F2] to-[#42B72A]',
+  },
+  pinterest: {
+    icon: <Share2 size={20} />,
+    color: '#E60023',
+    gradient: 'from-[#E60023] to-[#BD081C]',
+  },
 };
 
 export default function DashboardPage() {
@@ -79,20 +133,9 @@ export default function DashboardPage() {
     'all' | 'instagram' | 'twitter' | 'youtube' | 'tiktok' | 'linkedin'
   >('all');
 
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [cardsVisible, setCardsVisible] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-
-  const platforms = ['Instagram', 'YouTube', 'Twitter/X'];
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setStatsVisible(true), 100);
-    const t2 = setTimeout(() => setCardsVisible(true), 300);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, []);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState('7d');
 
   useEffect(() => {
     if (authLoading) return;
@@ -107,34 +150,29 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user || authLoading) return;
 
-    // Optional: simple guard so you don't sync too often
     const lastSynced = window.localStorage.getItem('lastSyncAt');
     const lastSyncedAt = lastSynced ? new Date(lastSynced).getTime() : 0;
     const now = Date.now();
-
-    // e.g. only auto-sync if last sync > 15 minutes ago
     const FIFTEEN_MIN = 15 * 60 * 1000;
+    
     if (now - lastSyncedAt < FIFTEEN_MIN) {
       return;
     }
 
     const autoSync = async () => {
       try {
-        console.log('[DASHBOARD] Auto-syncing posts on load');
         const res = await fetch('/api/posts/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.uid }),
         });
         const data = await res.json();
-        if (!data.success) {
-          console.warn('[DASHBOARD] Auto-sync error:', data.error);
-        } else {
+        if (data.success) {
           window.localStorage.setItem('lastSyncAt', new Date().toISOString());
-          await fetchPosts(); // reuse your existing loader
+          await fetchPosts();
         }
       } catch (err) {
-        console.error('[DASHBOARD] Auto-sync exception:', err);
+        console.error('Auto-sync error:', err);
       }
     };
 
@@ -178,7 +216,7 @@ export default function DashboardPage() {
 
       setConnectedAccounts(accounts);
     } catch (error: any) {
-      console.error('❌ Error fetching accounts:', error);
+      console.error('Error fetching accounts:', error);
     } finally {
       setLoading(false);
     }
@@ -198,7 +236,7 @@ export default function DashboardPage() {
       );
       setPosts(list);
     } catch (error: any) {
-      console.error('❌ Error fetching posts:', error);
+      console.error('Error fetching posts:', error);
     } finally {
       setPostsLoading(false);
     }
@@ -220,7 +258,7 @@ export default function DashboardPage() {
         await fetchPosts();
       }
     } catch (error: any) {
-      console.error('❌ Error syncing posts:', error);
+      console.error('Error syncing posts:', error);
       alert('Error syncing posts: ' + error.message);
     } finally {
       setSyncingPosts(false);
@@ -241,23 +279,22 @@ export default function DashboardPage() {
       setShowModal(false);
 
       if (selectedPlatform === 'youtube') {
-        window.location.href = `/api/auth/youtube?uid=${encodeURIComponent(
-          user.uid,
-        )}`;
+        window.location.href = `/api/auth/youtube?uid=${encodeURIComponent(user.uid)}`;
         return;
       }
 
       if (selectedPlatform === 'twitter' || selectedPlatform === 'twitter/x') {
-        window.location.href = `/api/auth/twitter/oauth1?uid=${encodeURIComponent(
-          user.uid,
-        )}`;
+        window.location.href = `/api/auth/twitter/oauth1?uid=${encodeURIComponent(user.uid)}`;
         return;
       }
 
       if (selectedPlatform === 'instagram') {
-        window.location.href = `/api/auth/instagram?uid=${encodeURIComponent(
-          user.uid,
-        )}`;
+        window.location.href = `/api/auth/instagram?uid=${encodeURIComponent(user.uid)}`;
+        return;
+      }
+
+      if (selectedPlatform === 'linkedin') {
+        window.location.href = `/api/auth/linkedin?uid=${encodeURIComponent(user.uid)}`;
         return;
       }
 
@@ -308,17 +345,8 @@ export default function DashboardPage() {
       const updatedAccounts = connectedAccounts.filter((acc) => acc.id !== accountId);
       setConnectedAccounts(updatedAccounts);
     } catch (error: any) {
-      console.error('❌ Error disconnecting account:', error);
-      alert(`❌ Error disconnecting account: ${error.message}`);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/');
-    } catch (error) {
-      console.error('❌ Logout error:', error);
+      console.error('Error disconnecting account:', error);
+      alert(`Error disconnecting account: ${error.message}`);
     }
   };
 
@@ -328,15 +356,17 @@ export default function DashboardPage() {
     let views = 0;
     let likes = 0;
     let comments = 0;
+    let shares = 0;
 
     posts.forEach((p) => {
       reach += p.metrics?.reach || 0;
       views += p.metrics?.views || 0;
       likes += p.metrics?.likes || 0;
       comments += p.metrics?.comments || 0;
+      shares += p.metrics?.shares || 0;
     });
 
-    return { reach, views, likes, comments };
+    return { reach, views, likes, comments, shares };
   })();
 
   // Platform distribution
@@ -349,17 +379,17 @@ export default function DashboardPage() {
   ).map(([platform, count]) => ({
     name: platform.charAt(0).toUpperCase() + platform.slice(1),
     value: count,
-    color: platformColors[platform] || platformColors.default,
+    fill: platformData[platform]?.color || '#22C55E',
   }));
 
-  // Engagement trend
+  // Engagement trend data
   const engagementTrend = (() => {
     const days = 7;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const buckets: {
-      [key: string]: { dateLabel: string; engagement: number; reach: number };
+      [key: string]: { date: string; engagement: number; reach: number; posts: number };
     } = {};
 
     for (let i = days - 1; i >= 0; i--) {
@@ -367,9 +397,10 @@ export default function DashboardPage() {
       d.setDate(today.getDate() - i);
       const key = d.toISOString().slice(0, 10);
       buckets[key] = {
-        dateLabel: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: d.toLocaleDateString('en-US', { weekday: 'short' }),
         engagement: 0,
         reach: 0,
+        posts: 0,
       };
     }
 
@@ -389,10 +420,29 @@ export default function DashboardPage() {
 
       buckets[key].engagement += likes + comments;
       buckets[key].reach += reach;
+      buckets[key].posts += 1;
     });
 
     return Object.values(buckets);
   })();
+
+  // Performance by platform
+  const platformPerformance = Object.entries(
+    posts.reduce((acc: Record<string, { engagement: number; posts: number }>, post) => {
+      const platform = post.platform?.toLowerCase() || 'other';
+      if (!acc[platform]) {
+        acc[platform] = { engagement: 0, posts: 0 };
+      }
+      acc[platform].engagement += (post.metrics?.likes || 0) + (post.metrics?.comments || 0);
+      acc[platform].posts += 1;
+      return acc;
+    }, {}),
+  ).map(([platform, data]) => ({
+    platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+    engagement: data.engagement,
+    posts: data.posts,
+    avgEngagement: Math.round(data.engagement / data.posts),
+  }));
 
   const topPosts = [...posts]
     .sort(
@@ -403,18 +453,30 @@ export default function DashboardPage() {
     )
     .slice(0, 5);
 
-  const filteredPosts = posts.filter((p) =>
-    selectedPlatformFilter === 'all'
-      ? true
-      : p.platform?.toLowerCase() === selectedPlatformFilter,
-  );
+  const filteredPosts = posts
+    .filter((p) =>
+      selectedPlatformFilter === 'all'
+        ? true
+        : p.platform?.toLowerCase() === selectedPlatformFilter,
+    )
+    .filter((p) =>
+      searchQuery
+        ? p.caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.platform?.toLowerCase().includes(searchQuery.toLowerCase())
+        : true,
+    );
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-500 text-lg">Loading your dashboard...</p>
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-transparent border-t-purple-500 border-r-blue-500 rounded-full animate-spin mx-auto mb-6" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Zap className="w-8 h-8 text-purple-400 animate-pulse" />
+            </div>
+          </div>
+          <p className="text-gray-300 text-lg mt-4 font-medium">Loading your analytics...</p>
         </div>
       </div>
     );
@@ -423,565 +485,611 @@ export default function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-slate-50 text-slate-900">
-      {/* subtle radial glow */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 -left-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-40 right-1/3 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl" />
+      </div>
 
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      >
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-6">
           <div>
-            <p className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-sky-700 bg-sky-50 rounded-full px-3 py-1 border border-sky-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Creator analytics
-            </p>
-            <h1 className="mt-3 text-3xl md:text-4xl font-black text-slate-900">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 mb-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">
+                Analytics Dashboard
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent">
               Welcome back,{' '}
-              <span className="bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-emerald-400 bg-clip-text text-transparent">
                 {userProfile?.displayName || 'Creator'}
               </span>
             </h1>
-            <p className="mt-1 text-xs md:text-sm text-slate-600">
-              Monitor performance across all your connected platforms.
+            <p className="mt-2 text-gray-400 text-sm md:text-base">
+              Monitor, analyze, and optimize your social media performance
             </p>
+          </div>
+          
+          {/* <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowPremiumModal(true)}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-300"
+            >
+              <span className="flex items-center gap-2">
+                <Zap size={16} />
+                Upgrade to Pro
+              </span>
+            </button>
+            <button className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-colors">
+              <Bell size={20} />
+            </button>
+            <button className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-colors">
+              <Settings size={20} />
+            </button>
+          </div> */}
+        </div>
+
+        {/* Search and filters */}
+        <div className="mb-8 flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[300px] relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search posts, metrics, or platforms..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="px-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="1y">Last year</option>
+            </select>
+            
+            <button
+              onClick={handleSyncPosts}
+              disabled={syncingPosts}
+              className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center gap-2"
+            >
+              <RefreshCw size={18} className={syncingPosts ? 'animate-spin' : ''} />
+              {syncingPosts ? 'Syncing...' : 'Sync Data'}
+            </button>
           </div>
         </div>
 
         {/* Ad #1 */}
         <div className="mb-8">
-          <div className="rounded-2xl border border-sky-100 bg-white/90 shadow-sm">
+          <div className="rounded-2xl border border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900/50 p-1 shadow-xl">
             <AdsenseAd
               slot="8490208307"
-              className="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden"
+              className="w-full max-w-4xl mx-auto rounded-xl overflow-hidden"
             />
           </div>
         </div>
 
-        {/* Stats */}
-        <div
-          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 transition-all duration-700 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-        >
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <StatCard
-            icon="📱"
-            label="Connected accounts"
-            value={connectedAccounts.length}
-            gradient="from-sky-400 via-sky-500 to-blue-500"
+            icon={<Users className="w-6 h-6" />}
+            label="Total Reach"
+            value={aggregate.reach.toLocaleString()}
+            change="+12.5%"
+            color="from-blue-500 to-cyan-400"
             delay={0}
           />
           <StatCard
-            icon="📝"
-            label="Total posts"
-            value={posts.length}
-            gradient="from-indigo-400 via-sky-500 to-fuchsia-500"
-            delay={80}
-          />
-          <StatCard
-            icon="👥"
-            label="Total reach"
-            value={aggregate.reach.toLocaleString()}
-            gradient="from-emerald-400 via-teal-400 to-sky-400"
-            delay={160}
-          />
-          <StatCard
-            icon="💬"
-            label="Total interactions"
+            icon={<Heart className="w-6 h-6" />}
+            label="Engagement"
             value={(aggregate.likes + aggregate.comments).toLocaleString()}
-            gradient="from-orange-400 via-amber-400 to-rose-400"
-            delay={240}
+            change="+8.3%"
+            color="from-purple-500 to-pink-400"
+            delay={100}
+          />
+          <StatCard
+            icon={<MessageCircle className="w-6 h-6" />}
+            label="Total Posts"
+            value={posts.length.toString()}
+            change="+4.2%"
+            color="from-emerald-500 to-teal-400"
+            delay={200}
+          />
+          <StatCard
+            icon={<TrendingUp className="w-6 h-6" />}
+            label="Avg. Engagement Rate"
+            value={`${posts.length > 0 ? Math.round((aggregate.likes + aggregate.comments) / posts.length) : 0}%`}
+            change="+2.1%"
+            color="from-amber-500 to-orange-400"
+            delay={300}
           />
         </div>
 
-        {/* Charts */}
+        {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          {/* Platform distribution */}
-          <div
-            className={`bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Platform distribution
-              </h3>
-              <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center text-lg">
-                📊
+          {/* Engagement Trend Chart */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Engagement Trend</h3>
+                <p className="text-gray-400 text-sm">Performance over the last 7 days</p>
+              </div>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 mb-4">
-              Number of posts per platform across all time.
-            </p>
-            <div className="h-60">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={engagementTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="date" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
+                      borderRadius: '0.75rem',
+                      color: '#F9FAFB',
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="engagement"
+                    stroke="#8B5CF6"
+                    strokeWidth={3}
+                    dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#8B5CF6' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Platform Distribution */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Platform Distribution</h3>
+                <p className="text-gray-400 text-sm">Posts across platforms</p>
+              </div>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20">
+                <PieChart className="w-6 h-6 text-emerald-400" />
+              </div>
+            </div>
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={platformDistribution}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={3}
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={2}
                     dataKey="value"
+                    label={(entry) => `${entry.name}: ${entry.value}`}
                   >
                     {platformDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={entry.fill} stroke="#1F2937" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#1F2937',
+                      border: '1px solid #374151',
                       borderRadius: '0.75rem',
-                      fontSize: '0.75rem',
-                      color: '#0F172A',
+                      color: '#F9FAFB',
                     }}
                   />
+                  <Legend />
                 </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {platformDistribution.map((platform, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200"
-                >
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: platform.color }}
-                  />
-                  <span className="text-[11px] text-slate-700">
-                    {platform.name}
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    ({platform.value})
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Engagement trend */}
-          <div
-            className={`bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Engagement trend
-              </h3>
-              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-lg">
-                📈
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-500 mb-4">
-              Daily engagement (likes + comments) for the last 7 days.
-            </p>
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={engagementTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <defs>
-                    <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '0.75rem',
-                      fontSize: '0.75rem',
-                      color: '#0F172A',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="engagement"
-                    stroke="#6366F1"
-                    fill="url(#colorEngagement)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Connected accounts */}
-        <div
-          className={`mb-10 transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-        >
+        {/* Platform Performance Bar Chart */}
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl mb-10">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Connected accounts
-              </h2>
-              <p className="text-[11px] text-slate-500">
-                Manage and monitor your social integrations.
-              </p>
+              <h3 className="text-xl font-bold text-white mb-2">Platform Performance</h3>
+              <p className="text-gray-400 text-sm">Engagement by platform</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-400">Sort by engagement</span>
+            </div>
+          </div>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={platformPerformance}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                <XAxis dataKey="platform" stroke="#9CA3AF" />
+                <YAxis stroke="#9CA3AF" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
+                    border: '1px solid #374151',
+                    borderRadius: '0.75rem',
+                    color: '#F9FAFB',
+                  }}
+                />
+                <Bar
+                  dataKey="engagement"
+                  radius={[8, 8, 0, 0]}
+                  fill="url(#platformGradient)"
+                />
+                <defs>
+                  <linearGradient id="platformGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#6366F1" />
+                  </linearGradient>
+                </defs>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Connected Accounts */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">Connected Accounts</h2>
+              <p className="text-gray-400">Manage your social media integrations</p>
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white text-xs sm:text-sm font-medium shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 flex items-center gap-2"
             >
               <span className="text-lg">+</span>
-              <span>Connect account</span>
+              Connect Account
             </button>
           </div>
 
           {connectedAccounts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {connectedAccounts.map((account, index) => (
-                <div
-                  key={account.id}
-                  className="group bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-sky-400 hover:shadow-md transition"
-                  style={{ animationDelay: `${index * 80}ms` }}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xl">
-                        {platformIcons[account.platform.toLowerCase()] || '📱'}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-900">
-                          {account.platform}
-                        </h3>
-                        <p className="text-[11px] text-slate-500">
-                          {account.accountName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-emerald-600">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Active</span>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {connectedAccounts.map((account, index) => {
+                const platformInfo = platformData[account.platform.toLowerCase()] || {
+                  icon: <Globe className="w-6 h-6" />,
+                  color: '#6B7280',
+                  gradient: 'from-gray-500 to-gray-600',
+                };
 
-                  <div className="text-[11px] text-slate-500 mb-4">
-                    Connected on{' '}
-                    <span className="text-slate-700">
-                      {account.connectedAt.toLocaleDateString()}
-                    </span>
-                  </div>
+                return (
+                  <div
+                    key={account.id}
+                    className="group bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl hover:border-blue-500/50 hover:shadow-blue-500/10 transition-all duration-300"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-xl bg-gradient-to-r ${platformInfo.gradient}`}>
+                          {platformInfo.icon}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white">{account.platform}</h3>
+                          <p className="text-sm text-gray-400">{account.accountName}</p>
+                        </div>
+                      </div>
+                      <button className="text-gray-400 hover:text-white">
+                        <MoreVertical size={20} />
+                      </button>
+                    </div>
 
-                  <div className="flex gap-2 text-[11px]">
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/analytics?platform=${account.platform.toLowerCase()}`,
-                        )
-                      }
-                      className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:border-sky-400 hover:bg-sky-50 transition"
-                    >
-                      📊 View analytics
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Disconnect ${account.platform}?`)) {
-                          handleDisconnectAccount(account.id);
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <CheckCircle size={16} />
+                        <span className="text-sm font-medium">Connected</span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {account.connectedAt.toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() =>
+                          router.push(`/analytics?platform=${account.platform.toLowerCase()}`)
                         }
-                      }}
-                      className="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-400 hover:bg-rose-100 transition"
-                      title="Disconnect"
-                    >
-                      ✕
-                    </button>
+                        className="flex-1 px-4 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-medium text-white transition-colors flex items-center justify-center gap-2"
+                      >
+                        <BarChart3 size={16} />
+                        Analytics
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Disconnect ${account.platform}?`)) {
+                            handleDisconnectAccount(account.id);
+                          }
+                        }}
+                        className="px-4 py-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-3xl">
-                📱
+            <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-2 border-dashed border-gray-700 rounded-2xl p-12 text-center">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center">
+                <Globe className="w-12 h-12 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                No connected accounts yet
-              </h3>
-              <p className="text-sm text-slate-500 mb-5 max-w-md mx-auto">
-                Connect your social media accounts to start tracking performance in
-                one place.
+              <h3 className="text-2xl font-bold text-white mb-3">No accounts connected</h3>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                Connect your social media accounts to unlock powerful analytics and insights
               </p>
               <button
                 onClick={() => setShowModal(true)}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm font-medium shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
               >
-                Connect your first account
+                Connect Your First Account
               </button>
             </div>
           )}
         </div>
 
-        {/* Posts performance */}
-        <div
-          className={`mb-10 transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-        >
+        {/* Posts Performance */}
+        <div className="mb-10">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
-                Posts performance
-              </h2>
-              <p className="text-[11px] text-slate-500">
-                See how your recent content is performing.
-              </p>
+              <h2 className="text-2xl font-bold text-white mb-2">Posts Performance</h2>
+              <p className="text-gray-400">Track and analyze your content performance</p>
             </div>
-            <div className="flex gap-3">
-              <div className="flex bg-white border border-slate-200 rounded-xl p-1 text-[11px]">
-                {['all', 'instagram', 'twitter', 'youtube', 'tiktok'].map(
-                  (platform) => (
-                    <button
-                      key={platform}
-                      onClick={() =>
-                        setSelectedPlatformFilter(platform as any)
-                      }
-                      className={`px-3 py-1.5 rounded-lg font-medium transition ${selectedPlatformFilter === platform
-                        ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                        : 'text-slate-500 hover:text-slate-800'
-                        }`}
-                    >
-                      {platform === 'all'
-                        ? 'All'
-                        : platform.charAt(0).toUpperCase() + platform.slice(1)}
-                    </button>
-                  ),
-                )}
+            
+            <div className="flex items-center gap-4">
+              <div className="flex bg-gray-800 border border-gray-700 rounded-xl p-1">
+                {['all', 'instagram', 'twitter', 'youtube', 'linkedin'].map((platform) => (
+                  <button
+                    key={platform}
+                    onClick={() => setSelectedPlatformFilter(platform as any)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedPlatformFilter === platform
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                  >
+                    {platform === 'all' ? 'All Platforms' : platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Top posts */}
-          <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-700 mb-3">
-              Top performing posts
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {topPosts.slice(0, 3).map((post, index) => (
-                <div
-                  key={post.id}
-                  className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-4 shadow-sm hover:border-sky-400 hover:shadow-md transition"
-                >
-                  <div className="flex items-start justify-between mb-2">
+          {/* Top Posts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {topPosts.slice(0, 3).map((post, index) => (
+              <div
+                key={post.id}
+                className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl hover:border-purple-500/50 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${index === 0 ? 'bg-amber-500/20' : index === 1 ? 'bg-gray-700' : 'bg-emerald-500/20'}`}>
+                      <span className={`text-sm font-bold ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-gray-300' : 'text-emerald-400'}`}>
+                        #{index + 1}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center">
-                        {platformIcons[post.platform?.toLowerCase() || 'default'] ||
-                          '📝'}
-                      </div>
-                      <span className="text-[11px] font-medium text-slate-700 capitalize">
+                      {platformData[post.platform?.toLowerCase()]?.icon || <Globe size={18} />}
+                      <span className="text-sm font-medium text-gray-300 capitalize">
                         {post.platform}
                       </span>
                     </div>
-                    <div
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${index === 0
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : index === 1
-                          ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }`}
-                    >
-                      #{index + 1}
-                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-700 mb-3 line-clamp-2">
-                    {post.caption}
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
-                      <div className="text-sm font-semibold text-sky-700">
-                        {post.metrics?.likes || 0}
-                      </div>
-                      <div className="text-[10px] text-slate-500">Likes</div>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
-                      <div className="text-sm font-semibold text-indigo-700">
-                        {post.metrics?.comments || 0}
-                      </div>
-                      <div className="text-[10px] text-slate-500">Comments</div>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
-                      <div className="text-sm font-semibold text-rose-700">
-                        {post.metrics?.reach || 0}
-                      </div>
-                      <div className="text-[10px] text-slate-500">Reach</div>
-                    </div>
+                  <button className="text-gray-400 hover:text-white">
+                    <ExternalLink size={18} />
+                  </button>
+                </div>
+                
+                <p className="text-gray-300 text-sm mb-6 line-clamp-3">
+                  {post.caption}
+                </p>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 rounded-xl bg-gray-800/50">
+                    <div className="text-lg font-bold text-amber-400">{post.metrics?.likes || 0}</div>
+                    <div className="text-xs text-gray-400">Likes</div>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-gray-800/50">
+                    <div className="text-lg font-bold text-blue-400">{post.metrics?.comments || 0}</div>
+                    <div className="text-xs text-gray-400">Comments</div>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-gray-800/50">
+                    <div className="text-lg font-bold text-emerald-400">{post.metrics?.reach || 0}</div>
+                    <div className="text-xs text-gray-400">Reach</div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* Ad #2 */}
           <div className="mb-6">
-            <div className="rounded-2xl border border-sky-100 bg-white/90 shadow-sm max-w-3xl mx-auto">
+            <div className="rounded-2xl border border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900/50 p-1 shadow-xl">
               <AdsenseAd
                 slot="6951047306"
-                className="w-full rounded-2xl overflow-hidden"
+                className="w-full rounded-xl overflow-hidden"
               />
             </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          {/* Posts Table */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl shadow-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-[11px]">
-                <thead className="bg-slate-50">
+              <table className="w-full">
+                <thead className="bg-gray-800/50">
                   <tr>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
-                      Post content
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                      Content
                     </th>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
                       Platform
                     </th>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
-                      Engagement
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                      Metrics
                     </th>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
-                      Reach
-                    </th>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-600">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
                       Published
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
+                      Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredPosts.slice(0, 5).map((post) => (
-                    <tr
-                      key={post.id}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-6 py-3">
-                        <div className="max-w-xs">
-                          <p className="text-[11px] text-slate-800 truncate">
+                <tbody className="divide-y divide-gray-800">
+                  {filteredPosts.slice(0, 8).map((post) => (
+                    <tr key={post.id} className="hover:bg-gray-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="max-w-md">
+                          <p className="text-sm text-gray-300 line-clamp-2">
                             {post.caption}
                           </p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">
-                            {(post.caption?.length || 0) + ' characters'}
+                          <p className="text-xs text-gray-500 mt-1">
+                            {post.caption?.length || 0} characters
                           </p>
                         </div>
                       </td>
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-sm">
-                            {platformIcons[post.platform?.toLowerCase() || 'default'] ||
-                              '📝'}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${platformData[post.platform?.toLowerCase()] ? 'bg-gradient-to-r ' + platformData[post.platform?.toLowerCase()].gradient : 'bg-gray-700'}`}>
+                            {platformData[post.platform?.toLowerCase()]?.icon || <Globe size={16} />}
                           </div>
-                          <span className="text-[11px] text-slate-700 capitalize">
+                          <span className="text-sm font-medium text-gray-300 capitalize">
                             {post.platform}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-4">
-                          <div className="text-center">
-                            <div className="text-xs font-semibold text-sky-700">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-6">
+                          <div>
+                            <div className="text-sm font-bold text-amber-400">
                               {post.metrics?.likes || 0}
                             </div>
-                            <div className="text-[10px] text-slate-400">Likes</div>
+                            <div className="text-xs text-gray-400">Likes</div>
                           </div>
-                          <div className="text-center">
-                            <div className="text-xs font-semibold text-indigo-700">
+                          <div>
+                            <div className="text-sm font-bold text-blue-400">
                               {post.metrics?.comments || 0}
                             </div>
-                            <div className="text-[10px] text-slate-400">Comments</div>
+                            <div className="text-xs text-gray-400">Comments</div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-emerald-400">
+                              {post.metrics?.reach || 0}
+                            </div>
+                            <div className="text-xs text-gray-400">Reach</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-3">
-                        <div className="text-xs font-semibold text-rose-700">
-                          {post.metrics?.reach || 0}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} className="text-gray-400" />
+                          <span className="text-sm text-gray-300">
+                            {post.publishedAt?.toDate
+                              ? post.publishedAt.toDate().toLocaleDateString()
+                              : post.publishedAt
+                                ? new Date(post.publishedAt as any).toLocaleDateString()
+                                : '—'}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-3">
-                        <div className="text-[11px] text-slate-500">
-                          {post.publishedAt?.toDate
-                            ? post.publishedAt.toDate().toLocaleDateString()
-                            : post.publishedAt
-                              ? new Date(
-                                post.publishedAt as any,
-                              ).toLocaleDateString()
-                              : '—'}
-                        </div>
+                      <td className="px-6 py-4">
+                        <button className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+                          <ChevronRight size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))}
-                  {filteredPosts.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-6 text-center text-[11px] text-slate-400"
-                      >
-                        No posts yet for this filter. Create a post and sync metrics.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
+            
+            {filteredPosts.length === 0 && (
+              <div className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                  <Search className="w-8 h-8 text-gray-400" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-300 mb-2">No posts found</h4>
+                <p className="text-gray-400 text-sm">
+                  Try adjusting your filters or sync your accounts
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Connect account modal */}
+      {/* Connect Account Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-7 max-w-md w-full shadow-xl">
-            <div className="flex items-center justify-between mb-5">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Connect account
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Choose a platform to connect via OAuth.
+                <h3 className="text-2xl font-bold text-white mb-2">Connect Account</h3>
+                <p className="text-gray-400 text-sm">
+                  Choose a platform to connect via OAuth
                 </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-700 text-xl"
+                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
               >
                 ✕
               </button>
             </div>
 
             <div className="mb-6">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-2">
-                Platform
+              <label className="block text-sm font-semibold text-gray-300 mb-3">
+                Select Platform
               </label>
               <div className="relative">
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  {platformData[selectedPlatform]?.icon || <Globe className="w-5 h-5 text-gray-400" />}
+                </div>
                 <select
                   value={selectedPlatform}
                   onChange={(e) => setSelectedPlatform(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 focus:border-sky-500 focus:outline-none text-sm text-slate-800 appearance-none"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                 >
-                  {platforms.map((p) => (
-                    <option key={p} value={p.toLowerCase()}>
-                      {p}
+                  {Object.entries(platformData).map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
                     </option>
                   ))}
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
                   ▼
                 </div>
               </div>
             </div>
 
-            <div className="mb-6">
-              <div className="w-full h-1 rounded-full bg-gradient-to-r from-sky-400 via-sky-500 to-indigo-500" />
+            <div className="mb-8">
+              <div className="w-full h-1 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm text-slate-700 hover:bg-slate-50 transition"
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-700 bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConnectAccount}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm font-medium shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition"
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300"
               >
-                Connect
+                Connect Now
               </button>
             </div>
           </div>
@@ -992,45 +1100,47 @@ export default function DashboardPage() {
         open={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
       />
-      <button
-        onClick={handleSyncPosts}
-        disabled={syncingPosts}
-        className="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-medium shadow-sm hover:bg-sky-700 disabled:opacity-60"
-      >
-        {syncingPosts ? 'Syncing…' : 'Sync metrics'}
-      </button>
-
     </div>
   );
 }
 
-/* Stat Card */
+/* Stat Card Component */
 function StatCard({
   icon,
   label,
   value,
-  gradient,
+  change,
+  color,
   delay,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
-  value: number | string;
-  gradient: string;
+  value: string;
+  change: string;
+
+
+
+
+
+  color: string;
   delay: number;
 }) {
   return (
     <div
-      className="group bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-sky-400/70 transition-transform duration-300 hover:-translate-y-0.5"
+      className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-2xl">{icon}</div>
-        <div
-          className={`w-10 h-10 rounded-xl bg-gradient-to-r ${gradient} opacity-30 group-hover:opacity-80 transition-opacity`}
-        />
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-xl bg-gradient-to-r ${color} bg-opacity-20`}>
+          <div className="text-white">{icon}</div>
+        </div>
+        <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20">
+          <TrendingUp size={14} className="text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-400">{change}</span>
+        </div>
       </div>
-      <p className="text-[11px] text-slate-500 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-slate-900">{value}</p>
+      <p className="text-gray-400 text-sm mb-2">{label}</p>
+      <p className="text-3xl font-bold text-white">{value}</p>
     </div>
   );
 }

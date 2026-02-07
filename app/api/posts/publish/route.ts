@@ -117,7 +117,28 @@ export async function POST(request: NextRequest) {
         console.error('Instagram publish error:', error);
         results.errors.push({ platform: 'instagram', error: error.message });
       }
+    }// inside POST handler, after instagram block
+
+    // -----------------------
+    // Publish to LinkedIn
+    // -----------------------
+    if (platforms.includes('linkedin')) {
+      try {
+        console.log('Publishing to LinkedIn...');
+        const linkedinCaption =
+          platformContent?.linkedin?.caption?.trim() || caption;
+
+        const linkedinResult = await publishToLinkedin(
+          userId,
+          linkedinCaption,
+        );
+        results.linkedin = linkedinResult;
+      } catch (error: any) {
+        console.error('LinkedIn publish error:', error);
+        results.errors.push({ platform: 'linkedin', error: error.message });
+      }
     }
+
 
 
     // TODO: Implement linkedin / tiktok / facebook similarly using userId
@@ -127,7 +148,7 @@ export async function POST(request: NextRequest) {
     if (results.twitter?.id) platformPostIds.twitter = results.twitter.id;
     if (results.youtube?.id) platformPostIds.youtube = results.youtube.id;
     if (results.instagram?.id) platformPostIds.instagram = results.instagram.id;
-
+    if (results.linkedin?.id) platformPostIds.linkedin = results.linkedin.id;
     await adminDb.collection('posts').doc(postId).update({
       status:
         results.errors.length === 0 ? 'published' : 'partially_published',
@@ -186,6 +207,17 @@ export async function POST(request: NextRequest) {
           accountId: `instagram_${userId}`,        // or igBusinessId if you have it
           platformPostId: results.instagram.id,    // IG media id
           mediaUrl: imageUrl || videoUrl || null,
+        },
+        { merge: true },
+      );
+    }
+    if (results.linkedin?.id) {
+      await userPostsRef.doc(results.linkedin.id).set(
+        {
+          ...basePostData,
+          platform: 'linkedin',
+          accountId: `linkedin_${userId}`, // or actual member/organization id
+          platformPostId: results.linkedin.id, // URN returned by LinkedIn
         },
         { merge: true },
       );
@@ -296,4 +328,27 @@ async function publishToInstagram(
   }
 
   return { id: data.instagramPostId };
+}
+async function publishToLinkedin(
+  userId: string,
+  caption: string,
+) {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
+  const response = await fetch(`${baseUrl}/api/auth/linkedin/post`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId,
+      text: caption,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to publish to LinkedIn');
+  }
+
+  // Normalize like other platforms
+  return { id: data.linkedinPostUrn };
 }

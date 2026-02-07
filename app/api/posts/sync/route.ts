@@ -9,7 +9,15 @@ import { fetchTwitterMetrics } from '@/lib/metrics/twitter';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await req.json();
+    // Safely parse body to avoid "Unexpected end of JSON input"
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+
+    const { userId } = body;
     console.log('[SYNC] Called with userId', userId);
 
     if (!userId) {
@@ -122,19 +130,35 @@ async function fetchPlatformMetrics(
   connectedAccounts: any[],
 ): Promise<PostMetrics> {
   const key = platform?.toLowerCase();
-  console.log('[SYNC] fetchPlatformMetrics', { platform, key, accountId, platformPostId });
+  console.log('[SYNC] fetchPlatformMetrics', {
+    platform,
+    key,
+    accountId,
+    platformPostId,
+  });
 
   switch (key) {
     case 'instagram': {
       const igAcc = getAccount('instagram', connectedAccounts);
-      return fetchInstagramMetrics(accountId, platformPostId, igAcc?.accessToken);
+      return fetchInstagramMetrics(
+        accountId,
+        platformPostId,
+        igAcc?.accessToken,
+      );
     }
     case 'facebook': {
       const fbAcc = getAccount('facebook', connectedAccounts);
-      return fetchFacebookMetrics(accountId, platformPostId, fbAcc?.accessToken);
+      return fetchFacebookMetrics(
+        accountId,
+        platformPostId,
+        fbAcc?.accessToken,
+      );
     }
     case 'youtube': {
-      console.log('[SYNC] Calling fetchYouTubeMetrics for videoId', platformPostId);
+      console.log(
+        '[SYNC] Calling fetchYouTubeMetrics for videoId',
+        platformPostId,
+      );
       return fetchYouTubeMetrics(accountId, platformPostId);
     }
     case 'twitter': {
