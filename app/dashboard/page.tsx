@@ -1,7 +1,5 @@
 // app/dashboard/page.tsx
 'use client';
-import React from 'react';
-import { AdsenseAd } from '@/components/AdsenseAd';
 import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
@@ -16,8 +14,33 @@ import {
   query,
   updateDoc,
 } from 'firebase/firestore';
+import {
+  BarChart3,
+  Calendar,
+  CheckCircle,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  Eye,
+  Filter,
+  Globe,
+  Heart,
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  MoreVertical,
+  RefreshCw,
+  Search,
+  Share2,
+  TrendingUp,
+  Twitter,
+  Users,
+  Video,
+  Youtube,
+  Zap
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -30,39 +53,20 @@ import {
   LineChart,
   Pie,
   PieChart,
-  RadialBar,
-  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis,
+  YAxis
 } from 'recharts';
-import {
-  BarChart3,
-  Bell,
-  Calendar,
-  CheckCircle,
-  ChevronRight,
-  Download,
-  ExternalLink,
-  Filter,
-  Globe,
-  Heart,
-  Instagram,
-  Linkedin,
-  MessageCircle,
-  MoreVertical,
-  RefreshCw,
-  Search,
-  Settings,
-  Share2,
-  TrendingUp,
-  Twitter,
-  Users,
-  Video,
-  Youtube,
-  Zap,
-} from 'lucide-react';
+
+import YouTubeProfileCard from '@/components/YouTube/YouTubeProfileCard';
+import YouTubeStatsCards from '@/components/YouTube/YouTubeStatsCards';
+import { useYouTubeData } from '@/lib/hooks/useYouTubeData';
+
+import TwitterProfileCard from '@/components/Twitter/TwitterProfileCard';
+import TwitterStatsCards from '@/components/Twitter/TwitterStatsCards';
+import TwitterTweetsList from '@/components/Twitter/TwitterTweetsList';
+import { useTwitterData } from '@/lib/hooks/useTwitterData';
 
 interface ConnectedAccount {
   id: string;
@@ -137,6 +141,52 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('7d');
 
+  const {
+    channelInfo,
+    videos,
+    videoMetrics,
+    performanceTrends,
+    loading: youtubeLoading,
+    error: youtubeError
+  } = useYouTubeData(user?.uid || null);
+
+const {
+  userInfo: twitterUserInfo,
+  recentTweets,
+  metrics: twitterMetrics,
+  trends: twitterTrends,
+  loading: twitterLoading,
+  error: twitterError,
+} = useTwitterData(user?.uid || null);
+
+
+  // Add this constant to check if YouTube is connected:
+  const isYouTubeConnected = connectedAccounts.some(acc =>
+    acc.platform.toLowerCase() === 'youtube'
+  );
+
+  const isTwitterConnected = connectedAccounts.some(acc => {
+    const p = acc.platform.toLowerCase();
+    return p === 'twitter' || p === 'twitter/x';
+  });
+
+  // Add this function for navigation:
+  const navigateToYouTubeAnalytics = () => {
+    router.push('/analytics/youtube');
+  };
+
+  const navigateToYouTubeVideos = () => {
+    router.push('/content/youtube');
+  };
+
+  const navigateToTwitterAnalytics = () => {
+    router.push('/analytics/twitter');
+  };
+
+  const navigateToTwitterTweets = () => {
+    router.push('/content/twitter');
+  };
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -154,7 +204,7 @@ export default function DashboardPage() {
     const lastSyncedAt = lastSynced ? new Date(lastSynced).getTime() : 0;
     const now = Date.now();
     const FIFTEEN_MIN = 15 * 60 * 1000;
-    
+
     if (now - lastSyncedAt < FIFTEEN_MIN) {
       return;
     }
@@ -462,7 +512,7 @@ export default function DashboardPage() {
     .filter((p) =>
       searchQuery
         ? p.caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.platform?.toLowerCase().includes(searchQuery.toLowerCase())
+        p.platform?.toLowerCase().includes(searchQuery.toLowerCase())
         : true,
     );
 
@@ -513,24 +563,6 @@ export default function DashboardPage() {
               Monitor, analyze, and optimize your social media performance
             </p>
           </div>
-          
-          {/* <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowPremiumModal(true)}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-300"
-            >
-              <span className="flex items-center gap-2">
-                <Zap size={16} />
-                Upgrade to Pro
-              </span>
-            </button>
-            <button className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-colors">
-              <Bell size={20} />
-            </button>
-            <button className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-colors">
-              <Settings size={20} />
-            </button>
-          </div> */}
         </div>
 
         {/* Search and filters */}
@@ -545,7 +577,7 @@ export default function DashboardPage() {
               className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex items-center gap-3">
             <select
               value={dateRange}
@@ -557,7 +589,7 @@ export default function DashboardPage() {
               <option value="90d">Last 90 days</option>
               <option value="1y">Last year</option>
             </select>
-            
+
             <button
               onClick={handleSyncPosts}
               disabled={syncingPosts}
@@ -570,14 +602,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Ad #1 */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <div className="rounded-2xl border border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900/50 p-1 shadow-xl">
             <AdsenseAd
               slot="8490208307"
               className="w-full max-w-4xl mx-auto rounded-xl overflow-hidden"
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -614,6 +646,390 @@ export default function DashboardPage() {
             delay={300}
           />
         </div>
+
+        {isYouTubeConnected && (
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">YouTube Analytics</h2>
+                <p className="text-gray-400">Track your YouTube channel performance</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={navigateToYouTubeAnalytics}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold hover:shadow-lg hover:shadow-red-500/25 transition-all duration-300 flex items-center gap-2"
+                >
+                  <BarChart3 size={18} />
+                  Detailed Analytics
+                </button>
+                <button
+                  onClick={navigateToYouTubeVideos}
+                  className="px-6 py-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 font-semibold hover:bg-red-500/20 transition-all duration-300 flex items-center gap-2"
+                >
+                  <Video size={18} />
+                  View Videos
+                </button>
+              </div>
+            </div>
+
+            {/* YouTube Profile Card */}
+            <div className="mb-6">
+              <YouTubeProfileCard
+                channelInfo={channelInfo}
+                loading={youtubeLoading}
+                error={youtubeError}
+              />
+            </div>
+
+            {/* YouTube Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <YouTubeStatsCards
+                channelInfo={channelInfo}
+                loading={youtubeLoading}
+              />
+
+              {/* Additional YouTube Metrics */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                    <TrendingUp className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20">
+                    <TrendingUp size={14} className="text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400">
+                      {videoMetrics.engagementRate.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Engagement Rate</p>
+                <p className="text-3xl font-bold text-white">{videoMetrics.engagementRate.toFixed(1)}%</p>
+              </div>
+            </div>
+
+            {/* YouTube Performance Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+              {/* Views Trend */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Views Trend</h3>
+                    <p className="text-gray-400 text-sm">Last 30 days</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-red-500/20 to-red-700/20">
+                    <Eye className="w-6 h-6 text-red-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={performanceTrends.viewsByDay}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="date" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '0.75rem',
+                          color: '#F9FAFB',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="views"
+                        stroke="#EF4444"
+                        fill="#EF4444"
+                        fillOpacity={0.2}
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Video Distribution */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Video Distribution</h3>
+                    <p className="text-gray-400 text-sm">Last 6 months</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
+                    <Video className="w-6 h-6 text-blue-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceTrends.videosByMonth}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                      <XAxis dataKey="month" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '0.75rem',
+                          color: '#F9FAFB',
+                        }}
+                      />
+                      <Bar
+                        dataKey="count"
+                        radius={[8, 8, 0, 0]}
+                        fill="url(#videoGradient)"
+                      />
+                      <defs>
+                        <linearGradient id="videoGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#EF4444" />
+                          <stop offset="100%" stopColor="#DC2626" />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* YouTube Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10">
+                    <Eye className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <span className="text-sm text-gray-400">Total</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Video Views</p>
+                <p className="text-3xl font-bold text-white">
+                  {videoMetrics.totalViews >= 1000000
+                    ? (videoMetrics.totalViews / 1000000).toFixed(1) + 'M'
+                    : videoMetrics.totalViews >= 1000
+                      ? (videoMetrics.totalViews / 1000).toFixed(1) + 'K'
+                      : videoMetrics.totalViews.toLocaleString()}
+                </p>
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Total Videos</span>
+                    <span className="text-white font-semibold">{videos.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+                    <Heart className="w-6 h-6 text-green-400" />
+                  </div>
+                  <span className="text-sm text-gray-400">Engagement</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Total Likes</p>
+                <p className="text-3xl font-bold text-white">{videoMetrics.totalLikes.toLocaleString()}</p>
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Total Comments</span>
+                    <span className="text-white font-semibold">{videoMetrics.totalComments.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+                    <Clock className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <span className="text-sm text-gray-400">Avg</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Watch Time</p>
+                <p className="text-3xl font-bold text-white">
+                  {videoMetrics.avgViewDuration >= 60
+                    ? Math.floor(videoMetrics.avgViewDuration / 60) + 'm ' + (videoMetrics.avgViewDuration % 60) + 's'
+                    : videoMetrics.avgViewDuration + 's'}
+                </p>
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Total Watch Time</span>
+                    <span className="text-white font-semibold">
+                      {Math.floor(videoMetrics.totalWatchTime / 3600)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {isTwitterConnected && (
+          <div className="mb-10">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Twitter Analytics</h2>
+                <p className="text-gray-400">
+                  Track your Twitter/X profile and tweet performance
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={navigateToTwitterAnalytics}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 text-white font-semibold hover:shadow-lg hover:shadow-sky-500/25 transition-all duration-300 flex items-center gap-2"
+                >
+                  <BarChart3 size={18} />
+                  Detailed Analytics
+                </button>
+                <button
+                  onClick={navigateToTwitterTweets}
+                  className="px-6 py-3 rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-300 font-semibold hover:bg-sky-500/20 transition-all duration-300 flex items-center gap-2"
+                >
+                  <MessageCircle size={18} />
+                  View Tweets
+                </button>
+              </div>
+            </div>
+
+            {/* Twitter Profile Card */}
+            <div className="mb-6">
+              <TwitterProfileCard
+                userInfo={twitterUserInfo}
+                loading={twitterLoading}
+                error={twitterError}
+                onAnalyticsClick={navigateToTwitterAnalytics}
+                onDisconnectClick={() => {
+                  // optional: open your disconnect flow / modal
+                }}
+              />
+            </div>
+
+            {/* Twitter Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <TwitterStatsCards
+                userInfo={twitterUserInfo}
+                metrics={twitterMetrics}
+                loading={twitterLoading}
+              />
+
+              {/* Extra Twitter metric card (Engagement Rate highlight) */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 hover:shadow-2xl hover:border-gray-600 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-sky-500/10 to-cyan-500/10">
+                    <TrendingUp className="w-6 h-6 text-sky-400" />
+                  </div>
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/20">
+                    <TrendingUp size={14} className="text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400">
+                      {twitterMetrics.avgEngagementRate.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-sm mb-2">Avg Engagement Rate</p>
+                <p className="text-3xl font-bold text-white">
+                  {twitterMetrics.avgEngagementRate.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            {/* Twitter Performance Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+              {/* Tweets Trend */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Tweets Trend</h3>
+                    <p className="text-gray-400 text-sm">Last {twitterTrends.tweetsByDay.length} days</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-sky-500/20 to-sky-700/20">
+                    <MessageCircle className="w-6 h-6 text-sky-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={twitterTrends.tweetsByDay}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="date" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '0.75rem',
+                          color: '#F9FAFB',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        name="Tweets"
+                        stroke="#0EA5E9"
+                        fill="#0EA5E9"
+                        fillOpacity={0.2}
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Engagement Trend */}
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Engagement Trend</h3>
+                    <p className="text-gray-400 text-sm">Daily engagements & rate</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20">
+                    <TrendingUp className="w-6 h-6 text-emerald-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={twitterTrends.engagementByDay}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="date" stroke="#9CA3AF" />
+                      <YAxis yAxisId="left" stroke="#9CA3AF" />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#9CA3AF"
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1F2937',
+                          border: '1px solid #374151',
+                          borderRadius: '0.75rem',
+                          color: '#F9FAFB',
+                        }}
+                      />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="engagement"
+                        name="Engagements"
+                        stroke="#22C55E"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="rate"
+                        name="Engagement Rate (%)"
+                        stroke="#FACC15"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Twitter Tweets List */}
+            <TwitterTweetsList
+              tweets={recentTweets}
+              loading={twitterLoading}
+              title="Recent Tweets"
+              maxItems={5}
+              showViewAll={true}
+              onViewAll={navigateToTwitterTweets}
+            />
+          </div>
+        )}
+
 
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
@@ -847,7 +1263,7 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold text-white mb-2">Posts Performance</h2>
               <p className="text-gray-400">Track and analyze your content performance</p>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex bg-gray-800 border border-gray-700 rounded-xl p-1">
                 {['all', 'instagram', 'twitter', 'youtube', 'linkedin'].map((platform) => (
@@ -891,11 +1307,11 @@ export default function DashboardPage() {
                     <ExternalLink size={18} />
                   </button>
                 </div>
-                
+
                 <p className="text-gray-300 text-sm mb-6 line-clamp-3">
                   {post.caption}
                 </p>
-                
+
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 rounded-xl bg-gray-800/50">
                     <div className="text-lg font-bold text-amber-400">{post.metrics?.likes || 0}</div>
@@ -915,14 +1331,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Ad #2 */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <div className="rounded-2xl border border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900/50 p-1 shadow-xl">
               <AdsenseAd
                 slot="6951047306"
                 className="w-full rounded-xl overflow-hidden"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Posts Table */}
           <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl shadow-xl overflow-hidden">
@@ -1014,7 +1430,7 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </div>
-            
+
             {filteredPosts.length === 0 && (
               <div className="py-12 text-center">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">

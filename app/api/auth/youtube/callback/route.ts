@@ -15,8 +15,6 @@ export async function GET(request: NextRequest) {
     const uid = url.searchParams.get('state');
     const origin = `${url.protocol}//${url.host}`;
 
-    console.log('YouTube callback params', { codePresent: !!code, error, uid });
-
     if (error) {
       console.warn('YouTube callback error param from Google:', error);
       return NextResponse.redirect(
@@ -36,53 +34,28 @@ export async function GET(request: NextRequest) {
     const redirectEnv = process.env.YOUTUBE_REDIRECT_URI;
     const redirectUri = redirectEnv || `${origin}/api/auth/youtube/callback`;
 
-    console.log('YouTube OAuth config in callback', {
-      clientId,
-      hasClientSecret: !!clientSecret,
-      redirectUri,
-      redirectEnv,
-      origin,
-    });
-
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
       redirectUri,
     );
 
-    let tokens;
-    try {
-      const res = await oauth2Client.getToken(code);
-      tokens = res.tokens;
-      console.log('YouTube tokens received', {
-        hasAccess: !!tokens.access_token,
-        hasRefresh: !!tokens.refresh_token,
-        expiresIn: tokens.expiry_date,
-      });
-    } catch (tokenErr: any) {
-      console.error(
-        'YouTube getToken error',
-        tokenErr?.response?.data || tokenErr?.message || tokenErr,
-      );
-      throw tokenErr;
-    }
+    const res = await oauth2Client.getToken(code);
+    const tokens = res.tokens;
 
     oauth2Client.setCredentials(tokens);
 
     const youtube = google.youtube('v3');
     const me = await youtube.channels.list({
       auth: oauth2Client,
-      part: ['snippet'],
+      part: ['snippet', 'statistics'],
       mine: true,
-    });
-
-    console.log('YouTube channels.list result', {
-      count: me.data.items?.length,
     });
 
     const channel = me.data.items?.[0];
     const channelName = channel?.snippet?.title || 'YouTube Channel';
 
+    // 1) Keep your generic connectedAccounts entry (for dashboard list)
     const connection = {
       id: `youtube_${uid}`,
       platform: 'youtube',
@@ -101,6 +74,38 @@ export async function GET(request: NextRequest) {
         { connectedAccounts: adminFieldValue.arrayUnion(connection) },
         { merge: true },
       );
+
+    // 2) NEW: write the doc that /api/youtube/channel-info expects
+    const ytDocRef = adminDb
+      .collection('users')
+      .doc(uid)
+      .collection('accounts')
+      .doc('youtube');
+
+    await ytDocRef.set(
+      {
+        platform: 'youtube',
+        channelId: channel?.id || null,
+        channelName,
+        channelHandle: channel?.snippet?.customUrl || null,
+        accessToken: tokens.access_token ?? '',
+        refreshToken: tokens.refresh_token ?? null,
+        tokenExpiry: tokens.expiry_date || null,
+        connectedAt: adminFieldValue.serverTimestamp(),
+        stats: {
+          subscribers: channel?.statistics?.subscriberCount
+            ? Number(channel.statistics.subscriberCount)
+            : null,
+          views: channel?.statistics?.viewCount
+            ? Number(channel.statistics.viewCount)
+            : null,
+          videoCount: channel?.statistics?.videoCount
+            ? Number(channel.statistics.videoCount)
+            : null,
+        },
+      },
+      { merge: true },
+    );
 
     console.log('YouTube connection stored for uid', uid);
 

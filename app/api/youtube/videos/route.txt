@@ -1,0 +1,143 @@
+// export const dynamic = 'force-dynamic';
+
+// import { NextRequest, NextResponse } from 'next/server';
+// import { google } from 'googleapis';
+// import { adminDb } from '@/lib/firebaseAdmin';
+
+// export async function GET(request: NextRequest) {
+//   try {
+//     const url = new URL(request.url);
+//     const userId = url.searchParams.get('userId');
+//     const maxResults = parseInt(url.searchParams.get('maxResults') || '50');
+
+//     console.log('[YT VIDEOS] Fetching for userId:', userId);
+
+//     // ============ Validate userId ============
+//     if (!userId) {
+//       return NextResponse.json(
+//         { error: 'Missing userId' },
+//         { status: 400 }
+//       );
+//     }
+
+//     // ============ Get YouTube credentials ============
+//     const youtubeDoc = await adminDb
+//       .collection('users')
+//       .doc(userId)
+//       .collection('accounts')
+//       .doc('youtube')
+//       .get();
+
+//     if (!youtubeDoc.exists) {
+//       console.log('[YT VIDEOS] No YouTube account connected');
+//       return NextResponse.json(
+//         { error: 'YouTube not connected' },
+//         { status: 404 }
+//       );
+//     }
+
+//     const youtubeAccount = youtubeDoc.data();
+
+//     if (!youtubeAccount?.accessToken) {
+//       console.log('[YT VIDEOS] No access token');
+//       return NextResponse.json(
+//         { error: 'No access token' },
+//         { status: 401 }
+//       );
+//     }
+
+//     // ============ Fetch videos from YouTube API ============
+//     const oauth2Client = new google.auth.OAuth2(
+//       process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID,
+//       process.env.YOUTUBE_CLIENT_SECRET,
+//       process.env.YOUTUBE_REDIRECT_URI
+//     );
+
+//     oauth2Client.setCredentials({
+//       access_token: youtubeAccount.accessToken,
+//     });
+
+//     try {
+//       const youtube = google.youtube('v3');
+
+//       // Get uploads playlist
+//       const channelResponse = await youtube.channels.list({
+//         part: ['contentDetails'],
+//         mine: true,
+//       });
+
+//       const uploadsPlaylistId = channelResponse.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+
+//       if (!uploadsPlaylistId) {
+//         return NextResponse.json(
+//           { error: 'Could not find uploads playlist' },
+//           { status: 404 }
+//         );
+//       }
+
+//       // Get videos from uploads playlist
+//       const videosResponse = await youtube.playlistItems.list({
+//         part: ['snippet', 'contentDetails'],
+//         playlistId: uploadsPlaylistId,
+//         maxResults,
+//       });
+
+//       const videoIds = videosResponse.data.items?.map(
+//         (item) => item.contentDetails?.videoId
+//       ) || [];
+
+//       if (videoIds.length === 0) {
+//         return NextResponse.json({
+//           videos: [],
+//           count: 0,
+//         });
+//       }
+
+//       // Get video statistics
+//       const statsResponse = await youtube.videos.list({
+//         part: ['statistics', 'snippet', 'contentDetails'],
+//         id: videoIds.join(','),
+//       });
+
+//       const videos = statsResponse.data.items?.map((video) => ({
+//         id: video.id,
+//         title: video.snippet?.title,
+//         description: video.snippet?.description,
+//         thumbnail: video.snippet?.thumbnails?.medium?.url,
+//         published: video.snippet?.publishedAt,
+//         duration: video.contentDetails?.duration,
+//         views: parseInt(video.statistics?.viewCount || '0'),
+//         likes: parseInt(video.statistics?.likeCount || '0'),
+//         comments: parseInt(video.statistics?.commentCount || '0'),
+//         engagement:
+//           videoIds.length > 0
+//             ? Math.round(
+//                 ((parseInt(video.statistics?.likeCount || '0') +
+//                   parseInt(video.statistics?.commentCount || '0')) /
+//                   parseInt(video.statistics?.viewCount || '1')) *
+//                   100
+//               )
+//             : 0,
+//       })) || [];
+
+//       console.log('[YT VIDEOS] Retrieved:', videos.length, 'videos');
+
+//       return NextResponse.json({
+//         videos,
+//         count: videos.length,
+//       });
+//     } catch (youtubeError: any) {
+//       console.error('[YT VIDEOS] YouTube API error:', youtubeError?.message);
+//       return NextResponse.json(
+//         { error: 'Failed to fetch videos from YouTube' },
+//         { status: 500 }
+//       );
+//     }
+//   } catch (error: any) {
+//     console.error('[YT VIDEOS] Error:', error?.message);
+//     return NextResponse.json(
+//       { error: 'Internal server error' },
+//       { status: 500 }
+//     );
+//   }
+// }
