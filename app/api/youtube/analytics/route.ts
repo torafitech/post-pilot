@@ -3,7 +3,7 @@ import { adminDb } from '@/lib/firebaseAdmin';
 import { google, youtube_v3 } from 'googleapis';
 import { NextRequest, NextResponse } from 'next/server';
 
-interface YouTubeAnalyticsResponse {
+export interface YouTubeAnalyticsResponse {
   channelInfo: any;
   videos: any[];
   videoMetrics: {

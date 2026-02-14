@@ -156,14 +156,6 @@ const YouTubeProfileCard: FC<YouTubeProfileCardProps> = ({
 
       {/* ============ Action Buttons ============ */}
       <div className="flex gap-3">
-        <button
-          onClick={onAnalyticsClick}
-          disabled={loading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <span>📊</span>
-          <span>Analytics</span>
-        </button>
 
         <button
           onClick={onDisconnectClick}

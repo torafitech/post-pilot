@@ -1,4 +1,5 @@
-// types/post.ts
+import { Timestamp } from 'firebase/firestore';
+
 export interface PostMetrics {
   reach?: number;
   impressions?: number;
@@ -10,6 +11,7 @@ export interface PostMetrics {
 }
 
 export interface SocialPost {
+  status: string;
   id?: string;
   userId: string;               // uid
   platform: string;             // 'instagram' | 'youtube' | ...
@@ -17,8 +19,17 @@ export interface SocialPost {
   platformPostId: string;       // id returned by platform API
   caption: string;
   mediaUrl?: string;
-  publishedAt: any;             // Firestore Timestamp
-  createdAt: any;               // Firestore Timestamp
+  publishedAt: Timestamp | null;
+  createdAt: Timestamp;
   metrics: PostMetrics;
-  lastSyncedAt?: any;           // Firestore Timestamp
+  lastSyncedAt?: Timestamp | null;
+}
+
+// Add this type for scheduler + feed combined
+export interface DashboardPost extends SocialPost {
+  // present for scheduled jobs
+  scheduledTime?: Timestamp;
+  // multi-platform scheduled jobs
+  platforms?: string[];
+  publishedAt: Timestamp | null;
 }

@@ -19,6 +19,8 @@ export interface YouTubeChannelInfo {
 }
 
 export interface YouTubeVideo {
+  snippet: any;
+  statistics: any;
   id: string;
   title: string;
   description: string;

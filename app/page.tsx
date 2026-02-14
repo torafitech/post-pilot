@@ -22,7 +22,7 @@ import {
   Sparkles,
   TrendingUp,
   Users,
-  Zap
+  Zap,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -30,9 +30,7 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function Home() {
   const [scrollPosition, setScrollPosition] = useState(0);
-  const [activeFeature, setActiveFeature] = useState(0);
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
+  const [openFaq, setOpenFaq] = useState<string | null>('faq-1');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -49,7 +47,8 @@ export default function Home() {
       likes: '2.4K',
       comments: '128',
       time: '2h ago',
-      content: '🎨 Just launched our new brand identity! Swipe to see the process →',
+      content:
+        '🎨 Just launched our new brand identity! Swipe to see the process →',
       imageUrl: '/images/image2.png',
       badgeColor: 'from-pink-500/10 to-purple-500/10 border-pink-500/30',
       textColor: 'text-pink-400',
@@ -61,7 +60,8 @@ export default function Home() {
       likes: '856',
       comments: '42',
       time: '1h ago',
-      content: 'AI is changing how we create content. With @StarlingPost, our team saves 15+ hours weekly on social media management.',
+      content:
+        'AI is changing how we create content. With @StarlingPost, our team saves 15+ hours weekly on social media management.',
       imageUrl: '/images/image1.png',
       badgeColor: 'from-blue-500/10 to-cyan-500/10 border-blue-500/30',
       textColor: 'text-blue-400',
@@ -73,7 +73,8 @@ export default function Home() {
       likes: '1.2K',
       comments: '89',
       time: '4h ago',
-      content: '📈 Case Study: How we increased social engagement by 300% using AI-powered scheduling and analytics.',
+      content:
+        '📈 Case Study: How we increased social engagement by 300% using AI-powered scheduling and analytics.',
       imageUrl: '/images/image3.png',
       badgeColor: 'from-sky-500/10 to-blue-500/10 border-sky-500/30',
       textColor: 'text-sky-400',
@@ -85,7 +86,8 @@ export default function Home() {
       likes: '15.2K',
       comments: '421',
       time: 'Just now',
-      content: 'Behind the scenes: How I manage 5 social platforms in 30 minutes daily! #SocialMediaTips',
+      content:
+        'Behind the scenes: How I manage 5 social platforms in 30 minutes daily! #SocialMediaTips',
       imageUrl: '/images/image4.png',
       badgeColor: 'from-emerald-500/10 to-cyan-500/10 border-emerald-500/30',
       textColor: 'text-emerald-400',
@@ -97,7 +99,8 @@ export default function Home() {
   const features = [
     {
       title: 'AI Caption Writer',
-      description: 'Generate viral captions in your brand voice with our advanced AI.',
+      description:
+        'Generate viral captions in your brand voice with our advanced AI.',
       image: '/images/feature1.png',
       gradient: 'from-purple-500 to-pink-600',
       stats: '12.4K likes • 92% engagement',
@@ -115,7 +118,8 @@ export default function Home() {
     },
     {
       title: 'Optimal Timing',
-      description: 'Post when your audience is most active with AI predictions.',
+      description:
+        'Post when your audience is most active with AI predictions.',
       image: '/images/feature3.png',
       gradient: 'from-emerald-500 to-teal-600',
       stats: '95% accuracy • Real-time data',
@@ -138,7 +142,8 @@ export default function Home() {
     {
       number: '01',
       title: 'Connect Your Accounts',
-      description: 'Link Instagram, TikTok, YouTube, and more in seconds. Secure OAuth integration with all major platforms.',
+      description:
+        'Link Instagram, TikTok, YouTube, and more in seconds. Secure OAuth integration with all major platforms.',
       image: '/images/step1.png',
       gradient: 'from-blue-500 to-cyan-600',
       features: ['Secure OAuth', 'Multi-platform', 'Instant sync'],
@@ -146,7 +151,8 @@ export default function Home() {
     {
       number: '02',
       title: 'AI-Generate Content',
-      description: 'Let AI write captions and suggest trending hashtags. Customize tone and style for your brand.',
+      description:
+        'Let AI write captions and suggest trending hashtags. Customize tone and style for your brand.',
       image: '/images/step2.png',
       gradient: 'from-purple-500 to-pink-600',
       features: ['AI captions', 'Hashtag suggestions', 'Brand voice'],
@@ -154,7 +160,8 @@ export default function Home() {
     {
       number: '03',
       title: 'Schedule & Publish',
-      description: 'Post now or schedule for optimal engagement times. Set it and forget it with our smart scheduler.',
+      description:
+        'Post now or schedule for optimal engagement times. Set it and forget it with our smart scheduler.',
       image: '/images/step3.png',
       gradient: 'from-emerald-500 to-teal-600',
       features: ['Smart scheduling', 'Auto-posting', 'Queue management'],
@@ -162,20 +169,22 @@ export default function Home() {
     {
       number: '04',
       title: 'Analyze & Optimize',
-      description: 'Track performance and get AI insights for improvement. Real-time analytics across all platforms.',
+      description:
+        'Track performance and get AI insights for improvement. Real-time analytics across all platforms.',
       image: '/images/step4.png',
       gradient: 'from-amber-500 to-orange-600',
       features: ['Real-time analytics', 'AI insights', 'Performance tracking'],
     },
   ];
 
-  // Testimonials
+  // Text testimonials
   const testimonials = [
     {
       name: 'Alex Morgan',
       role: 'Content Creator • 500K followers',
       avatar: 'AM',
-      content: 'StarlingPost cut my social media time in half while doubling my engagement. The AI captions are pure magic!',
+      content:
+        'StarlingPost cut my social media time in half while doubling my engagement. The AI captions are pure magic!',
       stats: '+245% engagement',
       color: 'from-purple-500 to-pink-600',
     },
@@ -183,7 +192,8 @@ export default function Home() {
       name: 'Samantha Lee',
       role: 'Tech Influencer',
       avatar: 'SL',
-      content: 'Managing 8 platforms used to be a full-time job. Now it\'s 30 minutes a day with better results.',
+      content:
+        "Managing 8 platforms used to be a full-time job. Now it's 30 minutes a day with better results.",
       stats: '15 hrs/week saved',
       color: 'from-cyan-500 to-blue-600',
     },
@@ -191,7 +201,8 @@ export default function Home() {
       name: 'Marcus Chen',
       role: 'Founder, BuildScale',
       avatar: 'MC',
-      content: 'Our startup\'s social presence grew 5x in 3 months. The analytics helped us understand our audience better.',
+      content:
+        "Our startup's social presence grew 5x in 3 months. The analytics helped us understand our audience better.",
       stats: '5x growth',
       color: 'from-emerald-500 to-teal-600',
     },
@@ -203,6 +214,119 @@ export default function Home() {
     { label: 'Engagement Rate', value: '4.8%', change: '+2.1%', icon: '❤️' },
     { label: 'New Followers', value: '12.4K', change: '+12.4%', icon: '👥' },
     { label: 'Content Saved', value: '8.2K', change: '+18.3%', icon: '⭐' },
+  ];
+
+  // New: pricing / subscriptions
+  const pricingPlans = [
+    {
+      id: 'starter',
+      name: 'Creator Starter',
+      price: '$9',
+      period: 'month',
+      badge: 'For new creators',
+      highlight: false,
+      description: 'Perfect when you are just starting to post consistently.',
+      features: [
+        'Connect up to 3 social accounts',
+        'Schedule 30 posts / month',
+        'AI captions & basic hashtag suggestions',
+        'Email support',
+      ],
+    },
+    {
+      id: 'growth',
+      name: 'Growth',
+      price: '$29',
+      period: 'month',
+      badge: 'Most popular',
+      highlight: true,
+      description: 'For creators and teams posting every week on multiple channels.',
+      features: [
+        'Connect up to 10 social accounts',
+        'Unlimited scheduled posts',
+        'Best time to post recommendations',
+        'Advanced analytics dashboard',
+        'Priority support',
+      ],
+    },
+    {
+      id: 'pro',
+      name: 'Agency Pro',
+      price: '$79',
+      period: 'month',
+      badge: 'For agencies',
+      highlight: false,
+      description: 'Scale content for clients with collaboration and reporting.',
+      features: [
+        'Unlimited social accounts',
+        'Unlimited workspaces & clients',
+        'Team collaboration seats',
+        'Exportable reports & white-labeling',
+        'Dedicated success manager',
+      ],
+    },
+  ];
+
+  // New: video testimonials
+  const videoTestimonials = [
+    {
+      name: 'Rohan, YouTube creator',
+      handle: '@rohanedits',
+      role: 'Short-form editor',
+      url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      quote:
+        'Scheduling my YouTube and Shorts from one place saves me hours every week.',
+    },
+    {
+      name: 'Aditi, Solo marketer',
+      handle: '@aditimarkets',
+      role: 'SaaS marketer',
+      url: 'https://www.youtube.com/embed/o-YBDTqX_ZU',
+      quote:
+        'Seeing X, Instagram and LinkedIn in one dashboard changed how I plan content.',
+    },
+    {
+      name: 'NorthPixel Agency',
+      handle: '@northpixel',
+      role: 'Social media agency',
+      url: 'https://www.youtube.com/embed/5NV6Rdv1a3I',
+      quote:
+        'We manage 20+ client accounts with one unified calendar instead of spreadsheets.',
+    },
+  ];
+
+  // New: FAQs
+  const faqs = [
+    {
+      id: 'faq-1',
+      question: 'Do I need to connect all my accounts to start?',
+      answer:
+        'No. You can start with just one platform, like Instagram or X, and connect more accounts later as you grow.',
+    },
+    {
+      id: 'faq-2',
+      question: 'Is there a free trial?',
+      answer:
+        'Yes. New users get a 14-day free trial with access to scheduling, AI captions, and analytics. You can cancel anytime during the trial.',
+    },
+    {
+      id: 'faq-3',
+      question: 'Will StarlingPost auto-publish to every platform?',
+      answer:
+        'Yes. Posts scheduled from your dashboard are published via each platform’s official API at the time you choose.',
+    },
+    {
+      id: 'faq-4',
+      question: 'Can I upgrade or downgrade my plan?',
+      answer:
+        'You can change or cancel your plan anytime from your billing settings. Changes apply from the next billing period.',
+    },
+    {
+      id: 'faq-5',
+      question: 'Is my data secure?',
+      answer:
+        'We use OAuth for account connections and industry-standard encryption. We never store your login passwords.',
+    },
   ];
 
   return (
@@ -252,7 +376,8 @@ export default function Home() {
                 transition={{ delay: 0.2 }}
                 className="text-xl text-gray-400 mb-10 leading-relaxed max-w-xl"
               >
-                One click to post everywhere. AI writes captions, picks hashtags, and finds the perfect time to post. Your reach multiplies automatically.
+                One click to post everywhere. AI writes captions, picks hashtags, and
+                finds the perfect time to post. Your reach multiplies automatically.
               </motion.p>
 
               <motion.div
@@ -282,7 +407,9 @@ export default function Home() {
                     ))}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-300">Join 10k+ creators</div>
+                    <div className="text-sm font-medium text-gray-300">
+                      Join 10k+ creators
+                    </div>
                     <div className="text-xs text-gray-500">Trusted by top brands</div>
                   </div>
                 </div>
@@ -326,7 +453,9 @@ export default function Home() {
                           <div className="text-sm text-gray-400">{post.time}</div>
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-full bg-gradient-to-r ${post.badgeColor} text-xs font-medium ${post.textColor}`}>
+                      <div
+                        className={`px-3 py-1 rounded-full bg-gradient-to-r ${post.badgeColor} text-xs font-medium ${post.textColor}`}
+                      >
                         {post.platform}
                       </div>
                     </div>
@@ -377,7 +506,9 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 mb-4"
             >
               <Zap className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-semibold text-blue-300">Powerful Features</span>
+              <span className="text-sm font-semibold text-blue-300">
+                Powerful Features
+              </span>
             </motion.div>
 
             <motion.h2
@@ -401,7 +532,8 @@ export default function Home() {
               transition={{ delay: 0.2 }}
               className="text-xl text-gray-400 max-w-2xl mx-auto"
             >
-              Powerful features designed to save time and boost engagement across all platforms.
+              Powerful features designed to save time and boost engagement across
+              all platforms.
             </motion.p>
           </div>
 
@@ -410,7 +542,9 @@ export default function Home() {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className={`mb-16 last:mb-0 ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} flex flex-col lg:flex-row items-center gap-12`}
+                className={`mb-16 last:mb-0 ${
+                  index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'
+                } flex flex-col lg:flex-row items-center gap-12`}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
@@ -422,7 +556,6 @@ export default function Home() {
 
                     <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl group">
                       <div className="aspect-video relative overflow-hidden">
-                        {/* hover is driven by the parent .group */}
                         <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-105">
                           <Image
                             src={feature.image}
@@ -446,28 +579,39 @@ export default function Home() {
                         <div className="text-lg font-bold text-white mb-2">
                           {feature.title}
                         </div>
-                        <p className="text-gray-400 text-sm">{feature.description}</p>
+                        <p className="text-gray-400 text-sm">
+                          {feature.description}
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-
-
                 {/* Content Side */}
                 <div className="lg:w-1/2">
                   <div className="max-w-lg">
                     <div className="inline-flex items-center gap-2 mb-4">
-                      <span className="text-2xl font-black text-gray-300">0{index + 1}</span>
+                      <span className="text-2xl font-black text-gray-300">
+                        0{index + 1}
+                      </span>
                       <div className="h-0.5 w-12 bg-gradient-to-r from-gray-300 to-transparent" />
                     </div>
-                    <h3 className="text-3xl font-bold text-white mb-4">{feature.title}</h3>
-                    <p className="text-lg text-gray-400 mb-6">{feature.description}</p>
+                    <h3 className="text-3xl font-bold text-white mb-4">
+                      {feature.title}
+                    </h3>
+                    <p className="text-lg text-gray-400 mb-6">
+                      {feature.description}
+                    </p>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       {feature.stats.split('•').map((stat, idx) => (
-                        <div key={idx} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700">
-                          <div className="text-sm text-gray-400">{stat.trim()}</div>
+                        <div
+                          key={idx}
+                          className="bg-gray-800/50 rounded-xl p-3 border border-gray-700"
+                        >
+                          <div className="text-sm text-gray-400">
+                            {stat.trim()}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -496,7 +640,9 @@ export default function Home() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 mb-6">
                 <BarChart3 className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-semibold text-emerald-300">Live Analytics</span>
+                <span className="text-sm font-semibold text-emerald-300">
+                  Live Analytics
+                </span>
               </div>
 
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
@@ -508,19 +654,25 @@ export default function Home() {
               </h2>
 
               <p className="text-xl text-gray-400 mb-8">
-                Track performance across all platforms with our advanced analytics dashboard. Get insights that drive growth.
+                Track performance across all platforms with our advanced analytics
+                dashboard. Get insights that drive growth.
               </p>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {dashboardStats.map((stat, index) => (
-                  <div key={index} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                  <div
+                    key={index}
+                    className="bg-gray-800/50 rounded-xl p-4 border border-gray-700"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-2xl">{stat.icon}</span>
                       <span className="text-sm text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">
                         {stat.change}
                       </span>
                     </div>
-                    <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+                    <div className="text-2xl font-bold text-white mb-1">
+                      {stat.value}
+                    </div>
                     <div className="text-sm text-gray-400">{stat.label}</div>
                   </div>
                 ))}
@@ -549,7 +701,9 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-sm font-medium text-gray-300">Live Dashboard</span>
+                        <span className="text-sm font-medium text-gray-300">
+                          Live Dashboard
+                        </span>
                       </div>
                       <div className="hidden md:flex gap-2">
                         {['Today', '7D', '30D', 'Custom'].map((tab) => (
@@ -569,18 +723,43 @@ export default function Home() {
                   <div className="p-6">
                     {/* Platform Performance */}
                     <div className="mb-8">
-                      <div className="text-sm font-semibold text-gray-300 mb-4">Platform Performance</div>
+                      <div className="text-sm font-semibold text-gray-300 mb-4">
+                        Platform Performance
+                      </div>
                       <div className="grid grid-cols-3 gap-4">
                         {[
-                          { platform: 'Instagram', value: '2.4K', growth: '+12.4%', color: 'from-pink-500 to-purple-600' },
-                          { platform: 'Twitter', value: '856', growth: '+8.2%', color: 'from-blue-500 to-cyan-600' },
-                          { platform: 'YouTube', value: '1.2K', growth: '+24.7%', color: 'from-red-500 to-orange-600' },
+                          {
+                            platform: 'Instagram',
+                            value: '2.4K',
+                            growth: '+12.4%',
+                            color: 'from-pink-500 to-purple-600',
+                          },
+                          {
+                            platform: 'Twitter',
+                            value: '856',
+                            growth: '+8.2%',
+                            color: 'from-blue-500 to-cyan-600',
+                          },
+                          {
+                            platform: 'YouTube',
+                            value: '1.2K',
+                            growth: '+24.7%',
+                            color: 'from-red-500 to-orange-600',
+                          },
                         ].map((platform, index) => (
                           <div key={index} className="text-center">
-                            <div className={`h-2 mb-2 rounded-full bg-gradient-to-r ${platform.color}`} />
-                            <div className="text-lg font-bold text-white mb-1">{platform.value}</div>
-                            <div className="text-xs text-gray-400">{platform.platform}</div>
-                            <div className="text-xs text-emerald-400 mt-1">{platform.growth}</div>
+                            <div
+                              className={`h-2 mb-2 rounded-full bg-gradient-to-r ${platform.color}`}
+                            />
+                            <div className="text-lg font-bold text-white mb-1">
+                              {platform.value}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {platform.platform}
+                            </div>
+                            <div className="text-xs text-emerald-400 mt-1">
+                              {platform.growth}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -589,19 +768,28 @@ export default function Home() {
                     {/* Engagement Chart */}
                     <div className="mb-8">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="text-sm font-semibold text-gray-300">Engagement Trend</div>
+                        <div className="text-sm font-semibold text-gray-300">
+                          Engagement Trend
+                        </div>
                         <div className="text-xs text-gray-500">Last 7 days</div>
                       </div>
                       <div className="h-32 flex items-end gap-1">
                         {[40, 65, 80, 60, 85, 95, 75].map((height, index) => (
-                          <div key={index} className="flex-1 flex flex-col items-center">
+                          <div
+                            key={index}
+                            className="flex-1 flex flex-col items-center"
+                          >
                             <motion.div
                               initial={{ height: 0 }}
                               whileInView={{ height: `${height}%` }}
                               transition={{ duration: 1, delay: index * 0.1 }}
                               className="w-full bg-gradient-to-t from-emerald-500 to-cyan-400 rounded-t-lg"
                             />
-                            <div className="text-xs text-gray-500 mt-2">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}</div>
+                            <div className="text-xs text-gray-500 mt-2">
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][
+                                index
+                              ]}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -611,13 +799,19 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-800/50 rounded-lg p-3">
                         <div className="text-xs text-gray-400 mb-1">Top Post</div>
-                        <div className="text-sm font-medium text-white">AI Content Strategy</div>
-                        <div className="text-xs text-gray-500">2.4K likes • 128 comments</div>
+                        <div className="text-sm font-medium text-white">
+                          AI Content Strategy
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          2.4K likes • 128 comments
+                        </div>
                       </div>
                       <div className="bg-gray-800/50 rounded-lg p-3">
                         <div className="text-xs text-gray-400 mb-1">Best Time</div>
                         <div className="text-sm font-medium text-white">7:30 PM</div>
-                        <div className="text-xs text-gray-500">92% engagement predicted</div>
+                        <div className="text-xs text-gray-500">
+                          92% engagement predicted
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -639,7 +833,9 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 mb-4"
             >
               <Clock className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-semibold text-purple-300">Simple Process</span>
+              <span className="text-sm font-semibold text-purple-300">
+                Simple Process
+              </span>
             </motion.div>
 
             <motion.h2
@@ -662,7 +858,9 @@ export default function Home() {
             {steps.map((step, index) => (
               <motion.div
                 key={index}
-                className={`mb-16 last:mb-0 ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} flex flex-col lg:flex-row items-center gap-12`}
+                className={`mb-16 last:mb-0 ${
+                  index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'
+                } flex flex-col lg:flex-row items-center gap-12`}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
@@ -670,9 +868,16 @@ export default function Home() {
                 {/* Image Side */}
                 <div className="lg:w-1/2 w-full">
                   <div className="relative">
-                    <div className={`absolute -inset-4 bg-gradient-to-r ${step.gradient.replace('to', '/10 to').replace('from', '/10 from')} blur-2xl rounded-3xl`} />
-                    <div className={`relative bg-gradient-to-br ${step.gradient} rounded-2xl overflow-hidden shadow-2xl group w-full`}>
-                      <div className="relative w-full pt-[56.25%] overflow-hidden bg-gray-900"> {/* 16:9 aspect ratio */}
+                    <div
+                      className={`absolute -inset-4 bg-gradient-to-r ${step.gradient.replace(
+                        'to',
+                        '/10 to',
+                      ).replace('from', '/10 from')} blur-2xl rounded-3xl`}
+                    />
+                    <div
+                      className={`relative bg-gradient-to-br ${step.gradient} rounded-2xl overflow-hidden shadow-2xl group w-full`}
+                    >
+                      <div className="relative w-full pt-[56.25%] overflow-hidden bg-gray-900">
                         <Image
                           src={step.image}
                           alt={step.title}
@@ -684,11 +889,16 @@ export default function Home() {
                         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
                       </div>
                       <div className="p-6 text-white">
-                        <div className="text-2xl font-black mb-2">{step.number}</div>
+                        <div className="text-2xl font-black mb-2">
+                          {step.number}
+                        </div>
                         <div className="text-xl font-bold mb-3">{step.title}</div>
                         <div className="flex flex-wrap gap-2">
                           {step.features.map((feature, idx) => (
-                            <span key={idx} className="px-3 py-1 bg-white/20 rounded-full text-sm">
+                            <span
+                              key={idx}
+                              className="px-3 py-1 bg-white/20 rounded-full text-sm"
+                            >
                               {feature}
                             </span>
                           ))}
@@ -702,15 +912,24 @@ export default function Home() {
                 <div className="lg:w-1/2">
                   <div className="max-w-lg">
                     <div className="inline-flex items-center gap-2 mb-4">
-                      <span className="text-2xl font-black text-gray-300">{step.number}</span>
+                      <span className="text-2xl font-black text-gray-300">
+                        {step.number}
+                      </span>
                       <div className="h-0.5 w-12 bg-gradient-to-r from-gray-300 to-transparent" />
                     </div>
-                    <h3 className="text-3xl font-bold text-white mb-4">{step.title}</h3>
-                    <p className="text-lg text-gray-400 mb-6">{step.description}</p>
+                    <h3 className="text-3xl font-bold text-white mb-4">
+                      {step.title}
+                    </h3>
+                    <p className="text-lg text-gray-400 mb-6">
+                      {step.description}
+                    </p>
 
                     <div className="grid grid-cols-3 gap-4 mb-6">
                       {step.features.map((feature, idx) => (
-                        <div key={idx} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center">
+                        <div
+                          key={idx}
+                          className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center"
+                        >
                           <div className="text-sm text-gray-300">{feature}</div>
                         </div>
                       ))}
@@ -728,7 +947,95 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Pricing / Subscriptions */}
+      <section className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 mb-4"
+            >
+              <Crown className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-semibold text-cyan-300">
+                Simple Pricing
+              </span>
+            </motion.div>
+
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Pick a Plan That Grows
+              <br />
+              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                With Your Audience
+              </span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Start free, then upgrade only when you are ready to scale. No hidden
+              fees, cancel anytime.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {pricingPlans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`relative rounded-2xl border px-6 py-7 bg-gray-900/70 backdrop-blur-sm transition-all ${
+                  plan.highlight
+                    ? 'border-cyan-500 shadow-xl shadow-cyan-500/25 scale-[1.02]'
+                    : 'border-gray-700'
+                }`}
+              >
+                {plan.highlight && (
+                  <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-[11px] text-cyan-100 font-semibold">
+                    {plan.badge}
+                  </div>
+                )}
+                {!plan.highlight && (
+                  <div className="inline-flex items-center px-2 py-1 rounded-full bg-gray-800 text-[11px] text-gray-300 border border-gray-700 mb-3">
+                    {plan.badge}
+                  </div>
+                )}
+
+                <h3 className="text-xl font-semibold mb-1">{plan.name}</h3>
+                <p className="text-xs text-gray-400 mb-4">{plan.description}</p>
+
+                <div className="flex items-baseline gap-1 mb-4">
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                  <span className="text-sm text-gray-400">/ {plan.period}</span>
+                </div>
+
+                <ul className="space-y-2 text-sm text-gray-200 mb-6">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 mt-[2px]" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/register"
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    plan.highlight
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500'
+                      : 'bg-gray-800 text-gray-100 hover:bg-gray-700'
+                  }`}
+                >
+                  <Rocket className="w-4 h-4" />
+                  Get started with {plan.name}
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-gray-500">
+            14-day free trial on all paid plans. No credit card required to start.
+          </p>
+        </div>
+      </section>
+
+      {/* Social Proof (text testimonials + stats) */}
       <section className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
@@ -739,7 +1046,9 @@ export default function Home() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 mb-4"
             >
               <Award className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-semibold text-amber-300">Trusted by Creators</span>
+              <span className="text-sm font-semibold text-amber-300">
+                Trusted by Creators
+              </span>
             </motion.div>
 
             <motion.h2
@@ -768,16 +1077,22 @@ export default function Home() {
                 className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700 rounded-2xl p-6 hover:border-gray-600 transition-colors"
               >
                 <div className="flex items-start gap-4 mb-6">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${testimonial.color} flex items-center justify-center text-white font-bold`}>
+                  <div
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-r ${testimonial.color} flex items-center justify-center text-white font-bold`}
+                  >
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-white">{testimonial.name}</h4>
+                    <h4 className="text-lg font-bold text-white">
+                      {testimonial.name}
+                    </h4>
                     <p className="text-sm text-gray-400">{testimonial.role}</p>
                   </div>
                 </div>
 
-                <p className="text-gray-300 mb-6 italic">"{testimonial.content}"</p>
+                <p className="text-gray-300 mb-6 italic">
+                  "{testimonial.content}"
+                </p>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -818,6 +1133,127 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Video Testimonials */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 mb-4"
+            >
+              <Play className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-semibold text-emerald-300">
+                Watch Creators in Action
+              </span>
+            </motion.div>
+
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              See How Others Use StarlingPost
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Short walkthroughs from real users showing how they plan, schedule
+              and analyze content in one place.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {videoTestimonials.map((t, index) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-gray-900/70 border border-gray-700 rounded-2xl p-4 flex flex-col gap-3"
+              >
+                <div className="aspect-video w-full overflow-hidden rounded-xl border border-gray-800 bg-black">
+                  <iframe
+                    className="w-full h-full"
+                    src={t.url}
+                    title={t.name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-sm text-gray-300 italic">“{t.quote}”</p>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <div>
+                    <p className="font-semibold text-gray-100">{t.name}</p>
+                    <p className="text-gray-400">
+                      {t.handle} · {t.role}
+                    </p>
+                  </div>
+                  <Award className="w-4 h-4 text-amber-400" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 mb-4"
+            >
+              <MessageCircle className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-semibold text-blue-300">
+                Frequently Asked Questions
+              </span>
+            </motion.div>
+
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">
+              Answers Before You Ask
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              If you are wondering about something, chances are others have asked
+              the same thing.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq) => {
+              const isOpen = openFaq === faq.id;
+              return (
+                <div
+                  key={faq.id}
+                  className="rounded-xl border border-gray-700 bg-gray-900/80"
+                >
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                    onClick={() => setOpenFaq(isOpen ? null : faq.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gray-800">
+                        <QuestionIcon isOpen={isOpen} />
+                      </div>
+                      <span className="text-sm text-gray-100">
+                        {faq.question}
+                      </span>
+                    </div>
+                    <span className="text-gray-400 text-xs">
+                      {isOpen ? '▴' : '▾'}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 pb-4 text-sm text-gray-300">
+                      {faq.answer}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-cyan-600/20" />
@@ -828,16 +1264,16 @@ export default function Home() {
               className="absolute text-3xl opacity-10"
               initial={{
                 y: -100,
-                x: Math.random() * 1200
+                x: Math.random() * 1200,
               }}
               animate={{
                 y: 1000,
-                rotate: Math.random() * 360
+                rotate: Math.random() * 360,
               }}
               transition={{
                 duration: 15 + Math.random() * 10,
                 repeat: Infinity,
-                delay: Math.random() * 3
+                delay: Math.random() * 3,
               }}
             >
               {['🚀', '💫', '✨', '🌟', '⭐', '🔥', '🎯', '🏆'][i % 8]}
@@ -853,7 +1289,9 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 mb-6"
           >
             <Crown className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-semibold text-cyan-300">Limited Time Offer</span>
+            <span className="text-sm font-semibold text-cyan-300">
+              Limited Time Offer
+            </span>
           </motion.div>
 
           <motion.h2
@@ -877,7 +1315,8 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto"
           >
-            Join 10,000+ creators and brands using AI to create better content faster.
+            Join 10,000+ creators and brands using AI to create better content
+            faster.
           </motion.p>
 
           <motion.div
@@ -935,14 +1374,27 @@ export default function Home() {
       {/* Global styles */}
       <style jsx global>{`
         @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
         }
         .animate-gradient {
           background-size: 200% auto;
           animation: gradient 3s ease infinite;
         }
       `}</style>
+    </div>
+  );
+}
+
+function QuestionIcon({ isOpen }: { isOpen: boolean }) {
+  return (
+    <div className="w-5 h-5 flex items-center justify-center text-blue-300">
+      {isOpen ? '?' : '?'}
     </div>
   );
 }

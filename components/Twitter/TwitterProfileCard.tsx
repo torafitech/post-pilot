@@ -194,13 +194,7 @@ const TwitterProfileCard: FC<TwitterProfileCardProps> = ({
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button
-          onClick={onAnalyticsClick}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>Analytics</span>
-        </button>
+
         <button
           onClick={onDisconnectClick}
           className="flex-1 bg-red-600/20 hover:bg-red-600/30 text-red-400 font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 border border-red-600/30 hover:border-red-600/50 flex items-center justify-center gap-2"
