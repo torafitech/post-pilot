@@ -19,11 +19,23 @@ export interface YouTubeAnalyticsResponse {
   demographics?: any;
 }
 
-async function getYouTubeAccount(userId: string) {
+// NEW: get a specific YT account by accountId
+async function getYouTubeAccount(userId: string, accountId?: string | null) {
   const snap = await adminDb.collection('users').doc(userId).get();
   if (!snap.exists) return null;
   const userData = snap.data() as any;
   const accounts = userData.connectedAccounts || [];
+
+  if (accountId) {
+    // match the specific connected account
+    return (
+      accounts.find(
+        (acc: any) => acc.platform === 'youtube' && acc.id === accountId,
+      ) || null
+    );
+  }
+
+  // fallback: first youtube account
   return accounts.find((acc: any) => acc.platform === 'youtube') || null;
 }
 
@@ -42,31 +54,32 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const accountId = searchParams.get('accountId'); // NEW
 
-    console.log('[YT ANALYTICS] Fetching for userId:', userId);
+    console.log('[YT ANALYTICS] Fetching for userId:', userId, 'accountId:', accountId);
 
     if (!userId) {
       return NextResponse.json(
         { error: 'Missing userId' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const youtubeAccount = await getYouTubeAccount(userId);
+    const youtubeAccount = await getYouTubeAccount(userId, accountId);
 
     if (!youtubeAccount) {
       return NextResponse.json(
         { error: 'YouTube not connected' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const { accessToken, refreshToken } = youtubeAccount;
+    const { accessToken, refreshToken, platformId } = youtubeAccount;
 
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Missing access token' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -79,7 +92,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
-      redirectUri
+      redirectUri,
     );
 
     oauth2Client.setCredentials({
@@ -92,14 +105,14 @@ export async function GET(request: NextRequest) {
       const { credentials } = await oauth2Client.refreshAccessToken();
       oauth2Client.setCredentials(credentials);
 
-      // Update token in Firestore
+      // Update token in Firestore only for this YT account
       const userRef = adminDb.collection('users').doc(userId);
       const userSnap = await userRef.get();
       if (userSnap.exists) {
         const userData = userSnap.data() as any;
         const accounts = userData.connectedAccounts || [];
         const updatedAccounts = accounts.map((acc: any) => {
-          if (acc.platform === 'youtube') {
+          if (acc.platform === 'youtube' && acc.id === youtubeAccount.id) {
             return {
               ...acc,
               accessToken: credentials.access_token,
@@ -121,7 +134,10 @@ export async function GET(request: NextRequest) {
     // 1. Fetch channel details
     const channelParams: youtube_v3.Params$Resource$Channels$List = {
       part: ['snippet', 'statistics', 'brandingSettings'],
-      mine: true,
+      // if we have platformId (channelId) use that, else fallback to mine:true
+      ...(platformId
+        ? { id: [platformId] }
+        : { mine: true }),
     };
 
     const channelRes = await youtube.channels.list(channelParams);
@@ -133,7 +149,7 @@ export async function GET(request: NextRequest) {
     if (!channelRes.data.items || channelRes.data.items.length === 0) {
       return NextResponse.json(
         { error: 'No YouTube channel found' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -148,7 +164,7 @@ export async function GET(request: NextRequest) {
       description: snippet.description || '',
       subscriberCount: parseInt(
         stats.hiddenSubscriberCount ? '0' : stats.subscriberCount || '0',
-        10
+        10,
       ),
       viewCount: parseInt(stats.viewCount || '0', 10),
       videoCount: parseInt(stats.videoCount || '0', 10),
@@ -179,7 +195,7 @@ export async function GET(request: NextRequest) {
       const searchItems = videosRes.data.items ?? [];
 
       const videoIds = searchItems
-        .map(item => item.id?.videoId || null)
+        .map((item) => item.id?.videoId || null)
         .filter((id): id is string => !!id);
 
       if (videoIds.length > 0) {
@@ -193,7 +209,7 @@ export async function GET(request: NextRequest) {
         const videoDetails = videoDetailsRes.data.items ?? [];
 
         videos = videos.concat(
-          videoDetails.map(video => ({
+          videoDetails.map((video) => ({
             id: video.id,
             title: video.snippet?.title || '',
             description: video.snippet?.description || '',
@@ -205,9 +221,9 @@ export async function GET(request: NextRequest) {
             privacyStatus: video.status?.privacyStatus || 'private',
             duration: video.contentDetails?.duration,
             watchTime: calculateWatchTime(
-              video.contentDetails?.duration || ''
+              video.contentDetails?.duration || '',
             ),
-          }))
+          })),
         );
       }
 
@@ -219,16 +235,14 @@ export async function GET(request: NextRequest) {
     const totalLikes = videos.reduce((sum, video) => sum + video.likes, 0);
     const totalComments = videos.reduce(
       (sum, video) => sum + video.comments,
-      0
+      0,
     );
     const totalWatchTime = videos.reduce(
       (sum, video) => sum + video.watchTime,
-      0
+      0,
     );
     const avgViewDuration =
-      videos.length > 0
-        ? Math.round(totalWatchTime / videos.length)
-        : 0;
+      videos.length > 0 ? Math.round(totalWatchTime / videos.length) : 0;
     const engagementRate =
       totalViews > 0
         ? ((totalLikes + totalComments) / totalViews) * 100
@@ -238,7 +252,7 @@ export async function GET(request: NextRequest) {
     const topVideo =
       videos.length > 0
         ? videos.reduce((prev, current) =>
-            prev.views > current.views ? prev : current
+            prev.views > current.views ? prev : current,
           )
         : null;
 
@@ -247,7 +261,7 @@ export async function GET(request: NextRequest) {
       .sort(
         (a, b) =>
           new Date(b.publishedAt).getTime() -
-          new Date(a.publishedAt).getTime()
+          new Date(a.publishedAt).getTime(),
       )
       .slice(0, 5);
 
@@ -262,13 +276,13 @@ export async function GET(request: NextRequest) {
       await youtube.channels.list(analyticsParams);
 
       demographics = {
-        // populate if you later use Analytics API
+        // populate later if you add Analytics API
       };
     } catch (err) {
       const e = err as Error;
       console.log(
         '[YT ANALYTICS] Analytics data not available:',
-        e.message
+        e.message,
       );
     }
 
@@ -307,7 +321,7 @@ export async function GET(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: 'Token expired, please reconnect', needsReauth: true },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -316,7 +330,7 @@ export async function GET(request: NextRequest) {
         error: 'Failed to fetch YouTube analytics',
         details: e.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

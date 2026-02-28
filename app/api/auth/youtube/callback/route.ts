@@ -53,13 +53,24 @@ export async function GET(request: NextRequest) {
     });
 
     const channel = me.data.items?.[0];
-    const channelName = channel?.snippet?.title || 'YouTube Channel';
 
-    // 1) Keep your generic connectedAccounts entry (for dashboard list)
+    if (!channel || !channel.id) {
+      console.warn('YouTube callback: no channel returned for user', { uid });
+      return NextResponse.redirect(
+        `${origin}/dashboard?error=youtube_no_channel`,
+      );
+    }
+
+    const channelId = channel.id;
+    const channelName = channel.snippet?.title || 'YouTube Channel';
+
+    // UNIQUE per user + channel
+    const accountId = `youtube_${uid}_${channelId}`;
+
     const connection = {
-      id: `youtube_${uid}`,
+      id: accountId,
       platform: 'youtube',
-      platformId: channel?.id || 'youtube',
+      platformId: channelId,
       accountName: channelName,
       accountLabel: channelName,
       accessToken: tokens.access_token ?? '',
@@ -67,39 +78,56 @@ export async function GET(request: NextRequest) {
       connectedAt: new Date(),
     };
 
-    await adminDb
-      .collection('users')
-      .doc(uid)
-      .set(
-        { connectedAccounts: adminFieldValue.arrayUnion(connection) },
+    const userRef = adminDb.collection('users').doc(uid);
+    const userSnap = await userRef.get();
+    const userData = userSnap.data() || {};
+    const existingList = (userData.connectedAccounts || []) as any[];
+
+    // Upsert: if same channel already exists, update tokens; else push new account
+    const idx = existingList.findIndex(
+      (acc) =>
+        acc.platform === 'youtube' &&
+        (acc.platformId === channelId || acc.id === accountId),
+    );
+
+    if (idx >= 0) {
+      const updated = [...existingList];
+      updated[idx] = { ...updated[idx], ...connection };
+      await userRef.set({ connectedAccounts: updated }, { merge: true });
+    } else {
+      await userRef.set(
+        {
+          connectedAccounts: adminFieldValue.arrayUnion(connection),
+        },
         { merge: true },
       );
+    }
 
-    // 2) NEW: write the doc that /api/youtube/channel-info expects
+    // Per-account doc (you can later change doc id to accountId if you want)
     const ytDocRef = adminDb
       .collection('users')
       .doc(uid)
       .collection('accounts')
-      .doc('youtube');
+      .doc(accountId);
 
     await ytDocRef.set(
       {
         platform: 'youtube',
-        channelId: channel?.id || null,
+        channelId,
         channelName,
-        channelHandle: channel?.snippet?.customUrl || null,
+        channelHandle: channel.snippet?.customUrl || null,
         accessToken: tokens.access_token ?? '',
         refreshToken: tokens.refresh_token ?? null,
         tokenExpiry: tokens.expiry_date || null,
         connectedAt: adminFieldValue.serverTimestamp(),
         stats: {
-          subscribers: channel?.statistics?.subscriberCount
+          subscribers: channel.statistics?.subscriberCount
             ? Number(channel.statistics.subscriberCount)
             : null,
-          views: channel?.statistics?.viewCount
+          views: channel.statistics?.viewCount
             ? Number(channel.statistics.viewCount)
             : null,
-          videoCount: channel?.statistics?.videoCount
+          videoCount: channel.statistics?.videoCount
             ? Number(channel.statistics.videoCount)
             : null,
         },
@@ -107,7 +135,7 @@ export async function GET(request: NextRequest) {
       { merge: true },
     );
 
-    console.log('YouTube connection stored for uid', uid);
+    console.log('YouTube connection stored for uid', uid, 'channelId', channelId);
 
     return NextResponse.redirect(
       `${origin}/dashboard?success=youtube_connected&youtube_connected=true`,
