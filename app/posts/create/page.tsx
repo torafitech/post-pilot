@@ -26,6 +26,7 @@ import {
   Target,
   CheckCircle,
   AlertCircle,
+  XCircle,
   RefreshCw,
   Eye,
   Settings,
@@ -33,6 +34,7 @@ import {
   Calendar as CalendarIcon,
   Bell,
   Hash,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface PlatformContent {
@@ -71,6 +73,53 @@ const platformTips: Record<string, string> = {
     'Keep it under 280 characters, use 1-2 hashtags, and tag relevant accounts.',
   linkedin:
     'Use a professional tone, share insights, and ask thought-provoking questions.',
+};
+
+// Per-platform content limits and media rules
+const PLATFORM_RULES: Record<string, {
+  captionMax: number;
+  titleMax?: number;
+  descMax?: number;
+  allowsImage: boolean;
+  allowsVideo: boolean;
+  imageFormats: string;
+  videoFormats: string;
+  imageSizeMB: number;
+  videoSizeMB: number;
+  requiresVideo?: boolean;
+  requiresTitle?: boolean;
+}> = {
+  youtube: {
+    captionMax: 5000,
+    titleMax: 100,
+    descMax: 5000,
+    allowsImage: false,
+    allowsVideo: true,
+    imageFormats: '—',
+    videoFormats: 'MP4, MOV, AVI, WMV',
+    imageSizeMB: 0,
+    videoSizeMB: 256000,
+    requiresVideo: true,
+    requiresTitle: true,
+  },
+  twitter: {
+    captionMax: 280,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG, GIF, WebP',
+    videoFormats: 'MP4 (max 2:20)',
+    imageSizeMB: 5,
+    videoSizeMB: 512,
+  },
+  linkedin: {
+    captionMax: 3000,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG, GIF',
+    videoFormats: 'MP4',
+    imageSizeMB: 5,
+    videoSizeMB: 5000,
+  },
 };
 
 const orderedTabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
@@ -542,10 +591,27 @@ export default function CreatePostPage() {
     }));
   };
 
+  const platformErrors = formData.platforms.flatMap((platform) => {
+    const rules = PLATFORM_RULES[platform];
+    if (!rules) return [];
+    const errs: string[] = [];
+    const caption = platform === 'youtube'
+      ? (platformContent.youtube.description || '')
+      : (platformContent[platform as keyof PlatformSettings]?.caption || '');
+    if (caption.length > rules.captionMax)
+      errs.push(`${platform}: caption exceeds ${rules.captionMax} chars`);
+    if (rules.requiresTitle && !platformContent.youtube.title?.trim())
+      errs.push('YouTube: title is required');
+    if (platform === 'youtube' && (platformContent.youtube.title?.length || 0) > 100)
+      errs.push('YouTube: title exceeds 100 chars');
+    return errs;
+  });
+
   const canSubmit =
     !loading &&
     formData.platforms.length > 0 &&
     !!formData.mainCaption.trim() &&
+    platformErrors.length === 0 &&
     (scheduleMode === 'now' ||
       (formData.scheduledDate && formData.scheduledTime));
 
@@ -1040,23 +1106,172 @@ export default function CreatePostPage() {
                 </div>
               </div>
 
+              {/* ── Platform Validation Panel ── */}
+              {formData.platforms.length > 0 && (
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <ShieldCheck className="w-5 h-5 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-white">Content Validation</h3>
+                    <span className="text-xs text-gray-500 ml-1">— checks per platform before publishing</span>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {formData.platforms.map((platform) => {
+                      const rules = PLATFORM_RULES[platform];
+                      if (!rules) return null;
+                      const caption = platform === 'youtube'
+                        ? (platformContent.youtube.description || '')
+                        : (platformContent[platform as keyof PlatformSettings]?.caption || '');
+                      const title = platformContent.youtube.title || '';
+                      const captionLen = caption.length;
+
+                      type Issue = { type: 'error' | 'warn'; msg: string };
+                      const issues: Issue[] = [];
+
+                      if (rules.requiresTitle && !title.trim())
+                        issues.push({ type: 'error', msg: 'YouTube title is required' });
+                      if (rules.requiresTitle && title.length > (rules.titleMax || 100))
+                        issues.push({ type: 'error', msg: `Title too long (${title.length}/${rules.titleMax})` });
+                      if (captionLen > rules.captionMax)
+                        issues.push({ type: 'error', msg: `Caption too long (${captionLen}/${rules.captionMax} chars)` });
+                      if (platform === 'twitter' && captionLen > 240 && captionLen <= 280)
+                        issues.push({ type: 'warn', msg: `${280 - captionLen} chars remaining` });
+                      if (rules.requiresVideo && !formData.videoUrl)
+                        issues.push({ type: 'error', msg: 'Video file required for YouTube' });
+                      if (!rules.allowsImage && formData.imageUrl && !formData.videoUrl)
+                        issues.push({ type: 'warn', msg: `Images not supported on ${platform}` });
+                      if (formData.imageUrl && !formData.videoUrl && !rules.allowsImage)
+                        issues.push({ type: 'error', msg: `${platform} does not support standalone images` });
+
+                      const hasError = issues.some(i => i.type === 'error');
+                      const hasWarn = issues.some(i => i.type === 'warn');
+                      const allGood = issues.length === 0 && (captionLen > 0 || !!title);
+
+                      return (
+                        <div
+                          key={platform}
+                          className={`rounded-xl border p-4 ${
+                            hasError
+                              ? 'border-red-500/30 bg-red-500/5'
+                              : hasWarn
+                              ? 'border-amber-500/30 bg-amber-500/5'
+                              : allGood
+                              ? 'border-emerald-500/30 bg-emerald-500/5'
+                              : 'border-gray-800 bg-gray-950'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-3">
+                            {platformIcons[platform]}
+                            <span className="text-xs font-semibold text-white capitalize">{platform}</span>
+                            {hasError && <XCircle size={13} className="ml-auto text-red-400" />}
+                            {!hasError && hasWarn && <AlertCircle size={13} className="ml-auto text-amber-400" />}
+                            {allGood && !hasError && !hasWarn && <CheckCircle size={13} className="ml-auto text-emerald-400" />}
+                          </div>
+
+                          {/* Character count bar */}
+                          {rules.captionMax > 0 && (
+                            <div className="mb-3">
+                              <div className="flex justify-between text-[10px] mb-1">
+                                <span className="text-gray-500">{platform === 'youtube' ? 'Description' : 'Caption'}</span>
+                                <span className={
+                                  captionLen > rules.captionMax ? 'text-red-400' :
+                                  captionLen > rules.captionMax * 0.85 ? 'text-amber-400' :
+                                  'text-gray-500'
+                                }>
+                                  {captionLen}/{rules.captionMax}
+                                </span>
+                              </div>
+                              <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    captionLen > rules.captionMax ? 'bg-red-500' :
+                                    captionLen > rules.captionMax * 0.85 ? 'bg-amber-500' :
+                                    'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${Math.min(100, (captionLen / rules.captionMax) * 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Media allowed */}
+                          <div className="text-[10px] text-gray-500 space-y-0.5 mb-3">
+                            <div className="flex gap-1">
+                              <span className={rules.allowsImage ? 'text-emerald-400' : 'text-gray-700'}>
+                                {rules.allowsImage ? '✓' : '✕'}
+                              </span>
+                              <span>Image: {rules.allowsImage ? rules.imageFormats : 'Not supported'}</span>
+                            </div>
+                            <div className="flex gap-1">
+                              <span className={rules.allowsVideo ? 'text-emerald-400' : 'text-gray-700'}>
+                                {rules.allowsVideo ? '✓' : '✕'}
+                              </span>
+                              <span>Video: {rules.allowsVideo ? rules.videoFormats : 'Not supported'}</span>
+                            </div>
+                          </div>
+
+                          {/* Issues */}
+                          {issues.map((issue, i) => (
+                            <div key={i} className={`flex items-start gap-1.5 text-[10px] mt-1 ${
+                              issue.type === 'error' ? 'text-red-400' : 'text-amber-400'
+                            }`}>
+                              {issue.type === 'error'
+                                ? <XCircle size={11} className="flex-shrink-0 mt-0.5" />
+                                : <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />}
+                              {issue.msg}
+                            </div>
+                          ))}
+                          {allGood && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 mt-1">
+                              <CheckCircle size={11} />
+                              Ready to publish
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {formData.platforms.map((platform) => (
                 <div
                   key={platform}
                   className="bg-gray-900 border border-gray-800 rounded-2xl p-8"
                 >
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 rounded-xl bg-gray-800">
-                      {platformIcons[platform]}
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-gray-800">
+                        {platformIcons[platform]}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white capitalize">
+                          {platform} Content
+                        </h3>
+                        <p className="text-xs text-gray-400">
+                          Optimized specifically for {platform}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white capitalize">
-                        {platform} Content
-                      </h3>
-                      <p className="text-xs text-gray-400">
-                        Optimized specifically for {platform}
-                      </p>
-                    </div>
+                    {/* Per-platform char limit badge */}
+                    {platform !== 'youtube' && (() => {
+                      const rules = PLATFORM_RULES[platform];
+                      const caption = platformContent[platform as keyof PlatformSettings]?.caption || '';
+                      const len = caption.length;
+                      const max = rules?.captionMax || 9999;
+                      const pct = len / max;
+                      return (
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                          len > max ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                          pct > 0.85 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                          'bg-gray-800 border-gray-700 text-gray-400'
+                        }`}>
+                          {len > max ? <XCircle size={12} /> : pct > 0.85 ? <AlertCircle size={12} /> : <CheckCircle size={12} />}
+                          {len}/{max} chars
+                          {len > max && ' · over limit'}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {platform === 'youtube' ? (
@@ -1579,10 +1794,21 @@ export default function CreatePostPage() {
                 <ChevronRight size={18} />
               </button>
             ) : (
+              <div className="flex-1 flex flex-col gap-2">
+                {platformErrors.length > 0 && (
+                  <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs space-y-0.5">
+                    {platformErrors.map((e, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <XCircle size={11} />
+                        {e}
+                      </div>
+                    ))}
+                  </div>
+                )}
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -1607,6 +1833,7 @@ export default function CreatePostPage() {
                   </>
                 )}
               </button>
+              </div>
             )}
           </div>
         </form>
