@@ -18,6 +18,9 @@ import {
   Sparkles,
   RefreshCw,
   Bot,
+  Play,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 interface LinkMeRule {
@@ -54,6 +57,8 @@ export default function AutomationPage() {
   const [linkMeRules, setLinkMeRules] = useState<LinkMeRule[]>([]);
   const [autoReplyTemplates, setAutoReplyTemplates] = useState<AutoReplyTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Link Me form
   const [showLinkMeForm, setShowLinkMeForm] = useState(false);
@@ -193,6 +198,25 @@ export default function AutomationPage() {
     setAutoReplyTemplates((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const runTestNow = async () => {
+    setTestRunning(true);
+    setTestResult(null);
+    try {
+      const res = await authFetch('/api/automation/test-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: activeTab }),
+      });
+      const data = await res.json();
+      setTestResult({ ok: res.ok && data.success, message: data.message || data.error || 'Done.' });
+    } catch {
+      setTestResult({ ok: false, message: 'Failed to run test.' });
+    } finally {
+      setTestRunning(false);
+      setTimeout(() => setTestResult(null), 6000);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -216,6 +240,20 @@ export default function AutomationPage() {
             Auto-engage with your audience using smart comment rules
           </p>
         </div>
+
+        {/* Test result toast */}
+        {testResult && (
+          <div className={`flex items-center gap-3 mb-5 px-4 py-3 rounded-xl border text-sm font-medium ${
+            testResult.ok
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+          }`}>
+            {testResult.ok
+              ? <CheckCircle size={16} />
+              : <AlertCircle size={16} />}
+            {testResult.message}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8 p-1 bg-gray-900 rounded-xl w-fit">
@@ -264,13 +302,24 @@ export default function AutomationPage() {
               <h2 className="text-lg font-semibold text-white">
                 Rules ({linkMeRules.length})
               </h2>
-              <button
-                onClick={() => setShowLinkMeForm((v) => !v)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                <Plus size={16} />
-                Add Rule
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={runTestNow}
+                  disabled={testRunning || linkMeRules.filter(r => r.isActive).length === 0}
+                  title={linkMeRules.filter(r => r.isActive).length === 0 ? 'Enable at least one rule first' : 'Scan latest posts for keyword matches now'}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {testRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                  Test Now
+                </button>
+                <button
+                  onClick={() => setShowLinkMeForm((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  <Plus size={16} />
+                  Add Rule
+                </button>
+              </div>
             </div>
 
             {/* Add form */}
@@ -436,13 +485,24 @@ export default function AutomationPage() {
               <h2 className="text-lg font-semibold text-white">
                 Templates ({autoReplyTemplates.length})
               </h2>
-              <button
-                onClick={() => setShowArForm((v) => !v)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                <Plus size={16} />
-                Add Template
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={runTestNow}
+                  disabled={testRunning || autoReplyTemplates.filter(t => t.isActive).length === 0}
+                  title={autoReplyTemplates.filter(t => t.isActive).length === 0 ? 'Enable at least one template first' : 'Scan latest posts for unanswered comments now'}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {testRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
+                  Test Now
+                </button>
+                <button
+                  onClick={() => setShowArForm((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  <Plus size={16} />
+                  Add Template
+                </button>
+              </div>
             </div>
 
             {/* Add form */}

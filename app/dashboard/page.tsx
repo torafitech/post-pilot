@@ -1,311 +1,224 @@
-// app/dashboard/page.tsx
 'use client';
 
 import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
+import { authFetch } from '@/lib/authClient';
 import { db } from '@/lib/firebase';
 import { DashboardPost, SocialPost } from '@/types/post';
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  updateDoc,
-  where,
+  collection, doc, getDoc, getDocs, limit,
+  orderBy, query, updateDoc, where,
 } from 'firebase/firestore';
 import {
-  Activity,
-  BarChart3,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Eye,
-  Globe,
-  Heart,
-  Linkedin,
-  Maximize2,
-  MessageCircle,
-  Minimize2,
-  PieChart,
-  RefreshCw,
-  ThumbsUp,
-  Twitter,
-  Users,
-  Video,
-  Youtube,
-  Zap
+  BarChart2, Bot, Calendar, CheckCircle2, Clock, Eye,
+  Globe, Heart, Linkedin, MessageCircle, PlusCircle,
+  RefreshCw, Settings, ThumbsUp, TrendingUp, Twitter,
+  Users, Video, Youtube, Zap, Link2, ArrowUpRight, AlertCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 
-
-import PlatformAccountCard from '@/components/Dashboard/PlatformAccountCard';
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ConnectedAccount {
   id: string;
   platform: string;
   accountName: string;
   accessToken: string;
-  refreshToken?: string | null;
   connectedAt: Date;
 }
 
-interface PlatformMetrics {
-  followers: number;
-  views: number;
-  engagement: number;
-  engagementRate: number;
-  posts: number;
-  change: {
-    followers: number;
-    views: number;
-    engagement: number;
-  };
-}
+const PLATFORMS = ['youtube', 'twitter', 'linkedin'] as const;
+type Platform = typeof PLATFORMS[number];
 
-interface AggregatedMetrics {
-  totalFollowers: number;
-  totalViews: number;
-  totalEngagement: number;
-  totalPosts: number;
-  avgEngagementRate: number;
-  platformBreakdown: {
-    [key: string]: {
-      followers: number;
-      views: number;
-      engagement: number;
-      posts: number;
-    };
-  };
-}
-
-// Platform data with icons and colors
-const platformData: Record<
-  string,
-  {
-    icon: React.ReactNode;
-    color: string;
-    bgColor: string;
-    gradient: string;
-    metricLabels: {
-      followers: string;
-      views: string;
-      engagement: string;
-    };
-  }
-> = {
-  youtube: {
-    icon: <Youtube size={20} />,
-    color: '#FF0000',
-    bgColor: 'bg-red-500/10',
-    gradient: 'from-red-500 to-red-600',
-    metricLabels: {
-      followers: 'Subscribers',
-      views: 'Views',
-      engagement: 'Eng. Rate',
-    },
-  },
-  twitter: {
-    icon: <Twitter size={20} />,
-    color: '#1DA1F2',
-    bgColor: 'bg-sky-500/10',
-    gradient: 'from-sky-500 to-sky-600',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Impressions',
-      engagement: 'Eng. Rate',
-    },
-  },
-  linkedin: {
-    icon: <Linkedin size={20} />,
-    color: '#0A66C2',
-    bgColor: 'bg-blue-500/10',
-    gradient: 'from-blue-500 to-blue-600',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Impressions',
-      engagement: 'Eng. Rate',
-    },
-  },
+const platformMeta: Record<Platform, { icon: React.ReactNode; color: string; bg: string; label: string }> = {
+  youtube:  { icon: <Youtube  size={18} />, color: 'text-red-400',  bg: 'bg-red-500/10',  label: 'YouTube'   },
+  twitter:  { icon: <Twitter  size={18} />, color: 'text-sky-400',  bg: 'bg-sky-500/10',  label: 'Twitter/X' },
+  linkedin: { icon: <Linkedin size={18} />, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'LinkedIn'  },
 };
+
+const oauthRoutes: Record<Platform, (uid: string) => string> = {
+  youtube:  uid => `/api/auth/youtube?uid=${encodeURIComponent(uid)}`,
+  twitter:  uid => `/api/auth/twitter/oauth1?uid=${encodeURIComponent(uid)}`,
+  linkedin: uid => `/api/auth/linkedin?uid=${encodeURIComponent(uid)}`,
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmtNum(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return `${n}`;
+}
+
+function timeAgo(date: Date) {
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (secs < 60)   return 'just now';
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+function timeLeft(date: Date) {
+  const ms = date.getTime() - Date.now();
+  if (ms <= 0) return 'Due now';
+  const m = Math.round(ms / 60000);
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ${h % 24}h`;
+  if (h > 0) return `${h}h ${m % 60}m`;
+  return `${m}m`;
+}
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({
+  label, value, sub, icon, gradient,
+}: { label: string; value: string | number; sub?: string; icon: React.ReactNode; gradient: string }) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl p-5 bg-gray-900 border border-gray-800`}>
+      <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 ${gradient}`} />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</span>
+          <div className="text-gray-600">{icon}</div>
+        </div>
+        <div className="text-3xl font-extrabold text-white mb-1">{value}</div>
+        {sub && <div className="text-xs text-gray-500">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Platform connection card ─────────────────────────────────────────────────
+
+function PlatformCard({
+  platform, account, posts, onConnect, onDisconnect,
+}: {
+  platform: Platform;
+  account: ConnectedAccount | null;
+  posts: DashboardPost[];
+  onConnect: () => void;
+  onDisconnect: () => void;
+}) {
+  const meta = platformMeta[platform];
+  const platformPosts = posts.filter(p => p.platform?.toLowerCase() === platform && p.publishedAt);
+  const totalLikes = platformPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0);
+  const totalViews = platformPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0);
+
+  if (!account) {
+    return (
+      <div className="bg-gray-900 border border-dashed border-gray-700 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-center min-h-[160px]">
+        <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center ${meta.color} opacity-50`}>
+          {meta.icon}
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-gray-400">{meta.label}</div>
+          <div className="text-xs text-gray-600 mt-0.5">Not connected</div>
+        </div>
+        <button
+          onClick={onConnect}
+          className="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-xs font-medium rounded-lg transition-colors"
+        >
+          Connect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition-colors">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center ${meta.color}`}>
+            {meta.icon}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white">{account.accountName}</div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <span className="text-[10px] text-emerald-400">Connected</span>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onDisconnect}
+          className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+          title="Disconnect"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gray-800/60 rounded-xl p-3 text-center">
+          <div className="text-lg font-bold text-white">{platformPosts.length}</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">Posts</div>
+        </div>
+        <div className="bg-gray-800/60 rounded-xl p-3 text-center">
+          <div className="text-lg font-bold text-white">{fmtNum(totalViews)}</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">Views</div>
+        </div>
+        <div className="bg-gray-800/60 rounded-xl p-3 text-center">
+          <div className="text-lg font-bold text-white">{fmtNum(totalLikes)}</div>
+          <div className="text-[10px] text-gray-500 mt-0.5">Likes</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>(
-    [],
-  );
-  const [loading, setLoading] = useState(true);
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [dateRange, setDateRange] = useState('7d');
-  const [syncingPosts, setSyncingPosts] = useState(false);
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [posts, setPosts] = useState<DashboardPost[]>([]);
-  const [expandedPlatforms, setExpandedPlatforms] = useState<Set<string>>(
-    new Set(),
-  );
-  const [expandedSections, setExpandedSections] = useState({
-    overview: true,
-    recentActivity: true,
-    platforms: true,
-    scheduled: true,
-  });
-
-
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | Platform>('all');
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    fetchConnectedAccounts();
-    fetchPosts();
-  }, [user, authLoading, router]);
+    if (!user) { router.push('/login'); return; }
+    Promise.all([fetchAccounts(), fetchPosts()]).finally(() => setLoading(false));
+  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const now = new Date()
-
-  const scheduledPosts = useMemo(
-    () =>
-      posts
-        .filter(
-          (p) =>
-            p.status === 'scheduled' &&
-            p.scheduledTime &&
-            typeof p.scheduledTime.toDate === 'function'
-        )
-        .sort(
-          (a, b) =>
-            a.scheduledTime!.toDate().getTime() -
-            b.scheduledTime!.toDate().getTime()
-        ),
-    [posts]
-  );
-
-  const recentPosts = useMemo(
-    () =>
-      posts
-        .filter(
-          (p) =>
-            p.publishedAt &&
-            typeof p.publishedAt.toDate === 'function'
-        )
-        .sort(
-          (a, b) =>
-            b.publishedAt!.toDate().getTime() -
-            a.publishedAt!.toDate().getTime()
-        ),
-    [posts]
-  );
-  const recentByPlatform = useMemo(() => {
-    const grouped: Record<string, DashboardPost[]> = {};
-
-    recentPosts.forEach((post) => {
-      const key = post.platform?.toLowerCase() || 'other';
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(post);
-    });
-
-    // sort each platform’s posts by publishedAt desc
-    Object.values(grouped).forEach((list) =>
-      list.sort(
-        (a, b) =>
-          b.publishedAt!.toDate().getTime() -
-          a.publishedAt!.toDate().getTime()
-      )
-    );
-
-    return grouped;
-  }, [recentPosts]);
-
-
-
-
-  const getTimeLeft = (scheduledAt: Date) => {
-    const diffMs = scheduledAt.getTime() - Date.now()
-    if (diffMs <= 0) return "Due now"
-
-    const diffMinutes = Math.round(diffMs / (1000 * 60))
-    const hours = Math.floor(diffMinutes / 60)
-    const minutes = diffMinutes % 60
-
-    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m left`
-    if (hours > 0) return `${hours}h left`
-    return `${minutes}m left`
-  }
-
-  const fetchConnectedAccounts = async () => {
+  const fetchAccounts = async () => {
     if (!user) return;
-    try {
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-
-      const accounts: ConnectedAccount[] = [];
-
-      if (docSnap.exists()) {
-        const userData = docSnap.data() as any;
-        const connectedAccountsList = userData.connectedAccounts || [];
-
-        connectedAccountsList.forEach((account: any) => {
-          const platformKey = account.platform || 'account';
-          const platformLabel =
-            platformKey.charAt(0).toUpperCase() + platformKey.slice(1);
-
-          let connectedAt: Date = new Date();
-          if (account.connectedAt?.toDate) {
-            connectedAt = account.connectedAt.toDate();
-          } else if (account.connectedAt) {
-            connectedAt = new Date(account.connectedAt);
-          }
-
-          accounts.push({
-            id: account.id,
-            platform: platformKey.toLowerCase(),
-            accountName:
-              account.accountName || account.accountLabel || platformLabel,
-            accessToken: account.accessToken || '',
-            refreshToken: account.refreshToken ?? null,
-            connectedAt,
-          });
-        });
-      }
-
-      setConnectedAccounts(accounts);
-    } catch (error: any) {
-      console.error('Error fetching accounts:', error);
-    } finally {
-      setLoading(false);
-    }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) return;
+    const list: ConnectedAccount[] = (snap.data()?.connectedAccounts || []).map((a: any) => ({
+      id: a.id,
+      platform: a.platform?.toLowerCase(),
+      accountName: a.accountName || a.accountLabel || a.platform,
+      accessToken: a.accessToken || '',
+      connectedAt: a.connectedAt?.toDate?.() || new Date(),
+    }));
+    setConnectedAccounts(list);
   };
 
   const fetchPosts = async () => {
     if (!user) return;
-    try {
-      const postsRef = collection(db, 'posts');
-      const q = query(
-        postsRef,
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc'),
-        limit(100)
-      );
-      const snap = await getDocs(q);
-
-      const list: SocialPost[] = [];
-      snap.forEach((docSnap) =>
-        list.push({ id: docSnap.id, ...(docSnap.data() as any) }),
-      );
-      setPosts(list);
-    } catch (error: any) {
-      console.error('Error fetching posts:', error);
-    }
+    const q = query(
+      collection(db, 'posts'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(100),
+    );
+    const snap = await getDocs(q);
+    const list: SocialPost[] = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() } as any));
+    setPosts(list);
   };
 
-  const handleSyncPosts = async () => {
+  const handleSync = async () => {
     if (!user) return;
-    setSyncingPosts(true);
+    setSyncing(true);
     try {
       await fetch('/api/posts/sync', {
         method: 'POST',
@@ -313,138 +226,58 @@ export default function DashboardPage() {
         body: JSON.stringify({ userId: user.uid }),
       });
       await fetchPosts();
-    } catch (error) {
-      console.error('Error syncing posts:', error);
-    } finally {
-      setSyncingPosts(false);
-    }
+    } finally { setSyncing(false); }
   };
 
-  const handleConnectAccount = async (platform: string) => {
+  const handleConnect = (platform: string) => {
     if (!user) return;
-
-    try {
-      setShowConnectModal(false);
-
-      const oauthRoutes: Record<string, string> = {
-        youtube: `/api/auth/youtube?uid=${encodeURIComponent(user.uid)}`,
-        twitter: `/api/auth/twitter/oauth1?uid=${encodeURIComponent(user.uid)}`,
-        linkedin: `/api/auth/linkedin?uid=${encodeURIComponent(user.uid)}`,
-      };
-
-      const route = oauthRoutes[platform];
-      if (route) {
-        window.location.href = route;
-      }
-    } catch (error) {
-      console.error('Error initiating OAuth:', error);
-    }
+    const route = oauthRoutes[platform as Platform]?.(user.uid);
+    if (route) window.location.href = route;
   };
 
-  const handleDisconnectAccount = async (accountId: string) => {
+  const handleDisconnect = async (accountId: string) => {
     if (!user) return;
-
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      const snap = await getDoc(userDocRef);
-
-      if (snap.exists()) {
-        const data = snap.data() as any;
-        const list = data.connectedAccounts || [];
-        const filtered = list.filter((item: any) => item.id !== accountId);
-
-        await updateDoc(userDocRef, {
-          connectedAccounts: filtered,
-        });
-      }
-
-      const updatedAccounts = connectedAccounts.filter(
-        (acc) => acc.id !== accountId,
-      );
-      setConnectedAccounts(updatedAccounts);
-
-      const platform = connectedAccounts.find(
-        (acc) => acc.id === accountId,
-      )?.platform;
-      if (platform) {
-        const newExpanded = new Set(expandedPlatforms);
-        newExpanded.delete(platform);
-        setExpandedPlatforms(newExpanded);
-      }
-    } catch (error: any) {
-      console.error('Error disconnecting account:', error);
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const filtered = (snap.data()?.connectedAccounts || []).filter((a: any) => a.id !== accountId);
+      await updateDoc(ref, { connectedAccounts: filtered });
     }
+    setConnectedAccounts(prev => prev.filter(a => a.id !== accountId));
   };
 
-  const togglePlatformExpand = (platform: string) => {
-    const newExpanded = new Set(expandedPlatforms);
-    if (newExpanded.has(platform)) {
-      newExpanded.delete(platform);
-    } else {
-      newExpanded.add(platform);
-    }
-    setExpandedPlatforms(newExpanded);
-  };
+  // ── Derived data ─────────────────────────────────────────────────────────────
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+  const publishedPosts = useMemo(() =>
+    posts.filter(p => p.publishedAt && typeof p.publishedAt.toDate === 'function')
+      .sort((a, b) => b.publishedAt!.toDate().getTime() - a.publishedAt!.toDate().getTime()),
+    [posts]);
 
-  const expandAllPlatforms = () => {
-    const allPlatforms = connectedAccounts.map((acc) => acc.platform);
-    setExpandedPlatforms(new Set(allPlatforms));
-  };
+  const scheduledPosts = useMemo(() =>
+    posts.filter(p => p.status === 'scheduled' && p.scheduledTime && typeof p.scheduledTime.toDate === 'function')
+      .sort((a, b) => a.scheduledTime!.toDate().getTime() - b.scheduledTime!.toDate().getTime()),
+    [posts]);
 
-  const collapseAllPlatforms = () => {
-    setExpandedPlatforms(new Set());
-  };
+  const filteredPublished = useMemo(() =>
+    activeFilter === 'all' ? publishedPosts : publishedPosts.filter(p => p.platform?.toLowerCase() === activeFilter),
+    [publishedPosts, activeFilter]);
 
+  const totalViews = useMemo(() => publishedPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0), [publishedPosts]);
+  const totalLikes = useMemo(() => publishedPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0), [publishedPosts]);
+  const totalComments = useMemo(() => publishedPosts.reduce((s, p) => s + (p.metrics?.comments || 0), 0), [publishedPosts]);
 
-
-
-  // Aggregate metrics across all platforms
-  const getAggregatedMetrics = (): AggregatedMetrics => {
-    let totalFollowers = 0;
-    let totalViews = 0;
-    let totalEngagement = 0;
-    let totalPosts = 0;
-    const platformBreakdown: AggregatedMetrics['platformBreakdown'] = {};
-
-
-
-    return {
-      totalFollowers,
-      totalViews,
-      totalEngagement,
-      totalPosts,
-      avgEngagementRate:
-        totalViews > 0
-          ? Math.round((totalEngagement / totalViews) * 100 * 10) / 10
-          : 0,
-      platformBreakdown,
-    };
-  };
-
-
-
-  const aggregatedMetrics = getAggregatedMetrics();
+  const accountMap = useMemo(() => {
+    const m: Partial<Record<Platform, ConnectedAccount>> = {};
+    connectedAccounts.forEach(a => { if (PLATFORMS.includes(a.platform as Platform)) m[a.platform as Platform] = a; });
+    return m;
+  }, [connectedAccounts]);
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-transparent border-t-blue-500 border-r-purple-500 rounded-full animate-spin mx-auto mb-4" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-blue-400 animate-pulse" />
-            </div>
-          </div>
-          <p className="text-gray-400 text-sm mt-4">
-            Loading your dashboard...
-          </p>
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-gray-800 border-t-cyan-500 rounded-full animate-spin" />
+          <p className="text-gray-500 text-sm">Loading dashboard…</p>
         </div>
       </div>
     );
@@ -452,738 +285,331 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const totalAudience = aggregatedMetrics.totalFollowers;
-  const totalContent = 0;
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      {/* Background pattern */}
-      <div className="fixed inset-0">
-        <div className="absolute inset-0 bg-[url(\'data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='60' height='60' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 60 0 L 0 0 0 60' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%' height='100%' fill='url(%23grid)'/%3E%3C/svg%3E\')] opacity-50" />
-      </div>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header (from other design) */}
-        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        {/* ── Header ── */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold text-blue-300/80 uppercase tracking-[0.2em] mb-2">
-              Creator Command Center
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">
-              Welcome back,{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400">
-                {userProfile?.displayName ||
-                  user.email?.split('@')[0] ||
-                  'Creator'}
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-1 font-medium">Creator Dashboard</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white">
+              {greeting},{' '}
+              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                {userProfile?.displayName || user.email?.split('@')[0] || 'Creator'}
               </span>
             </h1>
-            <p className="mt-2 text-sm text-gray-400">
-              Monitor your channels, understand what works, and plan your next
-              post.
-            </p>
+            <p className="text-gray-500 text-sm mt-1">Here's how your content is performing.</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl">
-              <Calendar size={16} className="text-gray-400" />
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="bg-transparent text-sm text-white focus:outline-none"
-              >
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-              </select>
-            </div> */}
-
+          <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={handleSyncPosts}
-              disabled={syncingPosts}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs md:text-sm text-white hover:bg-white/10 disabled:opacity-50"
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 hover:text-white text-sm transition-colors disabled:opacity-50"
             >
-              <RefreshCw
-                size={16}
-                className={syncingPosts ? 'animate-spin' : ''}
+              <RefreshCw size={15} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Syncing…' : 'Sync'}
+            </button>
+            <button
+              onClick={() => setShowPremium(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-medium transition-colors"
+            >
+              <Zap size={15} />
+              Upgrade
+            </button>
+            <Link
+              href="/posts/create"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/20 transition-all"
+            >
+              <PlusCircle size={15} />
+              Create Post
+            </Link>
+          </div>
+        </div>
+
+        {/* ── Overview stats ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Posts"
+            value={publishedPosts.length}
+            sub="Published across platforms"
+            icon={<Video size={18} />}
+            gradient="bg-cyan-500"
+          />
+          <StatCard
+            label="Total Views"
+            value={fmtNum(totalViews)}
+            sub="Views & impressions"
+            icon={<Eye size={18} />}
+            gradient="bg-purple-500"
+          />
+          <StatCard
+            label="Engagement"
+            value={fmtNum(totalLikes + totalComments)}
+            sub="Likes + comments"
+            icon={<Heart size={18} />}
+            gradient="bg-pink-500"
+          />
+          <StatCard
+            label="Scheduled"
+            value={scheduledPosts.length}
+            sub="Posts in queue"
+            icon={<Clock size={18} />}
+            gradient="bg-amber-500"
+          />
+        </div>
+
+        {/* ── Connected platforms ── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Globe size={16} className="text-gray-400" />
+              Connected Platforms
+            </h2>
+            <span className="text-xs text-gray-600">{connectedAccounts.length}/3 connected</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PLATFORMS.map(p => (
+              <PlatformCard
+                key={p}
+                platform={p}
+                account={accountMap[p] || null}
+                posts={posts}
+                onConnect={() => handleConnect(p)}
+                onDisconnect={() => {
+                  const acc = accountMap[p];
+                  if (acc) handleDisconnect(acc.id);
+                }}
               />
-              {syncingPosts ? 'Syncing…' : 'Sync data'}
-            </button>
-            <button
-              onClick={() => setShowConnectModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-xs md:text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800"
+            ))}
+          </div>
+        </div>
+
+        {/* ── Automation quick status ── */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Bot size={16} className="text-purple-400" />
+              Automation
+            </h2>
+            <Link
+              href="/automation"
+              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
             >
-              <Zap size={16} />
-              Connect
-            </button>
+              Manage <ArrowUpRight size={12} />
+            </Link>
           </div>
-        </header>
-
-        {/* Top summary (3 cards) */}
-        <section className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Users size={14} className="text-blue-400" />
-                Audience
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {totalAudience.toLocaleString()}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Across all connected channels
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-              <Activity className="text-blue-400" size={20} />
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Video size={14} className="text-emerald-400" />
-                Content
-              </p>
-            </div>
-            <div>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {totalContent}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Videos, tweets and posts tracked
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <PieChart className="text-emerald-400" size={20} />
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Heart size={14} className="text-pink-400" />
-                Engagement
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {aggregatedMetrics.avgEngagementRate}%
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Average engagement rate
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-pink-500/10 flex items-center justify-center">
-              <ThumbsUp className="text-pink-400" size={20} />
-            </div>
-          </div>
-        </section>
-
-        {connectedAccounts.length > 0 ? (
-          <>
-            {/* SECTION 1: OVERVIEW */}
-            <div className="mb-6">
-              <div
-                className="flex items-center justify-between cursor-pointer p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-t-2xl hover:bg-white/10 transition-colors"
-                onClick={() => toggleSection('overview')}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { icon: <Link2 size={14} />, label: 'Link Me', desc: 'Auto-send links on keyword', href: '/automation', color: 'text-orange-400' },
+              { icon: <MessageCircle size={14} />, label: 'Auto-Reply', desc: 'Reply to comments 24/7', href: '/automation', color: 'text-emerald-400' },
+              { icon: <ThumbsUp size={14} />, label: 'Auto-Pin', desc: 'Pin first comment on YouTube', href: '/posts/create', color: 'text-yellow-400' },
+            ].map(item => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-start gap-3 p-4 bg-gray-800/60 rounded-xl hover:bg-gray-800 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20">
-                    <Activity className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">
-                      Performance Overview
-                    </h2>
-                    <p className="text-xs text-gray-400">
-                      High-level metrics across all platforms
-                    </p>
-                  </div>
+                <div className={`mt-0.5 ${item.color}`}>{item.icon}</div>
+                <div>
+                  <div className="text-sm font-semibold text-white">{item.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
                 </div>
-                <button className="p-2 rounded-lg hover:bg-white/10">
-                  {expandedSections.overview ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Posts + Scheduled grid ── */}
+        <div className="grid lg:grid-cols-3 gap-6">
+
+          {/* Recent posts (takes 2/3) */}
+          <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <BarChart2 size={16} className="text-emerald-400" />
+                Recent Posts
+              </h2>
+              <div className="flex items-center gap-1">
+                {(['all', ...PLATFORMS] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setActiveFilter(f as any)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                      activeFilter === f
+                        ? 'bg-gray-700 text-white'
+                        : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                  >
+                    {f === 'all' ? 'All' : platformMeta[f as Platform].label}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {expandedSections.overview && (
-                <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-t-0 border-white/10 rounded-b-2xl">
-                  {/* Global Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 rounded-lg bg-blue-500/10">
-                          <Users className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <span className="text-xs text-gray-400">Total</span>
+            <div className="divide-y divide-gray-800/60">
+              {filteredPublished.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                  <Video size={32} className="text-gray-700 mb-3" />
+                  <p className="text-sm text-gray-500">No published posts yet.</p>
+                  <Link href="/posts/create" className="mt-3 text-xs text-cyan-400 hover:text-cyan-300">
+                    Create your first post →
+                  </Link>
+                </div>
+              ) : (
+                filteredPublished.slice(0, 8).map(post => {
+                  const meta = platformMeta[post.platform?.toLowerCase() as Platform];
+                  const publishedDate = post.publishedAt?.toDate();
+                  const views = post.metrics?.views || post.metrics?.impressions || 0;
+                  const likes = post.metrics?.likes || 0;
+                  const comments = post.metrics?.comments || 0;
+
+                  return (
+                    <div key={post.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-800/30 transition-colors">
+                      {/* Platform icon */}
+                      <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${meta?.bg || 'bg-gray-800'} ${meta?.color || 'text-gray-400'} mt-0.5`}>
+                        {meta?.icon || <Globe size={16} />}
                       </div>
-                      <p className="text-2xl font-bold text-white">
-                        {aggregatedMetrics.totalFollowers.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Total followers
-                      </p>
-                    </div>
 
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 rounded-lg bg-purple-500/10">
-                          <Eye className="w-5 h-5 text-purple-400" />
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white line-clamp-1 font-medium">
+                          {post.caption || 'Untitled post'}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {publishedDate && (
+                            <span className="text-xs text-gray-600">{timeAgo(publishedDate)}</span>
+                          )}
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <Eye size={11} />{fmtNum(views)}
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <Heart size={11} />{fmtNum(likes)}
+                          </span>
+                          {comments > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <MessageCircle size={11} />{fmtNum(comments)}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-xs text-gray-400">Total</span>
                       </div>
-                      <p className="text-2xl font-bold text-white">
-                        {aggregatedMetrics.totalViews.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Total views / impressions
-                      </p>
-                    </div>
 
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 rounded-lg bg-emerald-500/10">
-                          <Heart className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <span className="text-xs text-gray-400">Total</span>
+                      {/* Status */}
+                      <div className="flex-shrink-0">
+                        <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 size={10} />
+                          Published
+                        </span>
                       </div>
-                      <p className="text-2xl font-bold text-white">
-                        {aggregatedMetrics.totalEngagement.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Total engagement
-                      </p>
                     </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
 
-                    <div className="bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 rounded-lg bg-amber-500/10">
-                          <BarChart3 className="w-5 h-5 text-amber-400" />
-                        </div>
-                        <span className="text-xs text-gray-400">Avg</span>
-                      </div>
-                      <p className="text-2xl font-bold text-white">
-                        {aggregatedMetrics.avgEngagementRate}%
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Avg engagement rate
-                      </p>
-                    </div>
-                  </div>
+          {/* Scheduled posts (takes 1/3) */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Calendar size={16} className="text-amber-400" />
+                Scheduled
+              </h2>
+              <span className="text-xs text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">
+                {scheduledPosts.length}
+              </span>
+            </div>
 
-                  {/* Distribution + Quick stats */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-                      <h3 className="text-sm font-medium text-white mb-4">
-                        Platform distribution
-                      </h3>
-                      <div className="space-y-3">
-                        {connectedAccounts.map((acc) => {
-                          const metrics =
-                            aggregatedMetrics.platformBreakdown[
-                            acc.platform
-                            ];
-                          const percentage =
-                            aggregatedMetrics.totalViews > 0
-                              ? Math.round(
-                                ((metrics?.views || 0) /
-                                  aggregatedMetrics.totalViews) *
-                                100,
-                              )
-                              : 0;
+            <div className="divide-y divide-gray-800/60 max-h-[420px] overflow-y-auto">
+              {scheduledPosts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                  <Clock size={28} className="text-gray-700 mb-3" />
+                  <p className="text-sm text-gray-500">No posts scheduled.</p>
+                  <Link href="/posts/create" className="mt-2 text-xs text-cyan-400 hover:text-cyan-300">
+                    Schedule one →
+                  </Link>
+                </div>
+              ) : (
+                scheduledPosts.map(post => {
+                  const schedDate = post.scheduledTime!.toDate();
+                  const platforms = post.platforms?.length ? post.platforms : [post.platform];
+                  const isUrgent = schedDate.getTime() - Date.now() < 2 * 3600000;
 
+                  return (
+                    <div key={post.id} className="px-5 py-4 hover:bg-gray-800/30 transition-colors">
+                      <div className="flex -space-x-1.5 mb-2">
+                        {platforms.slice(0, 3).map((pl, i) => {
+                          const m = platformMeta[pl?.toLowerCase() as Platform];
                           return (
-                            <div
-                              key={acc.id}
-                              className="flex items-center gap-3"
-                            >
-                              <div
-                                className={`w-8 h-8 rounded-lg ${platformData[acc.platform]?.bgColor ||
-                                  'bg-gray-500/10'
-                                  } flex items-center justify-center`}
-                              >
-                                {platformData[acc.platform]?.icon || (
-                                  <Globe size={16} />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-xs font-medium text-white capitalize">
-                                    {acc.platform}
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {percentage}%
-                                  </span>
-                                </div>
-                                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full rounded-full"
-                                    style={{
-                                      width: `${percentage}%`,
-                                      backgroundColor:
-                                        platformData[acc.platform]?.color ||
-                                        '#6B7280',
-                                    }}
-                                  />
-                                </div>
-                              </div>
+                            <div key={i} className={`w-6 h-6 rounded-md flex items-center justify-center ring-2 ring-gray-900 text-xs ${m?.bg || 'bg-gray-800'} ${m?.color || 'text-gray-400'}`}>
+                              {m?.icon || <Globe size={10} />}
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-                      <h3 className="text-sm font-medium text-white mb-4">
-                        Quick stats
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">
-                            Connected platforms
-                          </p>
-                          <p className="text-2xl font-bold text-white">
-                            {connectedAccounts.length}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">
-                            Total posts
-                          </p>
-                          <p className="text-2xl font-bold text-white">
-                            {aggregatedMetrics.totalPosts}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">
-                            Avg posts / day
-                          </p>
-                          <p className="text-2xl font-bold text-white">
-                            {Math.round(
-                              aggregatedMetrics.totalPosts / 30,
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">
-                            Best platform
-                          </p>
-                          <p className="text-2xl font-bold text-white capitalize">
-                            {connectedAccounts[0]?.platform || 'N/A'}
-                          </p>
-                        </div>
+                      <p className="text-sm text-white line-clamp-1 mb-1.5">
+                        {post.caption || 'Untitled post'}
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={10} className={isUrgent ? 'text-red-400' : 'text-amber-400'} />
+                        <span className={`text-xs font-medium ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
+                          {timeLeft(schedDate)}
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          · {schedDate.toLocaleDateString()} {schedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* SECTION: SCHEDULED POSTS */}
-            <div className="mb-6">
-              <div
-                className="flex items-center justify-between cursor-pointer p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-t-2xl hover:bg-white/10 transition-colors"
-                onClick={() => toggleSection("scheduled")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20">
-                    <Clock className="w-5 h-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">Scheduled posts</h2>
-                    <p className="text-xs text-gray-400">
-                      Upcoming posts across all platforms
-                    </p>
-                  </div>
-                </div>
-
-                <button className="p-2 rounded-lg hover:bg-white/10">
-                  {expandedSections.scheduled ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
-              </div>
-
-              {expandedSections.scheduled && (
-                <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-t-0 border-white/10 rounded-b-2xl">
-                  {scheduledPosts.length === 0 ? (
-                    <div className="text-center py-6 text-sm text-gray-400">
-                      No scheduled posts. Head to the content planner to schedule your next post!
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {scheduledPosts.map((post) => {
-                        const scheduledDate = post.scheduledTime!.toDate();
-                        const now = new Date();
-                        const diffMs = scheduledDate.getTime() - now.getTime();
-                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-                        // Format time left
-                        let timeLeft = '';
-                        if (diffDays > 0) {
-                          timeLeft = `${diffDays}d ${diffHours}h left`;
-                        } else if (diffHours > 0) {
-                          timeLeft = `${diffHours}h ${diffMinutes}m left`;
-                        } else if (diffMinutes > 0) {
-                          timeLeft = `${diffMinutes}m left`;
-                        } else {
-                          timeLeft = 'Due now';
-                        }
-
-                        // Determine urgency color
-                        const urgencyColor = diffDays === 0 && diffHours < 2 ? 'text-red-400' : 'text-amber-400';
-
-                        // Get platform info - handle both single platform and multiple platforms
-                        const platforms = post.platforms && post.platforms.length > 0
-                          ? post.platforms
-                          : [post.platform];
-
-                        return (
-                          <div
-                            key={post.id}
-                            className="p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              {/* Platform icons and post content */}
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                {/* Platform icons */}
-                                <div className="flex -space-x-2">
-                                  {platforms.slice(0, 3).map((platform, idx) => {
-                                    const platformInfo = platformData[platform.toLowerCase()] || {
-                                      icon: <Globe size={14} />,
-                                      bgColor: 'bg-gray-500/10'
-                                    };
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className={`w-8 h-8 rounded-lg ${platformInfo.bgColor} flex items-center justify-center ring-2 ring-gray-900`}
-                                      >
-                                        {platformInfo.icon}
-                                      </div>
-                                    );
-                                  })}
-                                  {platforms.length > 3 && (
-                                    <div className="w-8 h-8 rounded-lg bg-gray-500/10 flex items-center justify-center ring-2 ring-gray-900">
-                                      <span className="text-xs text-gray-400">+{platforms.length - 3}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Post details */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-white truncate">
-                                    {post.caption || 'Untitled post'}
-                                  </p>
-                                  <div className="flex items-center gap-3 mt-1">
-                                    <span className="text-xs text-gray-400">
-                                      {scheduledDate.toLocaleDateString()} at {scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                    {post.status === 'draft' && (
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400">
-                                        Draft
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Time left indicator */}
-                              <div className="flex flex-col items-end">
-                                <div className={`flex items-center gap-1 ${urgencyColor}`}>
-                                  <Clock size={14} />
-                                  <span className="text-xs font-medium">{timeLeft}</span>
-                                </div>
-
-                                {/* Progress bar for time left */}
-                                <div className="w-24 h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${diffDays === 0 && diffHours < 2 ? 'bg-red-500' : 'bg-amber-500'
-                                      }`}
-                                    style={{
-                                      width: `${Math.min(100, Math.max(0,
-                                        diffDays > 0 ? 100 : (diffHours / 24) * 100
-                                      ))}%`
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Media preview - using mediaUrl instead of media array */}
-                            {post.mediaUrl && (
-                              <div className="mt-3">
-                                <div className="w-12 h-12 rounded bg-gray-800 overflow-hidden">
-                                  <img
-                                    src={post.mediaUrl}
-                                    alt="Post media"
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                  );
+                })
               )}
             </div>
 
-            {/* SECTION 2: RECENT ACTIVITY */}
-            <div className="mb-6">
-              <div
-                className="flex items-center justify-between cursor-pointer p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-t-2xl hover:bg-white/10 transition-colors"
-                onClick={() => toggleSection('recentActivity')}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-green-500/20 to-emerald-500/20">
-                    <MessageCircle className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">Recent posts</h2>
-                    <p className="text-xs text-gray-400">
-                      Your latest content
-                    </p>
-                  </div>
-                </div>
-                <button className="p-2 rounded-lg hover:bg-white/10">
-                  {expandedSections.recentActivity ? (
-                    <ChevronUp size={20} />
-                  ) : (
-                    <ChevronDown size={20} />
-                  )}
-                </button>
-              </div>
-
-              {expandedSections.recentActivity && (
-                <div className="p-6 bg-white/[0.02] backdrop-blur-sm border border-t-0 border-white/10 rounded-b-2xl">
-                  {recentPosts.length > 0 ? (
-                    <div className="space-y-3">
-                      {recentPosts.slice(0, 10).map((post) => {
-                        const publishedDate = post.publishedAt?.toDate();
-                        const platformInfo = platformData[post.platform?.toLowerCase()] || {
-                          icon: <Globe size={14} />,
-                          bgColor: 'bg-gray-500/10'
-                        };
-
-                        return (
-                          <div
-                            key={post.id}
-                            className="flex items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-                          >
-                            {/* Platform icon */}
-                            <div className={`p-2 rounded-lg ${platformInfo.bgColor} flex-shrink-0`}>
-                              {platformInfo.icon}
-                            </div>
-
-                            {/* Post content */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white line-clamp-1">
-                                {post.caption || 'Untitled post'}
-                              </p>
-                              {publishedDate && (
-                                <p className="text-xs text-gray-400">
-                                  {publishedDate.toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Media indicator - using mediaUrl instead of media array */}
-                            {post.mediaUrl && (
-                              <div className="flex items-center gap-1 text-xs text-gray-400">
-                                <Eye size={12} />
-                                <span>1</span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      No posts yet
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* SECTION 3: CONNECTED PLATFORMS */}
-            <div className="mb-6">
-              <div
-                className="flex items-center justify-between cursor-pointer p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-t-2xl hover:bg-white/10 transition-colors"
-                onClick={() => toggleSection('platforms')}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                    <Globe className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">
-                      Connected platforms
-                    </h2>
-                    <p className="text-xs text-gray-400">
-                      {connectedAccounts.length}{' '}
-                      {connectedAccounts.length === 1
-                        ? 'platform'
-                        : 'platforms'}{' '}
-                      connected
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {expandedSections.platforms &&
-                    connectedAccounts.length > 1 && (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            expandAllPlatforms();
-                          }}
-                          className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white"
-                          title="Expand all"
-                        >
-                          <Maximize2 size={16} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            collapseAllPlatforms();
-                          }}
-                          className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white"
-                          title="Collapse all"
-                        >
-                          <Minimize2 size={16} />
-                        </button>
-                      </>
-                    )}
-                  <button className="p-2 rounded-lg hover:bg-white/10">
-                    {expandedSections.platforms ? (
-                      <ChevronUp size={20} />
-                    ) : (
-                      <ChevronDown size={20} />
-                    )}
-                  </button>
+            {/* Empty platforms notice */}
+            {connectedAccounts.length === 0 && (
+              <div className="px-5 py-4 border-t border-gray-800">
+                <div className="flex items-start gap-2 text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
+                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                  <p>Connect a platform to start publishing scheduled posts.</p>
                 </div>
               </div>
-
-              {expandedSections.platforms && (
-                <div className="bg-white/[0.02] backdrop-blur-sm border border-t-0 border-white/10 rounded-b-2xl p-6">
-                  {connectedAccounts.length > 0 ? (
-                    <div className="space-y-4">
-                      {connectedAccounts.map((account) => {
-                        const platformInfo = platformData[account.platform] || {
-                          icon: <Globe size={20} />,
-                          color: '#6B7280',
-                          bgColor: 'bg-gray-500/10',
-                          gradient: 'from-gray-500 to-gray-600',
-                          metricLabels: {
-                            followers: 'Followers',
-                            views: 'Views',
-                            engagement: 'Engagement',
-                          },
-                        };
-
-                        const isExpanded = expandedPlatforms.has(account.platform);
-
-                        return (
-                          <PlatformAccountCard
-                            key={account.id}
-                            userId={user!.uid}
-                            account={account}
-                            platformInfo={platformInfo}
-                            posts={posts}
-                            isExpanded={isExpanded}
-                            onToggleExpand={() => togglePlatformExpand(account.platform)}
-                            onDisconnect={() => handleDisconnectAccount(account.id)}
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    /* your existing empty state JSX */
-                    <div className="text-center py-8">
-                      {/* ... */}
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
-
-
-          </>
-        ) : (
-          // Empty state
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-12 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-              <Globe className="w-10 h-10 text-blue-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-3">
-              Welcome to StarlingPost!
-            </h3>
-            <p className="text-gray-400 mb-8 max-w-md mx-auto">
-              Connect your first social media account to start tracking your
-              performance and publishing content.
-            </p>
-            <button
-              onClick={() => setShowConnectModal(true)}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
-            >
-              Connect your first account
-            </button>
-          </div>
-        )}
-      </div>
-      {/* Connect account modal */}
-      {showConnectModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white">Connect account</h3>
-              <button
-                onClick={() => setShowConnectModal(false)}
-                className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-400 mb-6">
-              Choose a platform to connect and start tracking your analytics.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {Object.entries(platformData).map(([key, value]) => (
-                <button
-                  key={key}
-                  onClick={() => handleConnectAccount(key)}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                >
-                  <div className={value.bgColor}>{value.icon}</div>
-                  <span className="text-sm font-medium text-white capitalize">
-                    {key}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setShowConnectModal(false)}
-              className="w-full px-4 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              Cancel
-            </button>
+            )}
           </div>
         </div>
-      )}
 
-      <PremiumModal open={false} onClose={() => { }} />
+        {/* ── Quick actions row ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Create Post', icon: <PlusCircle size={18} />, href: '/posts/create', color: 'from-cyan-500 to-blue-600', text: 'text-white', desc: 'Write, schedule & publish' },
+            { label: 'Automation', icon: <Bot size={18} />, href: '/automation', color: 'from-purple-600/40 to-pink-600/20', text: 'text-purple-300', desc: 'Manage Link Me & Auto Reply' },
+            { label: 'Analytics', icon: <TrendingUp size={18} />, href: '/dashboard', color: 'from-emerald-600/30 to-teal-600/20', text: 'text-emerald-300', desc: 'Track your performance' },
+            { label: 'Settings', icon: <Settings size={18} />, href: '/settings', color: 'from-gray-700/60 to-gray-600/20', text: 'text-gray-300', desc: 'Account & preferences' },
+          ].map(item => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br ${item.color} border border-white/5 hover:border-white/10 transition-all hover:scale-[1.02]`}
+            >
+              <div className={item.text}>{item.icon}</div>
+              <div>
+                <div className={`text-sm font-semibold ${item.text}`}>{item.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+      </div>
+
+      <PremiumModal open={showPremium} onClose={() => setShowPremium(false)} />
     </div>
   );
 }
