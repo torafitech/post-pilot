@@ -19,29 +19,20 @@ import {
   Upload,
   Zap,
   Globe,
-  Instagram,
   Youtube,
   Twitter,
   Linkedin,
   MessageSquare,
-  BarChart,
   Target,
   CheckCircle,
-  X,
   AlertCircle,
   RefreshCw,
   Eye,
   Settings,
-  Users,
-  TrendingUp,
   PenTool,
-  Grid,
-  Layers,
   Calendar as CalendarIcon,
   Bell,
-  Share2,
   Hash,
-  Tag,
 } from 'lucide-react';
 
 interface PlatformContent {
@@ -53,12 +44,9 @@ interface PlatformContent {
 }
 
 interface PlatformSettings {
-  instagram: PlatformContent;
   youtube: PlatformContent;
   twitter: PlatformContent;
   linkedin: PlatformContent;
-  tiktok: PlatformContent;
-  facebook: PlatformContent;
 }
 
 interface AiTimeSlot {
@@ -73,25 +61,16 @@ type TabId = 'content' | 'platforms' | 'schedule' | 'preview';
 type ScheduleMode = 'now' | 'ai' | 'custom';
 
 const platformIcons: Record<string, React.ReactNode> = {
-  instagram: <Instagram size={20} className="text-pink-500" />,
   youtube: <Youtube size={20} className="text-red-500" />,
   twitter: <Twitter size={20} className="text-blue-400" />,
   linkedin: <Linkedin size={20} className="text-blue-600" />,
-  tiktok: <Globe size={20} className="text-black" />,
-  facebook: <Globe size={20} className="text-blue-500" />,
 };
 
 const platformTips: Record<string, string> = {
-  instagram:
-    'Use 3-5 relevant hashtags, include a location tag, and post during peak hours.',
   twitter:
     'Keep it under 280 characters, use 1-2 hashtags, and tag relevant accounts.',
   linkedin:
     'Use a professional tone, share insights, and ask thought-provoking questions.',
-  tiktok:
-    'Use trending sounds and hashtags. Keep captions short and engaging.',
-  facebook:
-    'Ask questions to encourage comments and post during evening hours.',
 };
 
 const orderedTabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
@@ -119,11 +98,6 @@ export default function CreatePostPage() {
   });
 
   const [platformContent, setPlatformContent] = useState<PlatformSettings>({
-    instagram: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
     youtube: {
       title: '',
       description: '',
@@ -137,16 +111,6 @@ export default function CreatePostPage() {
       tags: [],
     },
     linkedin: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    tiktok: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    facebook: {
       caption: '',
       hashtags: [],
       tags: [],
@@ -185,29 +149,14 @@ export default function CreatePostPage() {
     const hashtags = mainCaption.match(/#[\w]+/g) || [];
     const cleanCaption = mainCaption.replace(/#[\w]+/g, '').trim();
 
-    const instagramCaption = cleanCaption.substring(0, 2000);
-    const instagramHashtags = [
-      ...hashtags,
-      '#contentmarketing',
-      '#socialmedia',
-      '#contentcreator',
-    ].slice(0, 30);
-
     const youtubeTitle = cleanCaption.substring(0, 100) || 'Untitled Video';
-    const youtubeDescription = `${cleanCaption}\n\nSubscribe for more content!${hashtags.join(
-      ' ',
-    )}\n\n#Shorts`;
+    const youtubeDescription = `${cleanCaption}\n\nSubscribe for more content!\n${hashtags.join(' ')}`;
     const youtubeTags = hashtags.map((h) => h.replace('#', ''));
 
     const twitterCaption = cleanCaption.substring(0, 250);
     const twitterHashtags = hashtags.slice(0, 3);
 
     setPlatformContent({
-      instagram: {
-        caption: instagramCaption,
-        hashtags: instagramHashtags,
-        tags: [],
-      },
       youtube: {
         title: youtubeTitle,
         description: youtubeDescription,
@@ -223,18 +172,8 @@ export default function CreatePostPage() {
       linkedin: {
         caption: cleanCaption,
         hashtags: hashtags.filter(
-          (h) => !h.includes('instagram') && !h.includes('youtube'),
+          (h) => !h.includes('youtube'),
         ),
-        tags: [],
-      },
-      tiktok: {
-        caption: cleanCaption.substring(0, 150),
-        hashtags: [...hashtags, '#viral', '#trending'].slice(0, 10),
-        tags: [],
-      },
-      facebook: {
-        caption: cleanCaption,
-        hashtags: hashtags.slice(0, 5),
         tags: [],
       },
     });
@@ -256,11 +195,8 @@ export default function CreatePostPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const platformTimes = {
-      instagram: ['09:00', '13:00', '17:00', '20:00'],
-      facebook: ['08:00', '12:00', '15:00', '19:00'],
       twitter: ['07:00', '12:00', '16:00', '21:00'],
       linkedin: ['08:00', '11:00', '14:00', '17:00'],
-      tiktok: ['09:00', '12:00', '18:00', '22:00'],
       youtube: ['10:00', '14:00', '18:00', '21:00'],
     } as const;
 
@@ -273,11 +209,8 @@ export default function CreatePostPage() {
         const engagementScore = 80 + Math.floor(Math.random() * 20);
 
         const descriptions = {
-          instagram: 'Peak engagement time for Instagram',
-          facebook: 'Best time for Facebook reach',
           twitter: 'High Twitter activity period',
           linkedin: 'Professional hours for LinkedIn',
-          tiktok: 'Trending time on TikTok',
           youtube: 'Optimal YouTube viewing time',
         } as const;
 
@@ -356,15 +289,8 @@ export default function CreatePostPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           caption: baseCaption,
-          platform: formData.platforms[0] || 'instagram',
-          platforms: [
-            'youtube',
-            'instagram',
-            'twitter',
-            'linkedin',
-            'tiktok',
-            'facebook',
-          ],
+          platform: formData.platforms[0] || 'youtube',
+          platforms: ['youtube', 'twitter', 'linkedin'],
           tone: 'engaging',
           contentType: formData.videoUrl ? 'video' : 'image',
         }),
@@ -538,7 +464,6 @@ export default function CreatePostPage() {
       });
 
       setPlatformContent({
-        instagram: { caption: '', hashtags: [], tags: [] },
         youtube: {
           title: '',
           description: '',
@@ -548,8 +473,6 @@ export default function CreatePostPage() {
         },
         twitter: { caption: '', hashtags: [], tags: [] },
         linkedin: { caption: '', hashtags: [], tags: [] },
-        tiktok: { caption: '', hashtags: [], tags: [] },
-        facebook: { caption: '', hashtags: [], tags: [] },
       });
 
       router.push('/dashboard');
@@ -988,7 +911,7 @@ export default function CreatePostPage() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {['instagram', 'twitter', 'linkedin'].map((platform) => (
+                    {['youtube', 'twitter', 'linkedin'].map((platform) => (
                       <div
                         key={platform}
                         className="bg-gray-950 rounded-xl p-4 border border-gray-800"
@@ -1031,12 +954,6 @@ export default function CreatePostPage() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {[
                     {
-                      id: 'instagram',
-                      name: 'Instagram',
-                      color: 'from-pink-500 to-purple-600',
-                      stats: '1.4B users',
-                    },
-                    {
                       id: 'youtube',
                       name: 'YouTube',
                       color: 'from-red-500 to-red-700',
@@ -1053,18 +970,6 @@ export default function CreatePostPage() {
                       name: 'LinkedIn',
                       color: 'from-blue-600 to-blue-800',
                       stats: '950M users',
-                    },
-                    {
-                      id: 'tiktok',
-                      name: 'TikTok',
-                      color: 'from-black to-gray-800',
-                      stats: '1.9B users',
-                    },
-                    {
-                      id: 'facebook',
-                      name: 'Facebook',
-                      color: 'from-blue-500 to-blue-700',
-                      stats: '3B users',
                     },
                   ].map((platform) => {
                     const isSelected = formData.platforms.includes(platform.id);

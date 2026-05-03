@@ -5,12 +5,27 @@ import { NextRequest, NextResponse } from 'next/server';
 // Main publish endpoint that posts to all selected platforms
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request);
+    const body = await request.json();
+
+    // Allow internal cron calls with a secret + explicit userId in body
+    const internalSecret = request.headers.get('x-internal-secret');
+    const isInternalCall =
+      internalSecret &&
+      internalSecret === process.env.INTERNAL_CRON_SECRET &&
+      body.userId;
+
+    let userId: string | null = null;
+
+    if (isInternalCall) {
+      userId = body.userId as string;
+    } else {
+      userId = await getUserIdFromRequest(request);
+    }
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
     const { postId, platforms, caption, imageUrl, videoUrl, platformContent } =
       body as {
         postId: string;
@@ -19,6 +34,7 @@ export async function POST(request: NextRequest) {
         imageUrl?: string | null;
         videoUrl?: string | null;
         platformContent?: any;
+        userId?: string;
       };
 
     if (!postId || !platforms || platforms.length === 0) {
@@ -31,11 +47,13 @@ export async function POST(request: NextRequest) {
     const results = {
       twitter: null as any,
       youtube: null as any,
-      instagram: null as any,
       linkedin: null as any,
-      tiktok: null as any,
-      facebook: null as any,
       errors: [] as any[],
+    };
+
+    const { autoPinComment, pinnedCommentText } = body as {
+      autoPinComment?: boolean;
+      pinnedCommentText?: string;
     };
 
     // -----------------------
@@ -90,36 +108,6 @@ export async function POST(request: NextRequest) {
     }
 
     // -----------------------
-    // Publish to Instagram
-    // -----------------------
-    if (platforms.includes('instagram')) {
-      try {
-        console.log('Publishing to Instagram...');
-        const instaCaption =
-          platformContent?.instagram?.caption?.trim() || caption;
-
-        const instaMediaUrl = videoUrl || imageUrl || undefined;
-        const instaMediaType =
-          videoUrl ? 'video' : imageUrl ? 'image' : undefined;
-
-        if (!instaMediaUrl || !instaMediaType) {
-          console.log('Skipping Instagram: no mediaUrl/mediaType');
-        } else {
-          const instagramResult = await publishToInstagram(
-            userId,
-            instaCaption,
-            instaMediaUrl,
-            instaMediaType,
-          );
-          results.instagram = instagramResult;
-        }
-      } catch (error: any) {
-        console.error('Instagram publish error:', error);
-        results.errors.push({ platform: 'instagram', error: error.message });
-      }
-    }// inside POST handler, after instagram block
-
-    // -----------------------
     // Publish to LinkedIn
     // -----------------------
     if (platforms.includes('linkedin')) {
@@ -127,10 +115,12 @@ export async function POST(request: NextRequest) {
         console.log('Publishing to LinkedIn...');
         const linkedinCaption =
           platformContent?.linkedin?.caption?.trim() || caption;
+        const linkedinMediaUrl = imageUrl || undefined;
 
         const linkedinResult = await publishToLinkedin(
           userId,
           linkedinCaption,
+          linkedinMediaUrl,
         );
         results.linkedin = linkedinResult;
       } catch (error: any) {
@@ -139,15 +129,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-
-
-    // TODO: Implement linkedin / tiktok / facebook similarly using userId
+    // -----------------------
+    // Auto-pin first comment
+    // -----------------------
+    if (autoPinComment && pinnedCommentText?.trim()) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
+      if (results.youtube?.id) {
+        try {
+          await fetch(`${baseUrl}/api/auth/youtube/pin-comment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': process.env.INTERNAL_CRON_SECRET || '',
+            },
+            body: JSON.stringify({
+              userId,
+              videoId: results.youtube.id,
+              commentText: pinnedCommentText.trim(),
+            }),
+          });
+        } catch (err: any) {
+          console.warn('Auto-pin YouTube comment failed:', err.message);
+        }
+      }
+    }
 
     // Update post status in Firestore
     const platformPostIds: any = {};
     if (results.twitter?.id) platformPostIds.twitter = results.twitter.id;
     if (results.youtube?.id) platformPostIds.youtube = results.youtube.id;
-    if (results.instagram?.id) platformPostIds.instagram = results.instagram.id;
     if (results.linkedin?.id) platformPostIds.linkedin = results.linkedin.id;
     await adminDb.collection('posts').doc(postId).update({
       status:
@@ -182,35 +192,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // YouTube
-    // in main publish endpoint
-    // YouTube
     if (results.youtube?.id) {
       await userPostsRef.doc(results.youtube.id).set(
         {
           ...basePostData,
           platform: 'youtube',
-          accountId: `youtube_${userId}`,      // or actual channelId
-          platformPostId: results.youtube.id,  // ✅ videoId
+          accountId: `youtube_${userId}`,
+          platformPostId: results.youtube.id,
         },
         { merge: true },
       );
     }
 
-
-    // Instagram
-    if (results.instagram?.id) {
-      await userPostsRef.doc(results.instagram.id).set(
-        {
-          ...basePostData,
-          platform: 'instagram',
-          accountId: `instagram_${userId}`,        // or igBusinessId if you have it
-          platformPostId: results.instagram.id,    // IG media id
-          mediaUrl: imageUrl || videoUrl || null,
-        },
-        { merge: true },
-      );
-    }
     if (results.linkedin?.id) {
       await userPostsRef.doc(results.linkedin.id).set(
         {
@@ -295,43 +288,10 @@ async function publishToYoutube(
 }
 
 
-// Helper: Publish to Instagram (image or video)
-async function publishToInstagram(
-  userId: string,
-  caption: string,
-  mediaUrl?: string,
-  mediaType?: 'image' | 'video',
-) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
-  const response = await fetch(`${baseUrl}/api/instagram/publish`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-internal-call': '1',
-    },
-    body: JSON.stringify({
-      _userId: userId,
-      mediaUrl: mediaUrl || null,
-      mediaType: mediaType || null,
-      caption,
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    console.error('Instagram publish failed:', data); // <— LOG FULL DETAILS
-    throw new Error(
-      data.error ||
-      (data.details && data.details.error && data.details.error.message) ||
-      'Failed to publish to Instagram',
-    );
-  }
-
-  return { id: data.instagramPostId };
-}
 async function publishToLinkedin(
   userId: string,
   caption: string,
+  imageUrl?: string,
 ) {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
@@ -341,6 +301,7 @@ async function publishToLinkedin(
     body: JSON.stringify({
       userId,
       text: caption,
+      imageUrl: imageUrl || undefined,
     }),
   });
 
@@ -349,6 +310,5 @@ async function publishToLinkedin(
     throw new Error(data.error || 'Failed to publish to LinkedIn');
   }
 
-  // Normalize like other platforms
   return { id: data.linkedinPostUrn };
 }

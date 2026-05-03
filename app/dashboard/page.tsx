@@ -25,7 +25,6 @@ import {
   Eye,
   Globe,
   Heart,
-  Instagram,
   Linkedin,
   Maximize2,
   MessageCircle,
@@ -120,28 +119,6 @@ const platformData: Record<
       engagement: 'Eng. Rate',
     },
   },
-  'twitter/x': {
-    icon: <Twitter size={20} />,
-    color: '#1DA1F2',
-    bgColor: 'bg-sky-500/10',
-    gradient: 'from-sky-500 to-sky-600',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Impressions',
-      engagement: 'Eng. Rate',
-    },
-  },
-  instagram: {
-    icon: <Instagram size={20} />,
-    color: '#E4405F',
-    bgColor: 'bg-pink-500/10',
-    gradient: 'from-pink-500 to-purple-600',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Reach',
-      engagement: 'Eng. Rate',
-    },
-  },
   linkedin: {
     icon: <Linkedin size={20} />,
     color: '#0A66C2',
@@ -150,28 +127,6 @@ const platformData: Record<
     metricLabels: {
       followers: 'Followers',
       views: 'Impressions',
-      engagement: 'Eng. Rate',
-    },
-  },
-  tiktok: {
-    icon: <Video size={20} />,
-    color: '#000000',
-    bgColor: 'bg-gray-500/10',
-    gradient: 'from-gray-700 to-gray-900',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Views',
-      engagement: 'Eng. Rate',
-    },
-  },
-  facebook: {
-    icon: <Globe size={20} />,
-    color: '#1877F2',
-    bgColor: 'bg-blue-500/10',
-    gradient: 'from-blue-500 to-blue-600',
-    metricLabels: {
-      followers: 'Followers',
-      views: 'Reach',
       engagement: 'Eng. Rate',
     },
   },
@@ -374,13 +329,7 @@ export default function DashboardPage() {
       const oauthRoutes: Record<string, string> = {
         youtube: `/api/auth/youtube?uid=${encodeURIComponent(user.uid)}`,
         twitter: `/api/auth/twitter/oauth1?uid=${encodeURIComponent(user.uid)}`,
-        'twitter/x': `/api/auth/twitter/oauth1?uid=${encodeURIComponent(
-          user.uid,
-        )}`,
-        instagram: `/api/auth/instagram?uid=${encodeURIComponent(user.uid)}`,
         linkedin: `/api/auth/linkedin?uid=${encodeURIComponent(user.uid)}`,
-        tiktok: `/api/auth/tiktok?uid=${encodeURIComponent(user.uid)}`,
-        facebook: `/api/auth/facebook?uid=${encodeURIComponent(user.uid)}`,
       };
 
       const route = oauthRoutes[platform];

@@ -2,7 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/publish-scheduled-posts",
-      "schedule": "0 0 * * *"
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/process-link-me",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-reply",
+      "schedule": "0 */3 * * *"
     }
   ]
 }

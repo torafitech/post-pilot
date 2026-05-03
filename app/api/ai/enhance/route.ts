@@ -31,17 +31,12 @@ export async function POST(req: NextRequest) {
 
     const openai = new OpenAI({ apiKey });
 
-    // Platform rules
+    // Beta platform rules (YouTube, Twitter/X, LinkedIn only)
     const platformRules: Record<string, any> = {
       youtube: {
         maxLength: 5000,
         tips: 'Use engaging hooks, timestamps, call-to-action',
         style: 'Descriptive and informative',
-      },
-      instagram: {
-        maxLength: 2200,
-        tips: 'Line breaks, emojis, 10-30 hashtags',
-        style: 'Visual and engaging',
       },
       twitter: {
         maxLength: 280,
@@ -53,23 +48,13 @@ export async function POST(req: NextRequest) {
         tips: 'Professional tone, storytelling',
         style: 'Professional and thought-provoking',
       },
-      tiktok: {
-        maxLength: 150,
-        tips: 'Hook first, trending sounds, hashtags',
-        style: 'Trendy and creative',
-      },
-      facebook: {
-        maxLength: 2000,
-        tips: 'Conversational, emojis, engagement questions',
-        style: 'Friendly and conversational',
-      },
     };
 
-    const selectedPlatforms = platforms || [platform];
-     console.log('Selected platforms for time platforms:', platforms);
-     console.log('Selected platforms for time platform:', platform);
-    console.log('Selected platforms for time suggestions:', selectedPlatforms);
-    const rules = platformRules[platform] || platformRules['instagram'];
+    const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+    const selectedPlatforms = (platforms || [platform]).filter(
+      (p: string) => betaPlatforms.includes(p),
+    );
+    const rules = platformRules[platform] || platformRules['youtube'];
 
     console.log('📤 Generating enhanced caption...');
 
@@ -102,7 +87,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `Generate ${platform === 'instagram' ? '15-25' : '5-8'} trending hashtags for ${platform}. Return ONLY hashtags separated by spaces, no explanations.`,
+          content: `Generate 5-8 trending hashtags for ${platform}. Return ONLY hashtags separated by spaces, no explanations.`,
         },
         {
           role: 'user',
@@ -160,14 +145,11 @@ Only JSON, nothing else.`,
         console.error(`Error getting time for ${plat}:`, error);
         // Fallback times
         const fallbackTimes: Record<string, any> = {
-          instagram: { day: 'Tuesday', time: '18:00', reason: 'Peak engagement' },
-          facebook: { day: 'Wednesday', time: '12:00', reason: 'Best reach' },
           twitter: { day: 'Thursday', time: '09:00', reason: 'High activity' },
           linkedin: { day: 'Tuesday', time: '10:00', reason: 'Professional hours' },
-          tiktok: { day: 'Friday', time: '18:00', reason: 'Trending time' },
           youtube: { day: 'Thursday', time: '14:00', reason: 'Peak viewing' },
         };
-        platformTimes[plat] = fallbackTimes[plat] || fallbackTimes['instagram'];
+        platformTimes[plat] = fallbackTimes[plat] || fallbackTimes['youtube'];
       }
     }
 

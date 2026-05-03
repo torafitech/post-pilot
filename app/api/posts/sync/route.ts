@@ -2,14 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { SocialPost, PostMetrics } from '@/types/post';
-import { fetchInstagramMetrics } from '@/lib/metrics/instagram';
-import { fetchFacebookMetrics } from '@/lib/metrics/facebook';
 import { fetchYouTubeMetrics } from '@/lib/metrics/youtube';
 import { fetchTwitterMetrics } from '@/lib/metrics/twitter';
+import { fetchLinkedinMetrics } from '@/lib/metrics/linkedin';
 
 export async function POST(req: NextRequest) {
   try {
-    // Safely parse body to avoid "Unexpected end of JSON input"
     let body: any = {};
     try {
       body = await req.json();
@@ -40,7 +38,6 @@ export async function POST(req: NextRequest) {
     const userSnap = await adminDb.collection('users').doc(userId).get();
     const userData = userSnap.exists ? (userSnap.data() as any) : {};
     const connectedAccounts = userData.connectedAccounts || [];
-    console.log('[SYNC] Connected accounts:', connectedAccounts);
 
     const updates: string[] = [];
     const rateLimitHits: any[] = [];
@@ -58,7 +55,6 @@ export async function POST(req: NextRequest) {
           data.platform,
           data.accountId,
           data.platformPostId,
-          userId,
           connectedAccounts,
         );
 
@@ -77,13 +73,7 @@ export async function POST(req: NextRequest) {
         updates.push(postDoc.id);
       } catch (err: any) {
         if (err?.code === 429 || err?.status === 429) {
-          console.warn(
-            '[SYNC] Rate limit for',
-            data.platform,
-            'post',
-            postDoc.id,
-            err?.rateLimit || err?.data || '',
-          );
+          console.warn('[SYNC] Rate limit for', data.platform, 'post', postDoc.id);
           rateLimitHits.push({
             platform: data.platform,
             postId: postDoc.id,
@@ -104,7 +94,7 @@ export async function POST(req: NextRequest) {
       rateLimitHits,
     });
   } catch (error: any) {
-    console.error('❌ sync posts error', error);
+    console.error('sync posts error', error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 },
@@ -114,51 +104,19 @@ export async function POST(req: NextRequest) {
 
 function getAccount(platform: string, connectedAccounts: any[]): any | null {
   const key = platform.toLowerCase();
-  const acc =
-    connectedAccounts.find(
-      (a: any) => a.platform?.toLowerCase() === key,
-    ) || null;
-  console.log('[SYNC] getAccount', { platform, key, found: !!acc, acc });
-  return acc;
+  return connectedAccounts.find((a: any) => a.platform?.toLowerCase() === key) || null;
 }
 
 async function fetchPlatformMetrics(
   platform: string,
   accountId: string,
   platformPostId: string,
-  userId: string,
   connectedAccounts: any[],
 ): Promise<PostMetrics> {
   const key = platform?.toLowerCase();
-  console.log('[SYNC] fetchPlatformMetrics', {
-    platform,
-    key,
-    accountId,
-    platformPostId,
-  });
 
   switch (key) {
-    case 'instagram': {
-      const igAcc = getAccount('instagram', connectedAccounts);
-      return fetchInstagramMetrics(
-        accountId,
-        platformPostId,
-        igAcc?.accessToken,
-      );
-    }
-    case 'facebook': {
-      const fbAcc = getAccount('facebook', connectedAccounts);
-      return fetchFacebookMetrics(
-        accountId,
-        platformPostId,
-        fbAcc?.accessToken,
-      );
-    }
     case 'youtube': {
-      console.log(
-        '[SYNC] Calling fetchYouTubeMetrics for videoId',
-        platformPostId,
-      );
       return fetchYouTubeMetrics(accountId, platformPostId);
     }
     case 'twitter': {
@@ -174,8 +132,20 @@ async function fetchPlatformMetrics(
         twAcc.oauthTokenSecret,
       );
     }
+    case 'linkedin': {
+      const liAcc = getAccount('linkedin', connectedAccounts);
+      if (!liAcc) {
+        console.warn('[SYNC] No linkedin account found for metrics');
+        return {};
+      }
+      return fetchLinkedinMetrics(
+        liAcc.authorUrn || accountId,
+        platformPostId,
+        liAcc.accessToken,
+      );
+    }
     default:
-      console.warn('[SYNC] Unknown platform, skipping', platform);
+      console.warn('[SYNC] Unknown or unsupported platform, skipping:', platform);
       return {};
   }
 }

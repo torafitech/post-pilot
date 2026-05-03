@@ -61,11 +61,11 @@ export async function GET(_req: NextRequest) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        // signal internal call if you ever need to bypass getUserIdFromRequest
-                        // 'x-internal-cron': '1',
+                        'x-internal-secret': process.env.INTERNAL_CRON_SECRET || '',
                     },
                     body: JSON.stringify({
                         postId,
+                        userId,
                         platforms,
                         caption,
                         imageUrl,

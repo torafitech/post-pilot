@@ -13,6 +13,7 @@ import {
   Settings,
   Bell,
   ChevronDown,
+  Bot,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -195,6 +196,15 @@ export function Navbar({ variant }: NavbarProps) {
 
             {/* Right cluster: actions + user */}
             <div className="flex items-center gap-4">
+              {/* Automation */}
+              <Link
+                href="/automation"
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 font-medium transition-all text-sm"
+              >
+                <Bot size={16} />
+                Automation
+              </Link>
+
               {/* CREATE as primary button */}
               <Link
                 href="/posts/create"
@@ -258,6 +268,14 @@ export function Navbar({ variant }: NavbarProps) {
                     >
                       <User size={16} />
                       Your Profile
+                    </Link>
+                    <Link
+                      href="/automation"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Bot size={16} />
+                      Automation
                     </Link>
                     <Link
                       href="/settings"
