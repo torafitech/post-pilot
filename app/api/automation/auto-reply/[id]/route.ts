@@ -5,13 +5,14 @@ import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { id } = await params;
   try {
     const body = await request.json();
     const allowed = ['name', 'message', 'platforms', 'isActive', 'useAI'];
@@ -24,7 +25,7 @@ export async function PATCH(
       .collection('users')
       .doc(userId)
       .collection('autoReplyTemplates')
-      .doc(params.id)
+      .doc(id)
       .update(updates);
 
     return NextResponse.json({ success: true });
@@ -35,19 +36,20 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { id } = await params;
   try {
     await adminDb
       .collection('users')
       .doc(userId)
       .collection('autoReplyTemplates')
-      .doc(params.id)
+      .doc(id)
       .delete();
 
     return NextResponse.json({ success: true });

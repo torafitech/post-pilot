@@ -6,14 +6,14 @@ import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 // PATCH /api/automation/link-me/:id — update rule (toggle active, edit fields)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   try {
     const body = await request.json();
     const allowedFields = ['keyword', 'replyMessage', 'platforms', 'isActive'];
@@ -46,14 +46,14 @@ export async function PATCH(
 // DELETE /api/automation/link-me/:id — delete rule
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   try {
     await adminDb
       .collection('users')
