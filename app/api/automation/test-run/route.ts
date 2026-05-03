@@ -1,11 +1,17 @@
 // app/api/automation/test-run/route.ts
-// Immediately runs Link Me or Auto Reply processing for the authenticated user only
+// Immediately processes Link Me or Auto Reply for the authenticated user only.
+// Uses v1.1 Twitter API (no Elevated access) and youtube.force-ssl for comments.
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 import { google } from 'googleapis';
-import { TwitterApi } from 'twitter-api-v2';
 import OpenAI from 'openai';
+import {
+  fetchMentions,
+  replyToTweet,
+  checkReplied as twCheckReplied,
+  markReplied as twMarkReplied,
+} from '@/lib/twitterAutomation';
 
 const MAX_POSTS = 5;
 
@@ -30,7 +36,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Link Me ──────────────────────────────────────────────────────────────────
+// ── Shared ────────────────────────────────────────────────────────────────────
+
+function buildYTClient(ytAcc: any) {
+  const oauth2 = new google.auth.OAuth2(
+    process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID!,
+    process.env.YOUTUBE_CLIENT_SECRET!,
+    process.env.YOUTUBE_REDIRECT_URI || 'https://www.starlingpost.com/api/auth/youtube/callback',
+  );
+  oauth2.setCredentials({
+    access_token: ytAcc.accessToken,
+    refresh_token: ytAcc.refreshToken || undefined,
+  });
+  return google.youtube({ version: 'v3', auth: oauth2 });
+}
+
+async function checkYTReplied(userId: string, commentId: string, type: string) {
+  return (await adminDb.collection('users').doc(userId)
+    .collection(`${type}Replies`).doc(commentId).get()).exists;
+}
+
+async function markYTReplied(userId: string, commentId: string, type: string) {
+  await adminDb.collection('users').doc(userId)
+    .collection(`${type}Replies`).doc(commentId)
+    .set({ platform: 'youtube', repliedAt: new Date() });
+}
+
+// ── Link Me ───────────────────────────────────────────────────────────────────
 
 async function runLinkMe(userId: string) {
   const rulesSnap = await adminDb
@@ -53,6 +85,7 @@ async function runLinkMe(userId: string) {
     .get();
 
   let matched = 0;
+
   for (const postDoc of postsSnap.docs) {
     const post = postDoc.data() as any;
     const platform = post.platform?.toLowerCase();
@@ -62,82 +95,72 @@ async function runLinkMe(userId: string) {
     try {
       if (platform === 'youtube') {
         const ytAcc = connectedAccounts.find((a: any) => a.platform === 'youtube');
-        if (!ytAcc) continue;
-        matched += await linkMeYouTube(userId, post.platformPostId, platformRules, ytAcc);
+        if (ytAcc) matched += await lmYouTube(userId, post.platformPostId, platformRules, ytAcc);
       } else if (platform === 'twitter') {
         const twAcc = connectedAccounts.find((a: any) => a.platform === 'twitter');
-        if (!twAcc) continue;
-        matched += await linkMeTwitter(userId, post.platformPostId, platformRules, twAcc);
+        if (twAcc) matched += await lmTwitter(userId, platformRules, twAcc);
       }
     } catch (err: any) {
-      console.error('[TEST-RUN LinkMe]', err.message);
+      console.error('[TEST-RUN LinkMe]', platform, err.message);
     }
   }
 
   return { matched, message: `Replied to ${matched} comment${matched !== 1 ? 's' : ''}.` };
 }
 
-async function linkMeYouTube(userId: string, videoId: string, rules: any[], ytAcc: any) {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID!,
-    process.env.YOUTUBE_CLIENT_SECRET!,
-    process.env.YOUTUBE_REDIRECT_URI || 'https://www.starlingpost.com/api/auth/youtube/callback',
-  );
-  oauth2Client.setCredentials({ access_token: ytAcc.accessToken, refresh_token: ytAcc.refreshToken });
-  const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-
-  const res = await youtube.commentThreads.list({ part: ['snippet'], videoId, maxResults: 20, order: 'time' });
+async function lmYouTube(userId: string, videoId: string, rules: any[], ytAcc: any) {
+  const youtube = buildYTClient(ytAcc);
+  const res = await youtube.commentThreads.list({
+    part: ['snippet'], videoId, maxResults: 20, order: 'time',
+  });
   let matched = 0;
+
   for (const thread of res.data.items || []) {
     const commentId = thread.id!;
     const text = (thread.snippet?.topLevelComment?.snippet?.textDisplay || '').toLowerCase();
     const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
     if (authorChannelId === ytAcc.platformId) continue;
 
-    const matchedRule = rules.find((r: any) => text.includes(r.keyword));
-    if (!matchedRule) continue;
-
-    const already = await checkReplied(userId, commentId, 'linkMe');
+    const already = await checkYTReplied(userId, commentId, 'linkMe');
     if (already) continue;
 
-    await youtube.comments.insert({
-      part: ['snippet'],
-      requestBody: { snippet: { parentId: commentId, textOriginal: matchedRule.replyMessage } },
-    });
-    await markReplied(userId, commentId, 'youtube', 'linkMe');
-    await adminDb.collection('users').doc(userId).collection('linkMeRules').doc(matchedRule.id)
-      .update({ totalMatches: (matchedRule.totalMatches || 0) + 1 });
-    matched++;
+    const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+    if (!rule) continue;
+
+    try {
+      await youtube.comments.insert({
+        part: ['snippet'],
+        requestBody: { snippet: { parentId: commentId, textOriginal: rule.replyMessage } },
+      });
+      await markYTReplied(userId, commentId, 'linkMe');
+      await adminDb.collection('users').doc(userId).collection('linkMeRules').doc(rule.id)
+        .update({ totalMatches: (rule.totalMatches || 0) + 1 });
+      matched++;
+    } catch (err: any) {
+      console.error('[TEST-RUN LinkMe YT comment]', err.message);
+    }
   }
   return matched;
 }
 
-async function linkMeTwitter(userId: string, tweetId: string, rules: any[], twAcc: any) {
-  const client = new TwitterApi({
-    appKey: process.env.TWITTER_APP_KEY!,
-    appSecret: process.env.TWITTER_APP_SECRET!,
-    accessToken: twAcc.oauthToken,
-    accessSecret: twAcc.oauthTokenSecret,
-  });
+async function lmTwitter(userId: string, rules: any[], twAcc: any) {
+  const mentions = await fetchMentions(twAcc, 20);
   let matched = 0;
-  try {
-    const replies = await client.v2.search(
-      `conversation_id:${tweetId} is:reply`,
-      { max_results: 10, 'tweet.fields': ['author_id', 'text', 'id'] },
-    );
-    for (const reply of replies.data?.data || []) {
-      if (reply.author_id === twAcc.platformId) continue;
-      const text = (reply.text || '').toLowerCase();
-      const matchedRule = rules.find((r: any) => text.includes(r.keyword));
-      if (!matchedRule) continue;
-      const already = await checkReplied(userId, reply.id, 'linkMe');
-      if (already) continue;
-      await client.v2.reply(matchedRule.replyMessage, reply.id);
-      await markReplied(userId, reply.id, 'twitter', 'linkMe');
+
+  for (const mention of mentions) {
+    if (mention.authorId === twAcc.platformId) continue;
+
+    const already = await twCheckReplied(userId, mention.id, 'linkMe');
+    if (already) continue;
+
+    const rule = rules.find((r: any) => mention.text.toLowerCase().includes(r.keyword.toLowerCase()));
+    if (!rule) continue;
+
+    const ok = await replyToTweet(twAcc, mention.id, rule.replyMessage);
+    if (ok) {
+      await twMarkReplied(userId, mention.id, 'linkMe');
       matched++;
     }
-  } catch (err: any) {
-    console.error('[TEST-RUN LinkMe Twitter]', err.message);
   }
   return matched;
 }
@@ -165,6 +188,7 @@ async function runAutoReply(userId: string) {
     .get();
 
   let replied = 0;
+
   for (const postDoc of postsSnap.docs) {
     const post = postDoc.data() as any;
     const platform = post.platform?.toLowerCase();
@@ -174,15 +198,13 @@ async function runAutoReply(userId: string) {
     try {
       if (platform === 'youtube') {
         const ytAcc = connectedAccounts.find((a: any) => a.platform === 'youtube');
-        if (!ytAcc) continue;
-        replied += await autoReplyYouTube(userId, post.platformPostId, tmpl, ytAcc);
+        if (ytAcc) replied += await arYouTube(userId, post.platformPostId, tmpl, ytAcc);
       } else if (platform === 'twitter') {
         const twAcc = connectedAccounts.find((a: any) => a.platform === 'twitter');
-        if (!twAcc) continue;
-        replied += await autoReplyTwitter(userId, post.platformPostId, tmpl, twAcc);
+        if (twAcc) replied += await arTwitter(userId, tmpl, twAcc);
       }
     } catch (err: any) {
-      console.error('[TEST-RUN AutoReply]', err.message);
+      console.error('[TEST-RUN AutoReply]', platform, err.message);
     }
   }
 
@@ -196,7 +218,7 @@ async function buildReplyText(template: any, commentText: string, username: stri
       const res = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Write a short, friendly reply to a comment. 1-2 sentences. No hashtags.' },
+          { role: 'system', content: 'Write a short friendly reply to a social media comment. 1-2 sentences. No hashtags.' },
           { role: 'user', content: `Comment: "${commentText}"` },
         ],
         max_tokens: 80,
@@ -204,75 +226,57 @@ async function buildReplyText(template: any, commentText: string, username: stri
       return res.choices[0].message.content?.trim() || template.message;
     } catch { return template.message; }
   }
-  return template.message.replace('{username}', username || 'there');
+  return (template.message || '').replace('{username}', username || 'there');
 }
 
-async function autoReplyYouTube(userId: string, videoId: string, template: any, ytAcc: any) {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID!,
-    process.env.YOUTUBE_CLIENT_SECRET!,
-    process.env.YOUTUBE_REDIRECT_URI || 'https://www.starlingpost.com/api/auth/youtube/callback',
-  );
-  oauth2Client.setCredentials({ access_token: ytAcc.accessToken, refresh_token: ytAcc.refreshToken });
-  const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-
-  const res = await youtube.commentThreads.list({ part: ['snippet'], videoId, maxResults: 10, order: 'time' });
+async function arYouTube(userId: string, videoId: string, template: any, ytAcc: any) {
+  const youtube = buildYTClient(ytAcc);
+  const res = await youtube.commentThreads.list({
+    part: ['snippet'], videoId, maxResults: 10, order: 'time',
+  });
   let replied = 0;
+
   for (const thread of res.data.items || []) {
     const commentId = thread.id!;
     const commentText = thread.snippet?.topLevelComment?.snippet?.textDisplay || '';
     const authorName = thread.snippet?.topLevelComment?.snippet?.authorDisplayName || '';
     const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
     if (authorChannelId === ytAcc.platformId) continue;
-    const already = await checkReplied(userId, commentId, 'autoReply');
+
+    const already = await checkYTReplied(userId, commentId, 'autoReply');
     if (already) continue;
+
     const replyText = await buildReplyText(template, commentText, authorName);
-    await youtube.comments.insert({
-      part: ['snippet'],
-      requestBody: { snippet: { parentId: commentId, textOriginal: replyText } },
-    });
-    await markReplied(userId, commentId, 'youtube', 'autoReply');
-    replied++;
+    try {
+      await youtube.comments.insert({
+        part: ['snippet'],
+        requestBody: { snippet: { parentId: commentId, textOriginal: replyText } },
+      });
+      await markYTReplied(userId, commentId, 'autoReply');
+      replied++;
+    } catch (err: any) {
+      console.error('[TEST-RUN AutoReply YT]', err.message);
+    }
   }
   return replied;
 }
 
-async function autoReplyTwitter(userId: string, tweetId: string, template: any, twAcc: any) {
-  const client = new TwitterApi({
-    appKey: process.env.TWITTER_APP_KEY!,
-    appSecret: process.env.TWITTER_APP_SECRET!,
-    accessToken: twAcc.oauthToken,
-    accessSecret: twAcc.oauthTokenSecret,
-  });
+async function arTwitter(userId: string, template: any, twAcc: any) {
+  const mentions = await fetchMentions(twAcc, 20);
   let replied = 0;
-  try {
-    const replies = await client.v2.search(
-      `conversation_id:${tweetId} is:reply`,
-      { max_results: 10, 'tweet.fields': ['author_id', 'text', 'id'] },
-    );
-    for (const reply of replies.data?.data || []) {
-      if (reply.author_id === twAcc.platformId) continue;
-      const already = await checkReplied(userId, reply.id, 'autoReply');
-      if (already) continue;
-      const replyText = await buildReplyText(template, reply.text || '', '');
-      await client.v2.reply(replyText, reply.id);
-      await markReplied(userId, reply.id, 'twitter', 'autoReply');
+
+  for (const mention of mentions) {
+    if (mention.authorId === twAcc.platformId) continue;
+
+    const already = await twCheckReplied(userId, mention.id, 'autoReply');
+    if (already) continue;
+
+    const replyText = await buildReplyText(template, mention.text, `@${mention.authorHandle}`);
+    const ok = await replyToTweet(twAcc, mention.id, replyText);
+    if (ok) {
+      await twMarkReplied(userId, mention.id, 'autoReply');
       replied++;
     }
-  } catch (err: any) {
-    console.error('[TEST-RUN AutoReply Twitter]', err.message);
   }
   return replied;
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function checkReplied(userId: string, commentId: string, type: string) {
-  const doc = await adminDb.collection('users').doc(userId).collection(`${type}Replies`).doc(commentId).get();
-  return doc.exists;
-}
-
-async function markReplied(userId: string, commentId: string, platform: string, type: string) {
-  await adminDb.collection('users').doc(userId).collection(`${type}Replies`).doc(commentId)
-    .set({ platform, repliedAt: new Date() });
 }

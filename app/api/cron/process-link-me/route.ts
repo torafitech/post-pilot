@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { google } from 'googleapis';
-import { TwitterApi } from 'twitter-api-v2';
+import { fetchMentions, replyToTweet, checkReplied, markReplied as markTwitterReplied } from '@/lib/twitterAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -186,51 +186,33 @@ async function processYouTubeLinkMe(
 
 async function processTwitterLinkMe(
   userId: string,
-  tweetId: string,
+  _tweetId: string,
   rules: any[],
   twAccount: any,
 ): Promise<number> {
-  const client = new TwitterApi({
-    appKey: process.env.TWITTER_APP_KEY!,
-    appSecret: process.env.TWITTER_APP_SECRET!,
-    accessToken: twAccount.oauthToken,
-    accessSecret: twAccount.oauthTokenSecret,
-  });
-
+  // Use v1.1 mentions timeline — no Elevated access required
+  const mentions = await fetchMentions(twAccount, 20);
   let replied = 0;
 
-  try {
-    // Fetch replies to this tweet
-    const replies = await client.v2.search(
-      `conversation_id:${tweetId} is:reply`,
-      { max_results: 20, 'tweet.fields': ['author_id', 'text', 'id'] },
-    );
+  for (const mention of mentions) {
+    if (mention.authorId === twAccount.platformId) continue;
 
-    for (const reply of replies.data?.data || []) {
-      // Skip own tweets
-      if (reply.author_id === twAccount.platformId) continue;
+    const alreadyReplied = await checkReplied(userId, mention.id, 'linkMe');
+    if (alreadyReplied) continue;
 
-      const alreadyReplied = await checkAlreadyReplied(userId, reply.id);
-      if (alreadyReplied) continue;
+    const text = mention.text.toLowerCase();
 
-      const replyText = reply.text?.toLowerCase() || '';
-
-      for (const rule of rules) {
-        if (replyText.includes(rule.keyword)) {
-          try {
-            await client.v2.reply(rule.replyMessage, reply.id);
-            await markReplied(userId, reply.id, 'twitter', rule.id);
-            await incrementRuleMatch(userId, rule.id);
-            replied++;
-            break;
-          } catch (err: any) {
-            console.error('[LINK-ME] Twitter reply error:', err.message);
-          }
+    for (const rule of rules) {
+      if (text.includes(rule.keyword.toLowerCase())) {
+        const ok = await replyToTweet(twAccount, mention.id, rule.replyMessage);
+        if (ok) {
+          await markTwitterReplied(userId, mention.id, 'linkMe');
+          await incrementRuleMatch(userId, rule.id);
+          replied++;
         }
+        break; // one reply per mention
       }
     }
-  } catch (err: any) {
-    console.error('[LINK-ME] Twitter search error:', err.message);
   }
 
   return replied;
@@ -251,30 +233,17 @@ function buildYouTubeOAuth(ytAccount: any) {
 
 async function checkAlreadyReplied(userId: string, commentId: string): Promise<boolean> {
   const doc = await adminDb
-    .collection('users')
-    .doc(userId)
-    .collection('linkMeReplies')
-    .doc(commentId)
+    .collection('users').doc(userId)
+    .collection('linkMeReplies').doc(commentId)
     .get();
   return doc.exists;
 }
 
-async function markReplied(
-  userId: string,
-  commentId: string,
-  platform: string,
-  ruleId: string,
-) {
+async function markReplied(userId: string, commentId: string, platform: string, ruleId: string) {
   await adminDb
-    .collection('users')
-    .doc(userId)
-    .collection('linkMeReplies')
-    .doc(commentId)
-    .set({
-      platform,
-      ruleId,
-      repliedAt: new Date(),
-    });
+    .collection('users').doc(userId)
+    .collection('linkMeReplies').doc(commentId)
+    .set({ platform, ruleId, repliedAt: new Date() });
 }
 
 async function incrementRuleMatch(userId: string, ruleId: string) {

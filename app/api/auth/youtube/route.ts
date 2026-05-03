@@ -29,6 +29,8 @@ export async function GET(request: NextRequest) {
     'https://www.googleapis.com/auth/youtube.upload',
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube',
+    // required for posting/reading comments via commentThreads.insert
+    'https://www.googleapis.com/auth/youtube.force-ssl',
   ];
 
   const params = new URLSearchParams({
