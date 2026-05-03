@@ -3,8 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { google } from 'googleapis';
-import { TwitterApi } from 'twitter-api-v2';
 import OpenAI from 'openai';
+import { fetchMentions, replyToTweet, checkReplied as twCheckReplied, markReplied as twMarkReplied } from '@/lib/twitterAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,42 +191,26 @@ async function autoReplyYouTube(
 
 async function autoReplyTwitter(
   userId: string,
-  tweetId: string,
+  _tweetId: string,
   template: any,
   twAccount: any,
 ): Promise<number> {
-  const client = new TwitterApi({
-    appKey: process.env.TWITTER_APP_KEY!,
-    appSecret: process.env.TWITTER_APP_SECRET!,
-    accessToken: twAccount.oauthToken,
-    accessSecret: twAccount.oauthTokenSecret,
-  });
-
+  // v1.1 mentions timeline — no Elevated access required
+  const mentions = await fetchMentions(twAccount, 20);
   let replied = 0;
-  try {
-    const replies = await client.v2.search(
-      `conversation_id:${tweetId} is:reply`,
-      { max_results: 10, 'tweet.fields': ['author_id', 'text', 'id'] },
-    );
 
-    for (const reply of replies.data?.data || []) {
-      if (reply.author_id === twAccount.platformId) continue;
+  for (const mention of mentions) {
+    if (mention.authorId === twAccount.platformId) continue;
 
-      const alreadyReplied = await checkAlreadyReplied(userId, reply.id, 'autoReply');
-      if (alreadyReplied) continue;
+    const alreadyReplied = await twCheckReplied(userId, mention.id, 'autoReply');
+    if (alreadyReplied) continue;
 
-      const replyText = await buildReplyText(template, reply.text || '', '');
-
-      try {
-        await client.v2.reply(replyText, reply.id);
-        await markReplied(userId, reply.id, 'twitter', 'autoReply');
-        replied++;
-      } catch (err: any) {
-        console.error('[AUTO-REPLY] Twitter reply error:', err.message);
-      }
+    const replyText = await buildReplyText(template, mention.text, `@${mention.authorHandle}`);
+    const ok = await replyToTweet(twAccount, mention.id, replyText);
+    if (ok) {
+      await twMarkReplied(userId, mention.id, 'autoReply');
+      replied++;
     }
-  } catch (err: any) {
-    console.error('[AUTO-REPLY] Twitter search error:', err.message);
   }
 
   return replied;
