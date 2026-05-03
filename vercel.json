@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/publish-scheduled-posts",
-       "schedule": "0 0 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/process-link-me",
-       "schedule": "0 0 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/auto-reply",
