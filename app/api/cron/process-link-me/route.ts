@@ -16,6 +16,13 @@ import {
   checkYTReplied,
   markYTReplied,
 } from '@/lib/youtubeAutomation';
+import {
+  fetchRecentPostUrns,
+  fetchPostComments,
+  postComment as liPostComment,
+  checkLIReplied,
+  markLIReplied,
+} from '@/lib/linkedinAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +30,7 @@ const MAX_USERS_PER_RUN = 10;
 const MAX_VIDEOS_PER_ACCOUNT = 10;
 const MAX_COMMENTS_PER_VIDEO = 20;
 const MAX_MENTIONS = 20;
+const MAX_LI_POSTS = 10;
 
 export async function GET(_req: NextRequest) {
   try {
@@ -100,7 +108,48 @@ async function processUserLinkMe(userId: string): Promise<number> {
     }
   }
 
-  // LinkedIn — skipped until comment API is wired
+  // LinkedIn
+  const liRules = rules.filter((r: any) => r.platforms?.includes('linkedin'));
+  if (liRules.length) {
+    const liAccounts = accounts.filter((a: any) => a.platform === 'linkedin');
+    for (const liAcc of liAccounts) {
+      try {
+        replied += await processLinkedInLinkMe(userId, liRules, liAcc);
+      } catch (err: any) {
+        console.error('[LINK-ME] LI account', liAcc.platformId, err.message);
+      }
+    }
+  }
+
+  return replied;
+}
+
+async function processLinkedInLinkMe(
+  userId: string,
+  rules: any[],
+  liAcc: any,
+): Promise<number> {
+  const { urns } = await fetchRecentPostUrns(liAcc, MAX_LI_POSTS);
+  let replied = 0;
+
+  for (const postUrn of urns) {
+    const { comments } = await fetchPostComments(liAcc, postUrn);
+    for (const c of comments) {
+      if (c.actorUrn === liAcc.authorUrn) continue;
+      if (await checkLIReplied(userId, c.id, 'linkMe')) continue;
+
+      const text = c.text.toLowerCase();
+      const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      if (!rule) continue;
+
+      const ok = await liPostComment(liAcc, postUrn, rule.replyMessage);
+      if (ok) {
+        await markLIReplied(userId, c.id, 'linkMe');
+        await incrementRuleMatch(userId, rule.id);
+        replied++;
+      }
+    }
+  }
   return replied;
 }
 

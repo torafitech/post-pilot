@@ -48,7 +48,6 @@ const platformIcons: Record<string, React.ReactNode> = {
 };
 
 const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
-const comingSoonPlatforms = new Set(['linkedin']);
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();
@@ -376,18 +375,15 @@ export default function AutomationPage() {
                         >
                           {platformIcons[p]}
                           <span className="capitalize">{p}</span>
-                          {comingSoonPlatforms.has(p) && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
-                              Soon
-                            </span>
-                          )}
                         </button>
                       ))}
                     </div>
-                    {lmPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
+                    {lmPlatforms.includes('linkedin') && (
                       <p className="mt-2 text-xs text-amber-300/90">
-                        LinkedIn comment automation is coming soon — selected LinkedIn rules
-                        will be saved but won't run yet.
+                        LinkedIn requires the <code>r_member_social</code> +{' '}
+                        <code>w_member_social</code> scopes on your LinkedIn app.
+                        If those aren't granted, the rule will save but Test Now will
+                        report a scope error.
                       </p>
                     )}
                   </div>
@@ -444,20 +440,10 @@ export default function AutomationPage() {
                         {rule.platforms.map((p) => (
                           <span
                             key={p}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                              comingSoonPlatforms.has(p)
-                                ? 'bg-amber-500/10 text-amber-300/90'
-                                : 'bg-gray-800 text-gray-400'
-                            }`}
-                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400"
                           >
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
-                            {comingSoonPlatforms.has(p) && (
-                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
-                                soon
-                              </span>
-                            )}
                           </span>
                         ))}
                       </div>
@@ -611,18 +597,15 @@ export default function AutomationPage() {
                         >
                           {platformIcons[p]}
                           <span className="capitalize">{p}</span>
-                          {comingSoonPlatforms.has(p) && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
-                              Soon
-                            </span>
-                          )}
                         </button>
                       ))}
                     </div>
-                    {arPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
+                    {arPlatforms.includes('linkedin') && (
                       <p className="mt-2 text-xs text-amber-300/90">
-                        LinkedIn comment automation is coming soon — selected LinkedIn templates
-                        will be saved but won't run yet.
+                        LinkedIn requires the <code>r_member_social</code> +{' '}
+                        <code>w_member_social</code> scopes on your LinkedIn app.
+                        If those aren't granted, the template will save but Test Now will
+                        report a scope error.
                       </p>
                     )}
                   </div>
@@ -688,20 +671,10 @@ export default function AutomationPage() {
                         {tmpl.platforms.map((p) => (
                           <span
                             key={p}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                              comingSoonPlatforms.has(p)
-                                ? 'bg-amber-500/10 text-amber-300/90'
-                                : 'bg-gray-800 text-gray-400'
-                            }`}
-                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400"
                           >
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
-                            {comingSoonPlatforms.has(p) && (
-                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
-                                soon
-                              </span>
-                            )}
                           </span>
                         ))}
                       </div>

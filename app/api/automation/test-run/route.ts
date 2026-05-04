@@ -21,13 +21,21 @@ import {
   checkYTReplied,
   markYTReplied,
 } from '@/lib/youtubeAutomation';
+import {
+  fetchRecentPostUrns,
+  fetchPostComments,
+  postComment as liPostComment,
+  checkLIReplied,
+  markLIReplied,
+} from '@/lib/linkedinAutomation';
 
 const MAX_VIDEOS = 10;
 const MAX_COMMENTS_PER_VIDEO = 20;
 const MAX_MENTIONS = 20;
+const MAX_LI_POSTS = 10;
 
 interface AccountStat {
-  platform: 'youtube' | 'twitter';
+  platform: 'youtube' | 'twitter' | 'linkedin';
   accountId: string;
   scanned: number;        // videos / mentions
   comments: number;       // comments seen (YT only)
@@ -82,9 +90,18 @@ function buildMessage(verb: string, total: number, stats: RunStats): string {
         (acc.skippedDedup ? `, ${acc.skippedDedup} already replied` : '') +
         (acc.errors.length ? ` — ${acc.errors[0]}` : ''),
       );
-    } else {
+    } else if (acc.platform === 'twitter') {
       lines.push(
         `Twitter (${shortId(acc.accountId)}): scanned ${acc.scanned} mention${acc.scanned !== 1 ? 's' : ''}, ` +
+        `${acc.matched} match${acc.matched !== 1 ? 'es' : ''}, ` +
+        `${acc.replied} replied` +
+        (acc.skippedDedup ? `, ${acc.skippedDedup} already replied` : '') +
+        (acc.errors.length ? ` — ${acc.errors[0]}` : ''),
+      );
+    } else {
+      lines.push(
+        `LinkedIn (${shortId(acc.accountId)}): scanned ${acc.scanned} post${acc.scanned !== 1 ? 's' : ''}, ` +
+        `${acc.comments} comment${acc.comments !== 1 ? 's' : ''}, ` +
         `${acc.matched} match${acc.matched !== 1 ? 'es' : ''}, ` +
         `${acc.replied} replied` +
         (acc.skippedDedup ? `, ${acc.skippedDedup} already replied` : '') +
@@ -154,8 +171,21 @@ async function runLinkMe(userId: string) {
     }
   }
 
-  if (rules.some((r: any) => r.platforms?.includes('linkedin'))) {
-    stats.notes.push('LinkedIn automation is coming soon — those rules were skipped.');
+  const liRules = rules.filter((r: any) => r.platforms?.includes('linkedin'));
+  if (liRules.length) {
+    const liAccounts = accounts.filter((a: any) => a.platform === 'linkedin');
+    if (!liAccounts.length) stats.notes.push('No LinkedIn account connected.');
+    for (const liAcc of liAccounts) {
+      const acc: AccountStat = { platform: 'linkedin', accountId: liAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await lmLinkedIn(userId, liRules, liAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN LinkMe LI]', liAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      matched += acc.replied;
+    }
   }
 
   return { matched, message: buildMessage('Replied to', matched, stats), stats };
@@ -300,8 +330,21 @@ async function runAutoReply(userId: string) {
     }
   }
 
-  if (templates.some((t: any) => t.platforms?.includes('linkedin'))) {
-    stats.notes.push('LinkedIn automation is coming soon — those templates were skipped.');
+  const liTemplate = templates.find((t: any) => t.platforms?.includes('linkedin'));
+  if (liTemplate) {
+    const liAccounts = accounts.filter((a: any) => a.platform === 'linkedin');
+    if (!liAccounts.length) stats.notes.push('No LinkedIn account connected.');
+    for (const liAcc of liAccounts) {
+      const acc: AccountStat = { platform: 'linkedin', accountId: liAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await arLinkedIn(userId, liTemplate, liAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN AR LI]', liAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      replied += acc.replied;
+    }
   }
 
   return { replied, message: buildMessage('Sent', replied, stats), stats };
@@ -394,6 +437,79 @@ async function arTwitter(userId: string, template: any, twAcc: any, acc: Account
     if (ok) {
       await twMarkReplied(userId, mention.id, 'autoReply');
       acc.replied++;
+    }
+  }
+}
+
+// ── LinkedIn ──────────────────────────────────────────────────────────────────
+
+async function lmLinkedIn(userId: string, rules: any[], liAcc: any, acc: AccountStat) {
+  const { urns, error } = await fetchRecentPostUrns(liAcc, MAX_LI_POSTS);
+  if (error) acc.errors.push(error);
+  acc.scanned = urns.length;
+  if (!urns.length) return;
+
+  for (const postUrn of urns) {
+    const { comments, error: cErr } = await fetchPostComments(liAcc, postUrn);
+    if (cErr && !acc.errors.includes(cErr)) acc.errors.push(cErr);
+    acc.comments += comments.length;
+
+    for (const c of comments) {
+      if (c.actorUrn === liAcc.authorUrn) continue;
+
+      const text = c.text.toLowerCase();
+      const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      if (!rule) continue;
+      acc.matched++;
+
+      if (await checkLIReplied(userId, c.id, 'linkMe')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const ok = await liPostComment(liAcc, postUrn, rule.replyMessage);
+      if (ok) {
+        await markLIReplied(userId, c.id, 'linkMe');
+        await adminDb
+          .collection('users').doc(userId)
+          .collection('linkMeRules').doc(rule.id)
+          .update({ totalMatches: (rule.totalMatches || 0) + 1 });
+        acc.replied++;
+      } else if (!acc.errors.length) {
+        acc.errors.push('Comment post failed — check w_member_social scope.');
+      }
+    }
+  }
+}
+
+async function arLinkedIn(userId: string, template: any, liAcc: any, acc: AccountStat) {
+  const { urns, error } = await fetchRecentPostUrns(liAcc, MAX_LI_POSTS);
+  if (error) acc.errors.push(error);
+  acc.scanned = urns.length;
+  if (!urns.length) return;
+
+  for (const postUrn of urns) {
+    const { comments, error: cErr } = await fetchPostComments(liAcc, postUrn);
+    if (cErr && !acc.errors.includes(cErr)) acc.errors.push(cErr);
+    acc.comments += comments.length;
+
+    for (const c of comments) {
+      if (c.actorUrn === liAcc.authorUrn) continue;
+      acc.matched++;
+
+      if (await checkLIReplied(userId, c.id, 'autoReply')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const replyText = await buildReplyText(template, c.text, c.actorUrn);
+      const ok = await liPostComment(liAcc, postUrn, replyText);
+      if (ok) {
+        await markLIReplied(userId, c.id, 'autoReply');
+        acc.replied++;
+      } else if (!acc.errors.length) {
+        acc.errors.push('Comment post failed — check w_member_social scope.');
+      }
     }
   }
 }
