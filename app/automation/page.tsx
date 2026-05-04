@@ -214,7 +214,7 @@ export default function AutomationPage() {
       setTestResult({ ok: false, message: 'Failed to run test.' });
     } finally {
       setTestRunning(false);
-      setTimeout(() => setTestResult(null), 6000);
+      setTimeout(() => setTestResult(null), 15000);
     }
   };
 
@@ -244,15 +244,15 @@ export default function AutomationPage() {
 
         {/* Test result toast */}
         {testResult && (
-          <div className={`flex items-center gap-3 mb-5 px-4 py-3 rounded-xl border text-sm font-medium ${
+          <div className={`flex items-start gap-3 mb-5 px-4 py-3 rounded-xl border text-sm ${
             testResult.ok
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : 'bg-red-500/10 border-red-500/30 text-red-300'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+              : 'bg-red-500/10 border-red-500/30 text-red-200'
           }`}>
             {testResult.ok
-              ? <CheckCircle size={16} />
-              : <AlertCircle size={16} />}
-            {testResult.message}
+              ? <CheckCircle size={16} className="mt-0.5 shrink-0" />
+              : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed flex-1">{testResult.message}</pre>
           </div>
         )}
 

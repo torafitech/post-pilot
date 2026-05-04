@@ -25,7 +25,12 @@ export function buildYouTubeClient(ytAcc: any) {
 export async function fetchRecentVideoIds(ytAcc: any, count = 10): Promise<string[]> {
   const youtube = buildYouTubeClient(ytAcc);
   try {
-    const ch = await youtube.channels.list({ part: ['contentDetails'], mine: true });
+    // Prefer the exact connected channel ID — more reliable when one
+    // Google account owns multiple channels.
+    const ch = ytAcc.platformId
+      ? await youtube.channels.list({ part: ['contentDetails'], id: [ytAcc.platformId] })
+      : await youtube.channels.list({ part: ['contentDetails'], mine: true });
+
     const uploadsId =
       ch.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
     if (!uploadsId) return [];
