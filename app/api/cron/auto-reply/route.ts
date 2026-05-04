@@ -1,27 +1,40 @@
 // app/api/cron/auto-reply/route.ts
-// Cron job: scan recent comments on published posts and auto-reply with templates
+// Cron: scan recent activity on each connected platform and auto-reply
+// using configured templates. Iterates every connected account per
+// platform (multi-account safe). LinkedIn is currently skipped.
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
-import { google } from 'googleapis';
 import OpenAI from 'openai';
-import { fetchMentions, replyToTweet, checkReplied as twCheckReplied, markReplied as twMarkReplied } from '@/lib/twitterAutomation';
+import {
+  fetchMentions,
+  replyToTweet,
+  checkReplied as twCheckReplied,
+  markReplied as twMarkReplied,
+} from '@/lib/twitterAutomation';
+import {
+  buildYouTubeClient,
+  fetchRecentVideoIds,
+  checkYTReplied,
+  markYTReplied,
+} from '@/lib/youtubeAutomation';
 
 export const dynamic = 'force-dynamic';
 
 const MAX_USERS_PER_RUN = 10;
-const MAX_POSTS_PER_USER = 5;
+const MAX_VIDEOS_PER_ACCOUNT = 10;
+const MAX_COMMENTS_PER_VIDEO = 10;
+const MAX_MENTIONS = 20;
 
 export async function GET(_req: NextRequest) {
   try {
-    const usersWithTemplates = await findUsersWithActiveTemplates();
+    const userIds = await findUsersWithActiveTemplates();
     let totalReplied = 0;
 
-    for (const userId of usersWithTemplates.slice(0, MAX_USERS_PER_RUN)) {
+    for (const userId of userIds.slice(0, MAX_USERS_PER_RUN)) {
       try {
-        const replied = await processUserAutoReply(userId);
-        totalReplied += replied;
+        totalReplied += await processUserAutoReply(userId);
       } catch (err: any) {
-        console.error('[AUTO-REPLY] Error for user', userId, err.message);
+        console.error('[AUTO-REPLY] user error', userId, err.message);
       }
     }
 
@@ -37,7 +50,7 @@ async function findUsersWithActiveTemplates(): Promise<string[]> {
   const snap = await adminDb
     .collectionGroup('autoReplyTemplates')
     .where('isActive', '==', true)
-    .limit(MAX_USERS_PER_RUN)
+    .limit(MAX_USERS_PER_RUN * 5)
     .get();
 
   snap.docs.forEach((doc) => {
@@ -49,56 +62,41 @@ async function findUsersWithActiveTemplates(): Promise<string[]> {
 }
 
 async function processUserAutoReply(userId: string): Promise<number> {
-  let replied = 0;
-
-  const templatesSnap = await adminDb
-    .collection('users')
-    .doc(userId)
+  const tplSnap = await adminDb
+    .collection('users').doc(userId)
     .collection('autoReplyTemplates')
     .where('isActive', '==', true)
     .get();
+  if (tplSnap.empty) return 0;
 
-  if (templatesSnap.empty) return 0;
-
-  const templates = templatesSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
-
+  const templates = tplSnap.docs.map((d) => ({ id: d.id, ...d.data() } as any));
   const userSnap = await adminDb.collection('users').doc(userId).get();
-  const connectedAccounts: any[] = userSnap.data()?.connectedAccounts || [];
+  const accounts: any[] = userSnap.data()?.connectedAccounts || [];
 
-  const postsSnap = await adminDb
-    .collection('users')
-    .doc(userId)
-    .collection('posts')
-    .orderBy('publishedAt', 'desc')
-    .limit(MAX_POSTS_PER_USER)
-    .get();
+  let replied = 0;
 
-  for (const postDoc of postsSnap.docs) {
-    const post = postDoc.data() as any;
-    const platform = post.platform?.toLowerCase();
-
-    const platformTemplates = templates.filter(
-      (t: any) => t.platforms?.includes(platform),
-    );
-    if (platformTemplates.length === 0) continue;
-
-    // Use first active template per platform
-    const template = platformTemplates[0];
-
-    try {
-      if (platform === 'youtube') {
-        const ytAcc = connectedAccounts.find((a: any) => a.platform === 'youtube');
-        if (!ytAcc) continue;
-        const r = await autoReplyYouTube(userId, post.platformPostId, template, ytAcc);
-        replied += r;
-      } else if (platform === 'twitter') {
-        const twAcc = connectedAccounts.find((a: any) => a.platform === 'twitter');
-        if (!twAcc) continue;
-        const r = await autoReplyTwitter(userId, post.platformPostId, template, twAcc);
-        replied += r;
+  // YouTube — first active template per platform
+  const ytTemplate = templates.find((t: any) => t.platforms?.includes('youtube'));
+  if (ytTemplate) {
+    const ytAccounts = accounts.filter((a: any) => a.platform === 'youtube');
+    for (const ytAcc of ytAccounts) {
+      try {
+        replied += await autoReplyYouTube(userId, ytTemplate, ytAcc);
+      } catch (err: any) {
+        console.error('[AUTO-REPLY] YT account', ytAcc.platformId, err.message);
       }
-    } catch (err: any) {
-      console.error('[AUTO-REPLY] Platform error:', err.message);
+    }
+  }
+
+  const twTemplate = templates.find((t: any) => t.platforms?.includes('twitter'));
+  if (twTemplate) {
+    const twAccounts = accounts.filter((a: any) => a.platform === 'twitter');
+    for (const twAcc of twAccounts) {
+      try {
+        replied += await autoReplyTwitter(userId, twTemplate, twAcc);
+      } catch (err: any) {
+        console.error('[AUTO-REPLY] TW account', twAcc.platformId, err.message);
+      }
     }
   }
 
@@ -128,61 +126,50 @@ async function buildReplyText(template: any, commentText: string, username: stri
     }
   }
 
-  return template.message.replace('{username}', username || 'there');
+  return (template.message || '').replace('{username}', username || 'there');
 }
 
 async function autoReplyYouTube(
   userId: string,
-  videoId: string,
   template: any,
   ytAccount: any,
 ): Promise<number> {
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID!,
-    process.env.YOUTUBE_CLIENT_SECRET!,
-    process.env.YOUTUBE_REDIRECT_URI || 'https://www.starlingpost.com/api/auth/youtube/callback',
-  );
-  oauth2Client.setCredentials({
-    access_token: ytAccount.accessToken,
-    refresh_token: ytAccount.refreshToken || undefined,
-  });
-
-  const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-  const commentsRes = await youtube.commentThreads.list({
-    part: ['snippet'],
-    videoId,
-    maxResults: 10,
-    order: 'time',
-  });
-
+  const youtube = buildYouTubeClient(ytAccount);
+  const videoIds = await fetchRecentVideoIds(ytAccount, MAX_VIDEOS_PER_ACCOUNT);
   let replied = 0;
-  for (const thread of commentsRes.data.items || []) {
-    const commentId = thread.id!;
-    const commentText = thread.snippet?.topLevelComment?.snippet?.textDisplay || '';
-    const authorName = thread.snippet?.topLevelComment?.snippet?.authorDisplayName || '';
-    const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
 
-    if (authorChannelId === ytAccount.platformId) continue;
-
-    const alreadyReplied = await checkAlreadyReplied(userId, commentId, 'autoReply');
-    if (alreadyReplied) continue;
-
-    const replyText = await buildReplyText(template, commentText, authorName);
-
+  for (const videoId of videoIds) {
     try {
-      await youtube.comments.insert({
+      const commentsRes = await youtube.commentThreads.list({
         part: ['snippet'],
-        requestBody: {
-          snippet: {
-            parentId: commentId,
-            textOriginal: replyText,
-          },
-        },
+        videoId,
+        maxResults: MAX_COMMENTS_PER_VIDEO,
+        order: 'time',
       });
-      await markReplied(userId, commentId, 'youtube', 'autoReply');
-      replied++;
+
+      for (const thread of commentsRes.data.items || []) {
+        const commentId = thread.id!;
+        const commentText = thread.snippet?.topLevelComment?.snippet?.textDisplay || '';
+        const authorName = thread.snippet?.topLevelComment?.snippet?.authorDisplayName || '';
+        const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
+        if (authorChannelId === ytAccount.platformId) continue;
+        if (await checkYTReplied(userId, commentId, 'autoReply')) continue;
+
+        const replyText = await buildReplyText(template, commentText, authorName);
+
+        try {
+          await youtube.comments.insert({
+            part: ['snippet'],
+            requestBody: { snippet: { parentId: commentId, textOriginal: replyText } },
+          });
+          await markYTReplied(userId, commentId, 'autoReply');
+          replied++;
+        } catch (err: any) {
+          console.error('[AUTO-REPLY] YT reply error:', err.message);
+        }
+      }
     } catch (err: any) {
-      console.error('[AUTO-REPLY] YouTube comment error:', err.message);
+      console.error('[AUTO-REPLY] YT video error', videoId, err.message);
     }
   }
 
@@ -191,19 +178,15 @@ async function autoReplyYouTube(
 
 async function autoReplyTwitter(
   userId: string,
-  _tweetId: string,
   template: any,
   twAccount: any,
 ): Promise<number> {
-  // v1.1 mentions timeline — no Elevated access required
-  const mentions = await fetchMentions(twAccount, 20);
+  const mentions = await fetchMentions(twAccount, MAX_MENTIONS);
   let replied = 0;
 
   for (const mention of mentions) {
     if (mention.authorId === twAccount.platformId) continue;
-
-    const alreadyReplied = await twCheckReplied(userId, mention.id, 'autoReply');
-    if (alreadyReplied) continue;
+    if (await twCheckReplied(userId, mention.id, 'autoReply')) continue;
 
     const replyText = await buildReplyText(template, mention.text, `@${mention.authorHandle}`);
     const ok = await replyToTweet(twAccount, mention.id, replyText);
@@ -214,23 +197,4 @@ async function autoReplyTwitter(
   }
 
   return replied;
-}
-
-async function checkAlreadyReplied(userId: string, commentId: string, type: string): Promise<boolean> {
-  const doc = await adminDb
-    .collection('users')
-    .doc(userId)
-    .collection(`${type}Replies`)
-    .doc(commentId)
-    .get();
-  return doc.exists;
-}
-
-async function markReplied(userId: string, commentId: string, platform: string, type: string) {
-  await adminDb
-    .collection('users')
-    .doc(userId)
-    .collection(`${type}Replies`)
-    .doc(commentId)
-    .set({ platform, repliedAt: new Date() });
 }

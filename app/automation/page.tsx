@@ -48,6 +48,7 @@ const platformIcons: Record<string, React.ReactNode> = {
 };
 
 const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+const comingSoonPlatforms = new Set(['linkedin']);
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();
@@ -213,7 +214,7 @@ export default function AutomationPage() {
       setTestResult({ ok: false, message: 'Failed to run test.' });
     } finally {
       setTestRunning(false);
-      setTimeout(() => setTestResult(null), 6000);
+      setTimeout(() => setTestResult(null), 15000);
     }
   };
 
@@ -243,15 +244,15 @@ export default function AutomationPage() {
 
         {/* Test result toast */}
         {testResult && (
-          <div className={`flex items-center gap-3 mb-5 px-4 py-3 rounded-xl border text-sm font-medium ${
+          <div className={`flex items-start gap-3 mb-5 px-4 py-3 rounded-xl border text-sm ${
             testResult.ok
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : 'bg-red-500/10 border-red-500/30 text-red-300'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+              : 'bg-red-500/10 border-red-500/30 text-red-200'
           }`}>
             {testResult.ok
-              ? <CheckCircle size={16} />
-              : <AlertCircle size={16} />}
-            {testResult.message}
+              ? <CheckCircle size={16} className="mt-0.5 shrink-0" />
+              : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed flex-1">{testResult.message}</pre>
           </div>
         )}
 
@@ -361,7 +362,7 @@ export default function AutomationPage() {
                     <label className="block text-xs font-medium text-gray-300 mb-2">
                       Apply On Platforms
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {betaPlatforms.map((p) => (
                         <button
                           key={p}
@@ -375,9 +376,20 @@ export default function AutomationPage() {
                         >
                           {platformIcons[p]}
                           <span className="capitalize">{p}</span>
+                          {comingSoonPlatforms.has(p) && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
+                              Soon
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
+                    {lmPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
+                      <p className="mt-2 text-xs text-amber-300/90">
+                        LinkedIn comment automation is coming soon — selected LinkedIn rules
+                        will be saved but won't run yet.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex gap-3 pt-2">
@@ -428,11 +440,24 @@ export default function AutomationPage() {
                         )}
                       </div>
                       <p className="text-sm text-gray-300 mb-3 line-clamp-2">{rule.replyMessage}</p>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap">
                         {rule.platforms.map((p) => (
-                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400">
+                          <span
+                            key={p}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                              comingSoonPlatforms.has(p)
+                                ? 'bg-amber-500/10 text-amber-300/90'
+                                : 'bg-gray-800 text-gray-400'
+                            }`}
+                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
+                          >
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
+                            {comingSoonPlatforms.has(p) && (
+                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
+                                soon
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -572,7 +597,7 @@ export default function AutomationPage() {
                     <label className="block text-xs font-medium text-gray-300 mb-2">
                       Apply On Platforms
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {betaPlatforms.map((p) => (
                         <button
                           key={p}
@@ -586,9 +611,20 @@ export default function AutomationPage() {
                         >
                           {platformIcons[p]}
                           <span className="capitalize">{p}</span>
+                          {comingSoonPlatforms.has(p) && (
+                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
+                              Soon
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
+                    {arPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
+                      <p className="mt-2 text-xs text-amber-300/90">
+                        LinkedIn comment automation is coming soon — selected LinkedIn templates
+                        will be saved but won't run yet.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex gap-3 pt-2">
@@ -648,11 +684,24 @@ export default function AutomationPage() {
                       {tmpl.useAI && (
                         <p className="text-sm text-gray-500 mb-3 italic">AI generates unique replies</p>
                       )}
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1.5 flex-wrap">
                         {tmpl.platforms.map((p) => (
-                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400">
+                          <span
+                            key={p}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                              comingSoonPlatforms.has(p)
+                                ? 'bg-amber-500/10 text-amber-300/90'
+                                : 'bg-gray-800 text-gray-400'
+                            }`}
+                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
+                          >
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
+                            {comingSoonPlatforms.has(p) && (
+                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
+                                soon
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
