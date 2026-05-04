@@ -21,7 +21,12 @@ import {
   Play,
   CheckCircle,
   AlertCircle,
+  Instagram,
+  Facebook,
+  Music,
+  Lock,
 } from 'lucide-react';
+import { ALL_PLATFORMS, ENABLED_PLATFORMS, PLATFORM_DISABLED_REASON, PLATFORM_LABEL } from '@/lib/platformConfig';
 
 interface LinkMeRule {
   id: string;
@@ -42,12 +47,16 @@ interface AutoReplyTemplate {
 }
 
 const platformIcons: Record<string, React.ReactNode> = {
-  youtube: <Youtube size={14} className="text-red-400" />,
-  twitter: <Twitter size={14} className="text-sky-400" />,
-  linkedin: <Linkedin size={14} className="text-blue-400" />,
+  youtube:   <Youtube size={14} className="text-red-400" />,
+  twitter:   <Twitter size={14} className="text-sky-400" />,
+  linkedin:  <Linkedin size={14} className="text-blue-400" />,
+  instagram: <Instagram size={14} className="text-pink-400" />,
+  facebook:  <Facebook size={14} className="text-indigo-400" />,
+  threads:   <MessageCircle size={14} className="text-gray-200" />,
+  tiktok:    <Music size={14} className="text-fuchsia-400" />,
 };
 
-const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+const betaPlatforms = [...ALL_PLATFORMS];
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();
@@ -362,21 +371,30 @@ export default function AutomationPage() {
                       Apply On Platforms
                     </label>
                     <div className="flex gap-2 flex-wrap">
-                      {betaPlatforms.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => togglePlatform(p, lmPlatforms, setLmPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            lmPlatforms.includes(p)
-                              ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {platformIcons[p]}
-                          <span className="capitalize">{p}</span>
-                        </button>
-                      ))}
+                      {betaPlatforms.map((p) => {
+                        const enabled = ENABLED_PLATFORMS.has(p);
+                        const selected = lmPlatforms.includes(p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            disabled={!enabled}
+                            onClick={() => enabled && togglePlatform(p, lmPlatforms, setLmPlatforms)}
+                            title={enabled ? undefined : (PLATFORM_DISABLED_REASON[p] || 'Coming soon')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              !enabled
+                                ? 'bg-gray-900 border border-gray-800 text-gray-600 cursor-not-allowed'
+                                : selected
+                                  ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
+                                  : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            {platformIcons[p]}
+                            <span className="capitalize">{PLATFORM_LABEL[p] || p}</span>
+                            {!enabled && <Lock size={10} className="ml-0.5 text-amber-300/70" />}
+                          </button>
+                        );
+                      })}
                     </div>
                     {lmPlatforms.includes('linkedin') && (
                       <p className="mt-2 text-xs text-amber-300/90">
@@ -584,21 +602,30 @@ export default function AutomationPage() {
                       Apply On Platforms
                     </label>
                     <div className="flex gap-2 flex-wrap">
-                      {betaPlatforms.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => togglePlatform(p, arPlatforms, setArPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            arPlatforms.includes(p)
-                              ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {platformIcons[p]}
-                          <span className="capitalize">{p}</span>
-                        </button>
-                      ))}
+                      {betaPlatforms.map((p) => {
+                        const enabled = ENABLED_PLATFORMS.has(p);
+                        const selected = arPlatforms.includes(p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            disabled={!enabled}
+                            onClick={() => enabled && togglePlatform(p, arPlatforms, setArPlatforms)}
+                            title={enabled ? undefined : (PLATFORM_DISABLED_REASON[p] || 'Coming soon')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              !enabled
+                                ? 'bg-gray-900 border border-gray-800 text-gray-600 cursor-not-allowed'
+                                : selected
+                                  ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
+                                  : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            {platformIcons[p]}
+                            <span className="capitalize">{PLATFORM_LABEL[p] || p}</span>
+                            {!enabled && <Lock size={10} className="ml-0.5 text-amber-300/70" />}
+                          </button>
+                        );
+                      })}
                     </div>
                     {arPlatforms.includes('linkedin') && (
                       <p className="mt-2 text-xs text-amber-300/90">

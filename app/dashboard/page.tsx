@@ -16,8 +16,9 @@ import {
   ArrowUpRight, BarChart2, Bot, Calendar, CheckCircle2, Clock, Eye,
   Globe, Heart, Linkedin, MessageCircle, PlusCircle, RefreshCw,
   Settings, ThumbsUp, TrendingUp, Twitter, Users, Video, Youtube,
-  Zap, Link2, AlertCircle, X,
+  Zap, Link2, AlertCircle, X, Instagram, Facebook, Music, Lock,
 } from 'lucide-react';
+import { ALL_PLATFORMS, ENABLED_PLATFORMS, PLATFORM_DISABLED_REASON, PLATFORM_LABEL } from '@/lib/platformConfig';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -33,22 +34,30 @@ interface ConnectedAccount {
   connectedAt: Date;
 }
 
-const PLATFORMS = ['youtube', 'twitter', 'linkedin'] as const;
+const PLATFORMS = ALL_PLATFORMS;
 type Platform = typeof PLATFORMS[number];
 
 const platformMeta: Record<Platform, {
   Icon: React.ElementType; color: string; bg: string; border: string;
   label: string; chartColor: string;
 }> = {
-  youtube:  { Icon: Youtube,  color: 'text-red-400',  bg: 'bg-red-500/10',  border: 'border-red-500/30',  label: 'YouTube',   chartColor: '#f87171' },
-  twitter:  { Icon: Twitter,  color: 'text-sky-400',  bg: 'bg-sky-500/10',  border: 'border-sky-500/30',  label: 'Twitter/X', chartColor: '#38bdf8' },
-  linkedin: { Icon: Linkedin, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', label: 'LinkedIn',  chartColor: '#60a5fa' },
+  youtube:   { Icon: Youtube,   color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/30',     label: 'YouTube',     chartColor: '#f87171' },
+  twitter:   { Icon: Twitter,   color: 'text-sky-400',     bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     label: 'Twitter/X',   chartColor: '#38bdf8' },
+  linkedin:  { Icon: Linkedin,  color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/30',    label: 'LinkedIn',    chartColor: '#60a5fa' },
+  instagram: { Icon: Instagram, color: 'text-pink-400',    bg: 'bg-pink-500/10',    border: 'border-pink-500/30',    label: 'Instagram',   chartColor: '#f472b6' },
+  facebook:  { Icon: Facebook,  color: 'text-indigo-400',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30',  label: 'Facebook',    chartColor: '#818cf8' },
+  threads:   { Icon: MessageCircle, color: 'text-gray-200', bg: 'bg-gray-500/10',   border: 'border-gray-500/30',    label: 'Threads',     chartColor: '#e5e7eb' },
+  tiktok:    { Icon: Music,     color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', label: 'TikTok',      chartColor: '#e879f9' },
 };
 
 const oauthRoute: Record<Platform, (uid: string) => string> = {
-  youtube:  uid => `/api/auth/youtube?uid=${encodeURIComponent(uid)}`,
-  twitter:  uid => `/api/auth/twitter/oauth1?uid=${encodeURIComponent(uid)}`,
-  linkedin: uid => `/api/auth/linkedin?uid=${encodeURIComponent(uid)}`,
+  youtube:   uid => `/api/auth/youtube?uid=${encodeURIComponent(uid)}`,
+  twitter:   uid => `/api/auth/twitter/oauth1?uid=${encodeURIComponent(uid)}`,
+  linkedin:  uid => `/api/auth/linkedin?uid=${encodeURIComponent(uid)}`,
+  instagram: uid => `/api/auth/instagram?uid=${encodeURIComponent(uid)}`,
+  facebook:  uid => `/api/auth/facebook?uid=${encodeURIComponent(uid)}`,
+  threads:   uid => `/api/auth/threads?uid=${encodeURIComponent(uid)}`,
+  tiktok:    uid => `/api/auth/tiktok?uid=${encodeURIComponent(uid)}`,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -193,18 +202,21 @@ export default function DashboardPage() {
   const totalLikes    = useMemo(() => published.reduce((s, p) => s + (p.metrics?.likes || 0), 0), [published]);
   const totalComments = useMemo(() => published.reduce((s, p) => s + (p.metrics?.comments || 0), 0), [published]);
 
-  // Per-platform breakdown for analytics
+  // Per-platform breakdown for analytics — only enabled platforms or
+  // ones that already have published posts.
   const platformStats = useMemo(() => {
-    return PLATFORMS.map(pl => {
-      const plPosts = published.filter(p => p.platform?.toLowerCase() === pl);
-      return {
-        platform: pl,
-        posts:    plPosts.length,
-        views:    plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0),
-        likes:    plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0),
-        comments: plPosts.reduce((s, p) => s + (p.metrics?.comments || 0), 0),
-      };
-    });
+    return PLATFORMS
+      .filter(pl => ENABLED_PLATFORMS.has(pl) || published.some(p => p.platform?.toLowerCase() === pl))
+      .map(pl => {
+        const plPosts = published.filter(p => p.platform?.toLowerCase() === pl);
+        return {
+          platform: pl,
+          posts:    plPosts.length,
+          views:    plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0),
+          likes:    plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0),
+          comments: plPosts.reduce((s, p) => s + (p.metrics?.comments || 0), 0),
+        };
+      });
   }, [published]);
 
   // Monthly post frequency (last 8 months)
@@ -351,16 +363,34 @@ export default function DashboardPage() {
             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Connected Accounts</h2>
             <span className="text-xs text-gray-600">{accounts.length} account{accounts.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {PLATFORMS.map(pl => {
               const meta = platformMeta[pl];
+              const enabled = ENABLED_PLATFORMS.has(pl);
               const plAccounts = accountsByPlatform[pl] || [];
               const plPosts = published.filter(p => p.platform?.toLowerCase() === pl);
               const plViews = plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0);
               const plLikes = plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0);
 
               return (
-                <div key={pl} className={`bg-gray-900 border rounded-2xl p-5 ${plAccounts.length ? `border-gray-800 hover:border-gray-700` : 'border-dashed border-gray-800'} transition-colors`}>
+                <div
+                  key={pl}
+                  className={`relative bg-gray-900 border rounded-2xl p-5 transition-colors ${
+                    !enabled
+                      ? 'border-gray-800 opacity-60'
+                      : plAccounts.length
+                        ? 'border-gray-800 hover:border-gray-700'
+                        : 'border-dashed border-gray-800'
+                  }`}
+                >
+                  {!enabled && (
+                    <div
+                      className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide"
+                      title={PLATFORM_DISABLED_REASON[pl] || 'Coming soon'}
+                    >
+                      <Lock size={10} /> Soon
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${meta.bg} ${meta.color}`}>
@@ -371,19 +401,20 @@ export default function DashboardPage() {
                         <div className="text-xs text-gray-600">{plAccounts.length} account{plAccounts.length !== 1 ? 's' : ''}</div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleConnect(pl)}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                        plAccounts.length
-                          ? `${meta.bg} ${meta.color} border ${meta.border} hover:opacity-80`
-                          : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      + Add
-                    </button>
+                    {enabled && (
+                      <button
+                        onClick={() => handleConnect(pl)}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          plAccounts.length
+                            ? `${meta.bg} ${meta.color} border ${meta.border} hover:opacity-80`
+                            : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        + Add
+                      </button>
+                    )}
                   </div>
 
-                  {/* Accounts list */}
                   {plAccounts.length > 0 && (
                     <div className="space-y-2 mb-4">
                       {plAccounts.map(acc => (
@@ -400,7 +431,11 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {plAccounts.length === 0 ? (
+                  {!enabled ? (
+                    <div className="text-[11px] text-amber-300/80 leading-snug">
+                      {PLATFORM_DISABLED_REASON[pl] || 'Integration coming soon.'}
+                    </div>
+                  ) : plAccounts.length === 0 ? (
                     <button onClick={() => handleConnect(pl)}
                       className="w-full py-2 rounded-xl border border-dashed border-gray-700 text-gray-600 hover:text-gray-400 text-xs transition-colors">
                       Connect {meta.label}

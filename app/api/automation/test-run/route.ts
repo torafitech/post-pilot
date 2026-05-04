@@ -28,6 +28,7 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import { isPlatformEnabled, PLATFORM_DISABLED_REASON, type Platform } from '@/lib/platformConfig';
 
 const MAX_VIDEOS = 10;
 const MAX_COMMENTS_PER_VIDEO = 20;
@@ -188,6 +189,14 @@ async function runLinkMe(userId: string) {
     }
   }
 
+  // Disabled platforms — surface a single note per platform so user knows
+  // their rule was saved but won't run yet.
+  for (const p of ['instagram', 'facebook', 'threads', 'tiktok'] as Platform[]) {
+    if (!isPlatformEnabled(p) && rules.some((r: any) => r.platforms?.includes(p))) {
+      stats.notes.push(`${p} automation is coming soon — ${PLATFORM_DISABLED_REASON[p] || 'integration pending'}`);
+    }
+  }
+
   return { matched, message: buildMessage('Replied to', matched, stats), stats };
 }
 
@@ -344,6 +353,12 @@ async function runAutoReply(userId: string) {
       }
       stats.accounts.push(acc);
       replied += acc.replied;
+    }
+  }
+
+  for (const p of ['instagram', 'facebook', 'threads', 'tiktok'] as Platform[]) {
+    if (!isPlatformEnabled(p) && templates.some((t: any) => t.platforms?.includes(p))) {
+      stats.notes.push(`${p} automation is coming soon — ${PLATFORM_DISABLED_REASON[p] || 'integration pending'}`);
     }
   }
 

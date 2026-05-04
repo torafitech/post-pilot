@@ -35,7 +35,12 @@ import {
   Bell,
   Hash,
   ShieldCheck,
+  Instagram,
+  Facebook,
+  Music,
+  Lock,
 } from 'lucide-react';
+import { ALL_PLATFORMS, ENABLED_PLATFORMS, PLATFORM_DISABLED_REASON } from '@/lib/platformConfig';
 
 interface PlatformContent {
   caption: string;
@@ -63,9 +68,13 @@ type TabId = 'content' | 'platforms' | 'schedule' | 'preview';
 type ScheduleMode = 'now' | 'ai' | 'custom';
 
 const platformIcons: Record<string, React.ReactNode> = {
-  youtube: <Youtube size={20} className="text-red-500" />,
-  twitter: <Twitter size={20} className="text-blue-400" />,
-  linkedin: <Linkedin size={20} className="text-blue-600" />,
+  youtube:   <Youtube size={20} className="text-red-500" />,
+  twitter:   <Twitter size={20} className="text-blue-400" />,
+  linkedin:  <Linkedin size={20} className="text-blue-600" />,
+  instagram: <Instagram size={20} className="text-pink-400" />,
+  facebook:  <Facebook size={20} className="text-indigo-400" />,
+  threads:   <MessageSquare size={20} className="text-gray-200" />,
+  tiktok:    <Music size={20} className="text-fuchsia-400" />,
 };
 
 const platformTips: Record<string, string> = {
@@ -119,6 +128,43 @@ const PLATFORM_RULES: Record<string, {
     videoFormats: 'MP4',
     imageSizeMB: 5,
     videoSizeMB: 5000,
+  },
+  instagram: {
+    captionMax: 2200,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG',
+    videoFormats: 'MP4 (Reels, max 90s)',
+    imageSizeMB: 8,
+    videoSizeMB: 1024,
+  },
+  facebook: {
+    captionMax: 63206,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG, GIF',
+    videoFormats: 'MP4, MOV',
+    imageSizeMB: 30,
+    videoSizeMB: 10240,
+  },
+  threads: {
+    captionMax: 500,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG',
+    videoFormats: 'MP4 (max 5min)',
+    imageSizeMB: 8,
+    videoSizeMB: 1024,
+  },
+  tiktok: {
+    captionMax: 2200,
+    allowsImage: false,
+    allowsVideo: true,
+    imageFormats: '—',
+    videoFormats: 'MP4, MOV (max 10min)',
+    imageSizeMB: 0,
+    videoSizeMB: 4096,
+    requiresVideo: true,
   },
 };
 
@@ -1017,75 +1063,57 @@ export default function CreatePostPage() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {[
-                    {
-                      id: 'youtube',
-                      name: 'YouTube',
-                      color: 'from-red-500 to-red-700',
-                      stats: '2.7B users',
-                    },
-                    {
-                      id: 'twitter',
-                      name: 'Twitter/X',
-                      color: 'from-blue-400 to-blue-600',
-                      stats: '550M users',
-                    },
-                    {
-                      id: 'linkedin',
-                      name: 'LinkedIn',
-                      color: 'from-blue-600 to-blue-800',
-                      stats: '950M users',
-                    },
+                    { id: 'youtube',   name: 'YouTube',   color: 'from-red-500 to-red-700',         stats: '2.7B users' },
+                    { id: 'twitter',   name: 'Twitter/X', color: 'from-blue-400 to-blue-600',       stats: '550M users' },
+                    { id: 'linkedin',  name: 'LinkedIn',  color: 'from-blue-600 to-blue-800',       stats: '950M users' },
+                    { id: 'instagram', name: 'Instagram', color: 'from-pink-500 to-fuchsia-600',    stats: '2B users'   },
+                    { id: 'facebook',  name: 'Facebook',  color: 'from-indigo-500 to-indigo-700',   stats: '3B users'   },
+                    { id: 'threads',   name: 'Threads',   color: 'from-gray-600 to-gray-800',       stats: '275M users' },
+                    { id: 'tiktok',    name: 'TikTok',    color: 'from-fuchsia-500 to-rose-600',    stats: '1.5B users' },
                   ].map((platform) => {
+                    const enabled = ENABLED_PLATFORMS.has(platform.id as typeof ALL_PLATFORMS[number]);
                     const isSelected = formData.platforms.includes(platform.id);
 
                     return (
                       <div
                         key={platform.id}
-                        onClick={() => togglePlatform(platform.id)}
-                        className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all text-sm ${
-                          isSelected
-                            ? `border-transparent bg-gradient-to-br ${platform.color}`
-                            : 'border-gray-800 hover:border-gray-700 bg-gray-950'
+                        onClick={() => enabled && togglePlatform(platform.id)}
+                        title={enabled ? undefined : (PLATFORM_DISABLED_REASON[platform.id as typeof ALL_PLATFORMS[number]] || 'Coming soon')}
+                        className={`relative p-6 rounded-2xl border-2 transition-all text-sm ${
+                          !enabled
+                            ? 'border-gray-800 bg-gray-950 opacity-50 cursor-not-allowed'
+                            : isSelected
+                              ? `border-transparent bg-gradient-to-br ${platform.color} cursor-pointer`
+                              : 'border-gray-800 hover:border-gray-700 bg-gray-950 cursor-pointer'
                         }`}
                       >
+                        {!enabled && (
+                          <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
+                            <Lock size={10} /> Soon
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-4">
-                          <div
-                            className={`p-3 rounded-xl ${
-                              isSelected ? 'bg-white/15' : 'bg-gray-900'
-                            }`}
-                          >
+                          <div className={`p-3 rounded-xl ${isSelected && enabled ? 'bg-white/15' : 'bg-gray-900'}`}>
                             {platformIcons[platform.id]}
                           </div>
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                              isSelected ? 'border-white' : 'border-gray-600'
-                            }`}
-                          >
-                            {isSelected && (
-                              <div className="w-2 h-2 bg-white rounded-full" />
-                            )}
-                          </div>
+                          {enabled && (
+                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white' : 'border-gray-600'}`}>
+                              {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                            </div>
+                          )}
                         </div>
 
-                        <h4
-                          className={`text-sm font-semibold mb-1 ${
-                            isSelected ? 'text-white' : 'text-gray-200'
-                          }`}
-                        >
+                        <h4 className={`text-sm font-semibold mb-1 ${isSelected && enabled ? 'text-white' : 'text-gray-200'}`}>
                           {platform.name}
                         </h4>
 
-                        <p
-                          className={`text-xs ${
-                            isSelected ? 'text-white/85' : 'text-gray-400'
-                          }`}
-                        >
+                        <p className={`text-xs ${isSelected && enabled ? 'text-white/85' : 'text-gray-400'}`}>
                           {platform.stats}
                         </p>
 
-                        {isSelected && (
+                        {isSelected && enabled && (
                           <div className="absolute -top-2 -right-2">
                             <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
                               <CheckCircle className="w-4 h-4 text-white" />
