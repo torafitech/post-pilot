@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "StarlingPost",
+    "slug": "starlingpost",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "starlingpost",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.starlingpost.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow StarlingPost to access your photo library to upload media for posts.",
+        "NSCameraUsageDescription": "Allow StarlingPost to use the camera to capture media for posts."
+      }
+    },
+    "android": {
+      "package": "com.starlingpost.app",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-image-picker",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://www.starlingpost.com",
+      "firebaseApiKey": "REPLACE_ME",
+      "firebaseAuthDomain": "REPLACE_ME",
+      "firebaseProjectId": "REPLACE_ME",
+      "firebaseStorageBucket": "REPLACE_ME",
+      "firebaseMessagingSenderId": "REPLACE_ME",
+      "firebaseAppId": "REPLACE_ME"
+    }
+  }
+}
