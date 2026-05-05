@@ -712,18 +712,35 @@ export default function DashboardPage() {
 
         {/* ── Quick actions ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Create Post', icon: <PlusCircle size={16} />, href: '/posts/create', style: 'from-cyan-600/30 to-blue-600/20 border-cyan-500/20 text-cyan-300' },
-            { label: 'Automation',  icon: <Bot size={16} />,        href: '/automation',   style: 'from-purple-600/30 to-pink-600/20 border-purple-500/20 text-purple-300' },
-            { label: 'Analytics',   icon: <TrendingUp size={16} />, href: '#',             style: 'from-emerald-600/20 to-teal-600/10 border-emerald-500/20 text-emerald-300', onClick: () => setActiveTab('analytics') },
-            { label: 'Settings',    icon: <Settings size={16} />,   href: '/settings',     style: 'from-gray-700/40 to-gray-600/10 border-gray-600/20 text-gray-400' },
-          ].map(item => (
-            <Link key={item.label} href={item.href} onClick={item.onClick}
-              className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br border hover:border-opacity-60 transition-all hover:scale-[1.01] ${item.style}`}>
-              {item.icon}
-              <span className="text-sm font-semibold">{item.label}</span>
-            </Link>
-          ))}
+          <Link
+            href="/posts/create"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-cyan-600/30 to-blue-600/20 border border-cyan-500/20 text-cyan-300 hover:border-opacity-60 transition-all hover:scale-[1.01]"
+          >
+            <PlusCircle size={16} />
+            <span className="text-sm font-semibold">Create Post</span>
+          </Link>
+          <Link
+            href="/tasks"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-amber-600/30 to-orange-600/20 border border-amber-500/20 text-amber-300 hover:border-opacity-60 transition-all hover:scale-[1.01]"
+          >
+            <Calendar size={16} />
+            <span className="text-sm font-semibold">Tasks</span>
+          </Link>
+          <Link
+            href="/automation"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-purple-600/30 to-pink-600/20 border border-purple-500/20 text-purple-300 hover:border-opacity-60 transition-all hover:scale-[1.01]"
+          >
+            <Bot size={16} />
+            <span className="text-sm font-semibold">Automation</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br from-emerald-600/20 to-teal-600/10 border border-emerald-500/20 text-emerald-300 hover:border-opacity-60 transition-all hover:scale-[1.01]"
+          >
+            <TrendingUp size={16} />
+            <span className="text-sm font-semibold">Analytics</span>
+          </button>
         </div>
 
       </div>

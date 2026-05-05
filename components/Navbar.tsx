@@ -262,12 +262,12 @@ export function Navbar({ variant }: NavbarProps) {
                     </div>
 
                     <Link
-                      href="/profile"
+                      href="/dashboard"
                       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
-                      <User size={16} />
-                      Your Profile
+                      <Home size={16} />
+                      Dashboard
                     </Link>
                     <Link
                       href="/automation"
@@ -278,12 +278,12 @@ export function Navbar({ variant }: NavbarProps) {
                       Automation
                     </Link>
                     <Link
-                      href="/settings"
+                      href="/tasks"
                       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings size={16} />
-                      Settings
+                      Tasks &amp; queue
                     </Link>
 
                     <div className="h-px bg-gray-800 my-2" />
