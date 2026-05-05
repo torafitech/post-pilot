@@ -2,13 +2,15 @@ export type AnalyticsPeriod = '7d' | '30d' | '90d' | '1y';
 
 export interface ChannelStats {
   subscribers: number;
-  subscriberChange: number;
+  // change metrics are nullable — only populate when historical data
+  // makes them computable. Never hardcode as a fake delta.
+  subscriberChange?: number | null;
   videos: number;
-  videoChange: number;
+  videoChange?: number | null;
   totalViews: number;
-  viewChange: number;
+  viewChange?: number | null;
   watchTime: number;
-  watchTimeChange: number;
+  watchTimeChange?: number | null;
 }
 
 export interface PerformanceData {

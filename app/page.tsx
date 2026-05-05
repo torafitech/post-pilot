@@ -55,6 +55,9 @@ export const metadata: Metadata = {
   },
 };
 
+// JSON-LD: only ship structured data we can prove. No aggregateRating
+// until we have real, attributable reviews — Google manual-actions sites
+// for invented review counts.
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
@@ -70,11 +73,6 @@ const jsonLd = {
     highPrice: '79',
     priceCurrency: 'USD',
     offerCount: 3,
-  },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    reviewCount: '412',
   },
   author: { '@type': 'Organization', name: 'StarlingPost' },
 };
