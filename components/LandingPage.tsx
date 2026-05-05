@@ -21,7 +21,6 @@ import {
   Youtube,
   Twitter,
   Linkedin,
-  Star,
   Globe,
   CalendarDays,
   BrainCircuit,
@@ -316,40 +315,8 @@ export function LandingPage() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: 'Priya Sharma',
-      role: 'Tech YouTuber · 280K subscribers',
-      avatar: 'PS',
-      color: 'from-cyan-500 to-blue-600',
-      text: "StarlingPost's Link Me automation alone doubled my affiliate link clicks. I just set the keyword once and it sends the link to every single comment asking for it.",
-      stars: 5,
-    },
-    {
-      name: 'Marcus Webb',
-      role: 'Twitter/X Creator · 95K followers',
-      avatar: 'MW',
-      color: 'from-purple-500 to-pink-600',
-      text: 'The AI captions are shockingly good for Twitter. They feel native, not like some generic GPT output. My engagement rate went up 40% within the first month.',
-      stars: 5,
-    },
-    {
-      name: 'Aisha Okonkwo',
-      role: 'LinkedIn Thought Leader · 45K followers',
-      avatar: 'AO',
-      color: 'from-emerald-500 to-teal-600',
-      text: "Scheduling LinkedIn posts at optimal times while traveling is a game-changer. My impressions tripled and I didn't have to touch my phone once.",
-      stars: 5,
-    },
-    {
-      name: 'James Liu',
-      role: 'Content Agency Founder',
-      avatar: 'JL',
-      color: 'from-orange-500 to-rose-600',
-      text: 'We manage 8 client accounts from one dashboard. The auto-reply templates save us hours every week — clients think we have a full moderation team.',
-      stars: 5,
-    },
-  ];
+  // Testimonials section was removed — every entry was fabricated.
+  // Re-add only when we have real, attributed quotes with permission.
 
   const faqs = [
     {
@@ -412,7 +379,7 @@ export function LandingPage() {
           style={{ y: heroY, opacity: heroOpacity }}
           className="relative z-10 text-center max-w-5xl mx-auto"
         >
-          {/* Trust badge */}
+          {/* Beta badge — honest framing instead of inflated user counts */}
           <motion.div
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -420,7 +387,7 @@ export function LandingPage() {
             className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-sm font-medium"
           >
             <Sparkles size={14} />
-            Trusted by 10,000+ creators worldwide
+            Now in beta — free during launch
             <Sparkles size={14} />
           </motion.div>
 
@@ -814,51 +781,6 @@ export function LandingPage() {
         </div>
       </Section>
 
-      {/* ── TESTIMONIALS ── */}
-      <Section className="py-24 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium">
-              <Star size={14} />
-              Creator Stories
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-extrabold mb-3">
-              Creators Who Made the Switch
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-gray-400">
-              Real results from real creators — no sponsored fluff.
-            </motion.p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                whileHover={{ y: -4 }}
-                className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4 hover:border-gray-600 transition-all"
-              >
-                <div className="flex gap-0.5">
-                  {Array(t.stars).fill(0).map((_, j) => (
-                    <Star key={j} size={13} className="fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-2 border-t border-gray-800">
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="text-white text-xs font-semibold">{t.name}</div>
-                    <div className="text-gray-500 text-[10px]">{t.role}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       {/* ── PRICING ── */}
       <Section className="py-24 px-4 bg-gray-900/30" id="pricing">
         <div className="max-w-5xl mx-auto">
@@ -976,7 +898,7 @@ export function LandingPage() {
               </h2>
 
               <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
-                Join 10,000+ creators who automate the boring parts and focus on creating what they love.
+                Automate the boring parts of growing on YouTube, X and LinkedIn — and focus on creating what you love.
               </p>
 
               {/* Email capture */}
