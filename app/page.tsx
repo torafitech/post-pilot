@@ -1,5 +1,6 @@
 // app/page.tsx — server component for SEO + metadata
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { LandingPage } from '@/components/LandingPage';
 
 export const metadata: Metadata = {
@@ -83,6 +84,14 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* AdSense — only on the landing page so authenticated routes
+          (dashboard, automation, admin) don't ship ad scripts. */}
+      <Script
+        async
+        strategy="afterInteractive"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7342126104264680"
+        crossOrigin="anonymous"
       />
       <LandingPage />
     </>

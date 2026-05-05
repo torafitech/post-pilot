@@ -4,204 +4,209 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import PhoneInput from 'react-phone-number-input';
+import {
+  AlertCircle, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User as UserIcon, Zap,
+} from 'lucide-react';
+
+function mapAuthError(code?: string, fallback = 'Sign up failed.'): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'An account with that email already exists.';
+    case 'auth/invalid-email':
+      return 'That email looks invalid.';
+    case 'auth/weak-password':
+      return 'Password is too weak — pick something stronger.';
+    case 'auth/network-request-failed':
+      return 'Network problem — check your connection and retry.';
+    default:
+      return fallback;
+  }
+}
 
 export default function RegisterPage() {
+  const { register } = useAuth();
+  const router = useRouter();
+
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [mobile, setMobile] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mobile, setMobile] = useState<string | undefined>();
-
-  const { register } = useAuth();
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
     if (!displayName.trim()) {
-      setError('Display name is required');
-      setLoading(false);
-      return;
-    }
-    if (!mobile) {
-      setError('Mobile number is required');
-      setLoading(false);
+      setError('Name is required.');
       return;
     }
     if (!email.trim()) {
-      setError('Email is required');
-      setLoading(false);
+      setError('Email is required.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
+      setError('Passwords do not match.');
       return;
     }
 
+    setLoading(true);
     try {
-      await register(email, password, displayName, mobile);
+      await register(email.trim(), password, displayName.trim(), mobile || '');
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(mapAuthError(err?.code, err?.message));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
-      {/* soft background gradient like dashboard */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/40 via-white to-purple-100/40" />
+    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(168,85,247,0.12),transparent_50%)]" />
 
       <div className="relative w-full max-w-md">
-        {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center justify-center text-2xl text-white shadow-sm">
-            🚀
+          <div className="inline-flex w-12 h-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 mb-4 shadow-lg shadow-purple-500/20">
+            <Zap size={22} className="text-white" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-1">
-            StarlingPost
-          </h1>
-          <p className="text-slate-500 text-sm">Join thousands of creators</p>
+          <h1 className="text-3xl font-extrabold mb-1.5">Create your account</h1>
+          <p className="text-gray-500 text-sm">Free during beta — no credit card needed.</p>
         </div>
 
-        {/* Form Card (glass / light like dashboard cards) */}
-        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-2xl font-bold mb-6 text-slate-900">Create Account</h2>
-
+        <div className="bg-gray-900/80 border border-gray-800 backdrop-blur-sm rounded-2xl p-7 shadow-2xl">
           {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-lg mb-6 text-sm">
-              {error}
+            <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 text-red-300 px-3.5 py-2.5 rounded-xl mb-5 text-sm">
+              <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Display Name */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
+            <Field label="Full name">
+              <div className="flex items-center bg-gray-950 border border-gray-800 rounded-xl px-4 focus-within:border-purple-500/60 focus-within:ring-2 focus-within:ring-purple-500/15 transition">
+                <UserIcon size={15} className="text-gray-600 mr-2.5" />
+                <input
+                  type="text"
+                  autoComplete="name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Jane Doe"
+                  className="flex-1 bg-transparent py-3 text-sm text-white placeholder-gray-600 focus:outline-none"
+                />
+              </div>
+            </Field>
 
-            {/* Mobile with react-phone-number-input */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Mobile Number
-              </label>
-              <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 focus-within:border-cyan-500 transition">
+            <Field label="Email">
+              <div className="flex items-center bg-gray-950 border border-gray-800 rounded-xl px-4 focus-within:border-purple-500/60 focus-within:ring-2 focus-within:ring-purple-500/15 transition">
+                <Mail size={15} className="text-gray-600 mr-2.5" />
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="flex-1 bg-transparent py-3 text-sm text-white placeholder-gray-600 focus:outline-none"
+                />
+              </div>
+            </Field>
+
+            <Field label={<>Mobile <span className="font-normal text-gray-600 normal-case">(optional)</span></>}>
+              <div className="phone-input-dark bg-gray-950 border border-gray-800 rounded-xl px-3.5 py-2 focus-within:border-purple-500/60 transition">
                 <PhoneInput
                   international
                   defaultCountry="IN"
                   value={mobile}
                   onChange={setMobile}
-                  className="text-sm text-slate-900"
-                  placeholder="Enter mobile number"
+                  placeholder="Phone (optional)"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Stored in international format with country code.
-              </p>
-            </div>
+            </Field>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
+            <Field label="Password">
+              <div className="flex items-center bg-gray-950 border border-gray-800 rounded-xl px-4 focus-within:border-purple-500/60 focus-within:ring-2 focus-within:ring-purple-500/15 transition">
+                <Lock size={15} className="text-gray-600 mr-2.5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="flex-1 bg-transparent py-3 text-sm text-white placeholder-gray-600 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-gray-600 hover:text-gray-300 ml-2"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </Field>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
+            <Field label="Confirm password">
+              <div className="flex items-center bg-gray-950 border border-gray-800 rounded-xl px-4 focus-within:border-purple-500/60 focus-within:ring-2 focus-within:ring-purple-500/15 transition">
+                <Lock size={15} className="text-gray-600 mr-2.5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat password"
+                  className="flex-1 bg-transparent py-3 text-sm text-white placeholder-gray-600 focus:outline-none"
+                />
+              </div>
+            </Field>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold text-white text-sm shadow-sm transition mt-4"
+              className="w-full mt-2 bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-400 hover:to-blue-500 disabled:opacity-60 px-5 py-3 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-500/20"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading
+                ? <><Loader2 size={16} className="animate-spin" /> Creating account…</>
+                : <>Create account <ArrowRight size={15} /></>}
             </button>
           </form>
 
-          {/* Login Link */}
-          <p className="text-center text-slate-500 mt-6 text-sm">
-            Already have an account{' '}
-            <Link
-              href="/login"
-              className="text-cyan-600 hover:text-cyan-500 font-semibold"
-            >
-              Sign In
+          <p className="text-center text-gray-500 mt-6 text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-semibold">
+              Sign in
             </Link>
           </p>
         </div>
 
-        {/* Benefits (light version) */}
-        <div className="mt-8 grid grid-cols-3 gap-4 text-center text-xs">
-          <div>
-            <div className="text-2xl mb-2">✨</div>
-            <p className="text-slate-500">AI-Powered Content</p>
-          </div>
-          <div>
-            <div className="text-2xl mb-2">📊</div>
-            <p className="text-slate-500">Smart Analytics</p>
-          </div>
-          <div>
-            <div className="text-2xl mb-2">🚀</div>
-            <p className="text-slate-500">Auto Posting</p>
-          </div>
-        </div>
+        <p className="text-center text-gray-700 text-xs mt-6">
+          By continuing, you agree to our{' '}
+          <Link href="/terms" className="text-gray-500 hover:text-gray-300">Terms</Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="text-gray-500 hover:text-gray-300">Privacy Policy</Link>.
+        </p>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

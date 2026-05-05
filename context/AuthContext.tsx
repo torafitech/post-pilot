@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signOut,
@@ -32,10 +33,11 @@ interface AuthContextType {
     email: string,
     password: string,
     displayName: string,
-    mobile: string,
+    mobile?: string,
   ): Promise<void>;
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
+  resetPassword(email: string): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     displayName: string,
-    mobile: string,
+    mobile: string = '',
   ) => {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
@@ -120,9 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, userProfile, loading, register, login, logout }}
+      value={{ user, userProfile, loading, register, login, logout, resetPassword }}
     >
       {children}
     </AuthContext.Provider>
