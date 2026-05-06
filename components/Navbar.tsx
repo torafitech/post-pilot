@@ -11,9 +11,11 @@ import {
   LogOut,
   User,
   Settings,
-  Bell,
   ChevronDown,
   Bot,
+  Calendar,
+  TrendingUp,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -33,6 +35,7 @@ export function Navbar({ variant }: NavbarProps) {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -223,11 +226,6 @@ export function Navbar({ variant }: NavbarProps) {
                 Upgrade
               </button>
 
-              {/* Notifications */}
-              <button className="p-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white transition-colors">
-                <Bell size={18} />
-              </button>
-
               {/* User Menu */}
               <div className="relative">
                 <button
@@ -320,11 +318,12 @@ export function Navbar({ variant }: NavbarProps) {
               </button>
             </div>
             <button
-              onClick={() => setUserMenuOpen(true)}
+              onClick={() => setMobileSheetOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-200 text-xs"
+              aria-label="Open menu"
             >
               <User size={14} />
-              Account
+              Menu
             </button>
           </div>
         </div>
@@ -337,10 +336,80 @@ export function Navbar({ variant }: NavbarProps) {
         />
       )}
 
+      {/* Mobile slide-up sheet */}
+      {mobileSheetOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileSheetOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute left-0 right-0 bottom-0 bg-gray-900 border-t border-gray-800 rounded-t-3xl shadow-2xl p-5 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                  {userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">
+                    {userProfile?.displayName || 'User'}
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">{user?.email}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileSheetOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-500"
+                aria-label="Close menu"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <SheetLink href="/dashboard"  icon={<Home size={16} />}       label="Dashboard"   onClick={() => setMobileSheetOpen(false)} />
+              <SheetLink href="/posts/create" icon={<PlusCircle size={16} />} label="Create post" onClick={() => setMobileSheetOpen(false)} />
+              <SheetLink href="/tasks"      icon={<Calendar size={16} />}   label="Tasks"       onClick={() => setMobileSheetOpen(false)} />
+              <SheetLink href="/automation" icon={<Bot size={16} />}        label="Automation"  onClick={() => setMobileSheetOpen(false)} />
+              <SheetLink href="/analytics"  icon={<TrendingUp size={16} />} label="Analytics"   onClick={() => setMobileSheetOpen(false)} />
+            </div>
+
+            <div className="h-px bg-gray-800 my-3" />
+
+            <button
+              onClick={async () => {
+                setMobileSheetOpen(false);
+                await handleLogout();
+              }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+            >
+              <LogOut size={16} />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
       <PremiumModal
         open={showPremiumModal}
         onClose={() => setShowPremiumModal(false)}
       />
     </>
+  );
+}
+
+function SheetLink({
+  href, icon, label, onClick,
+}: { href: string; icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 rounded-xl transition-colors"
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }

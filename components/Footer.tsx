@@ -1,7 +1,8 @@
 // components/Footer.tsx
 'use client';
 
-import { 
+import { usePathname } from 'next/navigation';
+import {
   Twitter, 
   Instagram, 
   Linkedin, 
@@ -18,7 +19,18 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+// Routes where the footer should be hidden (auth flows, admin tooling).
+const HIDE_FOOTER_PATHS = ['/login', '/register', '/admin'];
+
 export function Footer() {
+  const pathname = usePathname();
+  if (HIDE_FOOTER_PATHS.some((p) => pathname === p || pathname?.startsWith(p + '/'))) {
+    return null;
+  }
+  return <FooterInner />;
+}
+
+function FooterInner() {
   const currentYear = new Date().getFullYear();
   
   const footerLinks = {
