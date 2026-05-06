@@ -1,6 +1,7 @@
 'use client';
 
 import { DragEvent, useRef, useState } from 'react';
+import { useToast } from '@/components/Toast';
 
 interface FileUploadProps {
     onUploadComplete: (url: string, type: 'image' | 'video') => void;
@@ -13,6 +14,7 @@ export default function FileUpload({
     acceptedTypes = 'image/*,video/*',
     maxSizeMB = 100,
 }: FileUploadProps) {
+    const { toast } = useToast();
     const [uploading, setUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -55,7 +57,7 @@ export default function FileUpload({
         // Validate file size
         const fileSizeMB = file.size / (1024 * 1024);
         if (fileSizeMB > maxSizeMB) {
-            alert(`File size must be less than ${maxSizeMB}MB`);
+            toast.error('File too large', `File must be less than ${maxSizeMB}MB.`);
             return;
         }
 
@@ -109,7 +111,7 @@ export default function FileUpload({
             });
 
             xhr.addEventListener('error', () => {
-                alert('Upload failed. Please try again.');
+                toast.error('Upload failed', 'Please try again.');
                 setUploading(false);
             });
 
@@ -117,7 +119,7 @@ export default function FileUpload({
             xhr.send(formData);
         } catch (error: any) {
             console.error('Upload error:', error);
-            alert('Upload failed: ' + error.message);
+            toast.error('Upload failed', error.message);
             setUploading(false);
         }
     };

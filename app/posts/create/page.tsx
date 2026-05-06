@@ -3,6 +3,7 @@
 
 import FileUpload from '@/components/FileUpload';
 import { PremiumModal } from '@/components/PremiumModal';
+import { useToast } from '@/components/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { authFetch } from '@/lib/authClient';
 import { db } from '@/lib/firebase';
@@ -172,6 +173,7 @@ const orderedTabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
 
 export default function CreatePostPage() {
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -372,7 +374,7 @@ export default function CreatePostPage() {
     const baseCaption = formData.mainCaption;
 
     if (!baseCaption || baseCaption.trim() === '') {
-      alert('Please write a caption first!');
+      toast.error('Caption required', 'Add a caption before letting AI enhance it.');
       return;
     }
 
@@ -432,11 +434,11 @@ export default function CreatePostPage() {
           setAiTimeSlots(slots);
         }
       } else {
-        alert(`AI enhancement failed: ${data.error}`);
+        toast.error('AI enhancement failed', data.error);
       }
     } catch (error: any) {
       console.error('AI Error:', error);
-      alert(`Failed to enhance caption: ${error.message}`);
+      toast.error('Could not enhance caption', error.message);
     } finally {
       setAiEnhancing(false);
     }
@@ -471,12 +473,12 @@ export default function CreatePostPage() {
     }
 
     if (!formData.mainCaption.trim()) {
-      alert('Please write a caption');
+      toast.error('Caption required');
       return;
     }
 
     if (formData.platforms.length === 0) {
-      alert('Please select at least one platform');
+      toast.error('Pick a platform', 'Select at least one platform to publish to.');
       return;
     }
 
@@ -484,7 +486,7 @@ export default function CreatePostPage() {
       scheduleMode !== 'now' &&
       (!formData.scheduledDate || !formData.scheduledTime)
     ) {
-      alert('Please set a schedule time');
+      toast.error('Schedule time required', 'Pick a date and time to schedule this post.');
       return;
     }
 
@@ -529,22 +531,19 @@ export default function CreatePostPage() {
           const publishData = await publishResponse.json();
 
           if (!publishResponse.ok || !publishData.success) {
-            alert(
-              `Post saved but failed to publish. You can retry from dashboard.\n${
-                publishData.error || ''
-              }`,
+            toast.error(
+              'Post saved, but failed to publish',
+              `${publishData.error || 'You can retry from the dashboard.'}`,
             );
           } else {
-            alert('Post published successfully to all platforms!');
+            toast.success('Post published', 'Your post is live on all selected platforms.');
           }
         } catch (publishError) {
           console.error('Error publishing post:', publishError);
-          alert(
-            'Post saved but failed to publish. Please try again from dashboard.',
-          );
+          toast.error('Could not reach the publish service', 'Post saved as draft. Retry from the dashboard.');
         }
       } else {
-        alert('Post scheduled successfully! It will be auto-published.');
+        toast.success('Post scheduled', 'StarlingPost will publish it automatically at the scheduled time.');
       }
 
       setFormData({
@@ -573,7 +572,7 @@ export default function CreatePostPage() {
       router.push('/dashboard');
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Failed to create post');
+      toast.error('Could not create post', 'Something went wrong saving the draft. Please retry.');
     } finally {
       setLoading(false);
     }
@@ -604,11 +603,11 @@ export default function CreatePostPage() {
     const idx = orderedTabs.indexOf(activeTab);
 
     if (activeTab === 'content' && !formData.mainCaption.trim()) {
-      alert('Please write a caption to continue.');
+      toast.error('Caption required', 'Add a caption before continuing.');
       return;
     }
     if (activeTab === 'platforms' && formData.platforms.length === 0) {
-      alert('Please select at least one platform.');
+      toast.error('Pick a platform', 'Select at least one platform to publish to.');
       return;
     }
     if (
@@ -616,7 +615,7 @@ export default function CreatePostPage() {
       scheduleMode !== 'now' &&
       (!formData.scheduledDate || !formData.scheduledTime)
     ) {
-      alert('Please choose a schedule date and time.');
+      toast.error('Schedule required', 'Choose a date and time for the scheduled post.');
       return;
     }
 
