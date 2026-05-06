@@ -1,0 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Create post',
+  robots: { index: false, follow: false },
+};
+
+export default function CreatePostLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
