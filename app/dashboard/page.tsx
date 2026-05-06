@@ -142,14 +142,45 @@ export default function DashboardPage() {
 
   const fetchPosts = async () => {
     if (!user) return;
-    const snap = await getDocs(query(
-      collection(db, 'posts'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(200),
-    ));
+
+    // Pull both: top-level scheduler docs (status, scheduled time,
+    // platforms list) AND per-platform metric docs that publish writes
+    // to users/{uid}/posts. Merge metrics into the scheduler docs by
+    // matching platformPostIds[platform] -> doc id of the metric record.
+    const [schedSnap, metricsSnap] = await Promise.all([
+      getDocs(query(
+        collection(db, 'posts'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(200),
+      )),
+      getDocs(collection(db, 'users', user.uid, 'posts')),
+    ]);
+
+    // Build lookup: platformPostId -> aggregated metrics (sum across
+    // platforms for the same scheduler post).
+    const metricsByPlatformPostId: Record<string, any> = {};
+    metricsSnap.forEach((d) => {
+      metricsByPlatformPostId[d.id] = (d.data() as any).metrics || {};
+    });
+
     const list: SocialPost[] = [];
-    snap.forEach(d => list.push({ id: d.id, ...d.data() } as any));
+    schedSnap.forEach((d) => {
+      const data = d.data() as any;
+      const platformPostIds: Record<string, string> = data.platformPostIds || {};
+      // Aggregate metrics across every platform-specific copy.
+      const merged: Record<string, number> = {};
+      for (const platformId of Object.values(platformPostIds)) {
+        const m = metricsByPlatformPostId[platformId];
+        if (!m) continue;
+        for (const [k, v] of Object.entries(m)) {
+          if (typeof v === 'number') merged[k] = (merged[k] || 0) + v;
+        }
+      }
+      const finalMetrics = Object.keys(merged).length ? merged : data.metrics;
+      list.push({ id: d.id, ...data, metrics: finalMetrics } as any);
+    });
+
     setPosts(list);
   };
 
