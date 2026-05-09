@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 interface TimeSlot {
   platform: string;
@@ -85,6 +86,11 @@ function calculateEngagementScore(
 }
 
 export async function POST(request: NextRequest) {
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { platforms, caption, contentType } = body as {

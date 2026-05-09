@@ -75,13 +75,18 @@ export async function POST(request: NextRequest) {
       refresh_token: refreshToken || undefined,
     });
 
-    // Force refresh
+    // Force refresh — if this fails, the upload will fail with a cryptic 401.
+    // Return a clear error so the caller can prompt the user to reconnect.
     try {
       const { credentials } = await oauth2Client.refreshAccessToken();
       oauth2Client.setCredentials(credentials);
       console.log('✅ Token refreshed');
     } catch (err: any) {
-      console.warn('Token refresh failed, continuing:', err.message);
+      console.error('YouTube token refresh failed:', err.message);
+      return NextResponse.json(
+        { error: 'YouTube token refresh failed, please reconnect YouTube', needsReauth: true },
+        { status: 401 },
+      );
     }
 
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });

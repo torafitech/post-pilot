@@ -70,11 +70,24 @@ export async function GET(_req: NextRequest) {
 
             try {
                 // 2) Call the same publish endpoint your "Publish Now" uses
+                // TODO: ensure INTERNAL_CRON_SECRET env var is set in Vercel — without it
+                // the publish endpoint will reject this call as Unauthorized.
+                const cronSecret = process.env.INTERNAL_CRON_SECRET;
+                if (!cronSecret) {
+                    console.error('INTERNAL_CRON_SECRET is not set — skipping post', postId);
+                    batch.update(doc.ref, {
+                        status: 'failed',
+                        updatedAt: new Date(),
+                        errorMessage: 'Server misconfiguration: INTERNAL_CRON_SECRET not set',
+                    });
+                    continue;
+                }
+
                 const res = await fetch(`${baseUrl}/api/posts/publish`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-internal-secret': process.env.INTERNAL_CRON_SECRET || '',
+                        'x-internal-secret': cronSecret,
                     },
                     body: JSON.stringify({
                         postId,

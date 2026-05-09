@@ -64,16 +64,18 @@ export async function GET(request: NextRequest) {
 
     // Get authenticated user ID from Firebase session
     const sessionCookie = request.cookies.get('__session')?.value;
-    let userId = 'demo_user'; // fallback
+    if (!sessionCookie) {
+      return NextResponse.redirect(`${origin}/login?error=session_expired`);
+    }
 
-    if (sessionCookie) {
-      try {
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-        userId = decodedClaims.uid;
-        console.log('✅ Got userId from session cookie:', userId);
-      } catch (err) {
-        console.log('⚠️ Could not verify session cookie, using demo_user');
-      }
+    let userId: string;
+    try {
+      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+      userId = decodedClaims.uid;
+      console.log('✅ Got userId from session cookie:', userId);
+    } catch (err) {
+      console.error('Twitter callback: session verification failed', err);
+      return NextResponse.redirect(`${origin}/login?error=session_expired`);
     }
 
     // Save to users/{userId}/connectedAccounts array
