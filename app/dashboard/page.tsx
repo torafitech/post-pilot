@@ -35,6 +35,7 @@ interface ConnectedAccount {
 interface LiveAccountData {
   subscribers?: number;
   followers?: number;
+  postCount?: number;
   views?: number;
   likes?: number;
   comments?: number;
@@ -254,6 +255,7 @@ export default function DashboardPage() {
             }));
             updates[acc.id] = {
               subscribers: json.channelInfo.subscriberCount || 0,
+              postCount: json.channelInfo.videoCount || recentPosts.length,
               views: json.videoMetrics?.totalViews || 0,
               likes: json.videoMetrics?.totalLikes || 0,
               comments: json.videoMetrics?.totalComments || 0,
@@ -386,18 +388,19 @@ export default function DashboardPage() {
     return PLATFORMS.map(pl => {
       const plAccounts = accounts.filter(a => a.platform === pl);
       const plPosts = published.filter(p => p.platform?.toLowerCase() === pl);
-      const liveViews = plAccounts.reduce((s, a) => s + (liveData[a.id]?.views ?? 0), 0);
-      const liveLikes = plAccounts.reduce((s, a) => s + (liveData[a.id]?.likes ?? 0), 0);
+      const liveViews    = plAccounts.reduce((s, a) => s + (liveData[a.id]?.views    ?? 0), 0);
+      const liveLikes    = plAccounts.reduce((s, a) => s + (liveData[a.id]?.likes    ?? 0), 0);
       const liveComments = plAccounts.reduce((s, a) => s + (liveData[a.id]?.comments ?? 0), 0);
-      const fsViews = plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0);
-      const fsLikes = plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0);
+      const livePostCount = plAccounts.reduce((s, a) => s + (liveData[a.id]?.postCount ?? 0), 0);
+      const fsViews    = plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0);
+      const fsLikes    = plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0);
       const fsComments = plPosts.reduce((s, p) => s + (p.metrics?.comments || 0), 0);
       return {
-        platform: pl,
-        posts:    plPosts.length,
-        views:    liveViews > 0 ? liveViews : fsViews,
-        likes:    liveLikes > 0 ? liveLikes : fsLikes,
-        comments: liveComments > 0 ? liveComments : fsComments,
+        platform:  pl,
+        posts:     livePostCount > 0 ? livePostCount : plPosts.length,
+        views:     liveViews    > 0 ? liveViews    : fsViews,
+        likes:     liveLikes    > 0 ? liveLikes    : fsLikes,
+        comments:  liveComments > 0 ? liveComments : fsComments,
         followers: plAccounts.reduce((s, a) => s + (liveData[a.id]?.subscribers ?? liveData[a.id]?.followers ?? 0), 0),
       };
     });
@@ -641,7 +644,7 @@ export default function DashboardPage() {
                                     className="text-[10px] px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
                                   >Reconnect</button>
                                 )}
-                                {(ld?.recentPosts?.length ?? 0) > 0 && (
+                                {ld && !ld.needsReauth && (
                                   <button
                                     onClick={() => setExpandedAccount(isExpanded ? null : acc.id)}
                                     className="text-gray-600 hover:text-gray-300 transition-colors"
@@ -656,6 +659,11 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Expanded: recent posts */}
+                            {isExpanded && ld && (ld.recentPosts?.length ?? 0) === 0 && (
+                              <div className="border-t border-gray-800 px-3 py-3 text-center text-xs text-gray-600">
+                                No recent posts found for this account.
+                              </div>
+                            )}
                             {isExpanded && ld?.recentPosts && ld.recentPosts.length > 0 && (
                               <div className="border-t border-gray-800 divide-y divide-gray-800/60">
                                 {ld.recentPosts.slice(0, 5).map(rp => (
