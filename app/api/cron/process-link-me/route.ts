@@ -1,7 +1,7 @@
 // app/api/cron/process-link-me/route.ts
 // Cron: scan recent activity on each connected platform and fire Link Me
 // rules. Iterates every connected account per platform (multi-account safe).
-// LinkedIn is currently skipped — comment APIs are coming soon.
+// Platforms: YouTube, Twitter, LinkedIn (requires LinkedIn MDP access).
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import {
@@ -16,6 +16,13 @@ import {
   checkYTReplied,
   markYTReplied,
 } from '@/lib/youtubeAutomation';
+import {
+  fetchRecentLinkedInPostUrns,
+  fetchLinkedInComments,
+  replyToLinkedInComment,
+  checkLIReplied,
+  markLIReplied,
+} from '@/lib/linkedinAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +31,20 @@ const MAX_VIDEOS_PER_ACCOUNT = 10;
 const MAX_COMMENTS_PER_VIDEO = 20;
 const MAX_MENTIONS = 20;
 
+function isAuthorizedCron(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET || process.env.INTERNAL_CRON_SECRET;
+  if (!secret) return false;
+  return (
+    req.headers.get('authorization') === `Bearer ${secret}` ||
+    req.headers.get('x-internal-secret') === secret
+  );
+}
+
 export async function GET(_req: NextRequest) {
+  if (!isAuthorizedCron(_req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const userIds = await findUsersWithActiveRules();
     let totalReplied = 0;
@@ -100,7 +120,49 @@ async function processUserLinkMe(userId: string): Promise<number> {
     }
   }
 
-  // LinkedIn — skipped until comment API is wired
+  // LinkedIn — every connected LinkedIn account
+  const liRules = rules.filter((r: any) => r.platforms?.includes('linkedin'));
+  if (liRules.length) {
+    const liAccounts = accounts.filter((a: any) => a.platform === 'linkedin');
+    for (const liAcc of liAccounts) {
+      try {
+        replied += await processLinkedInLinkMe(userId, liRules, liAcc);
+      } catch (err: any) {
+        console.error('[LINK-ME] LI account', liAcc.platformId, err.message);
+      }
+    }
+  }
+
+  return replied;
+}
+
+async function processLinkedInLinkMe(
+  userId: string,
+  rules: any[],
+  liAcc: any,
+): Promise<number> {
+  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS_PER_ACCOUNT);
+  let replied = 0;
+
+  for (const postUrn of postUrns) {
+    const comments = await fetchLinkedInComments(liAcc, postUrn, MAX_COMMENTS_PER_VIDEO);
+    for (const comment of comments) {
+      if (comment.actorUrn === liAcc.authorUrn) continue;
+      if (await checkLIReplied(userId, comment.id, 'linkMe')) continue;
+
+      const text = comment.text.toLowerCase();
+      const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      if (!rule) continue;
+
+      const ok = await replyToLinkedInComment(liAcc, comment.id, rule.replyMessage);
+      if (ok) {
+        await markLIReplied(userId, comment.id, 'linkMe');
+        await incrementRuleMatch(userId, rule.id);
+        replied++;
+      }
+    }
+  }
+
   return replied;
 }
 

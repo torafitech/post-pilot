@@ -4,7 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+function isAuthorizedCron(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET || process.env.INTERNAL_CRON_SECRET;
+  if (!secret) return false;
+  return (
+    req.headers.get('authorization') === `Bearer ${secret}` ||
+    req.headers.get('x-internal-secret') === secret
+  );
+}
+
 export async function GET(_req: NextRequest) {
+    if (!isAuthorizedCron(_req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const now = new Date();
 

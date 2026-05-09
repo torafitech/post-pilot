@@ -48,7 +48,7 @@ const platformIcons: Record<string, React.ReactNode> = {
 };
 
 const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
-const comingSoonPlatforms = new Set(['linkedin']);
+const comingSoonPlatforms = new Set<string>();
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();

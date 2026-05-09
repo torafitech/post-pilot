@@ -17,6 +17,13 @@ import {
   checkYTReplied,
   markYTReplied,
 } from '@/lib/youtubeAutomation';
+import {
+  fetchRecentLinkedInPostUrns,
+  fetchLinkedInComments,
+  replyToLinkedInComment,
+  checkLIReplied,
+  markLIReplied,
+} from '@/lib/linkedinAutomation';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +32,20 @@ const MAX_VIDEOS_PER_ACCOUNT = 10;
 const MAX_COMMENTS_PER_VIDEO = 10;
 const MAX_MENTIONS = 20;
 
+function isAuthorizedCron(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET || process.env.INTERNAL_CRON_SECRET;
+  if (!secret) return false;
+  return (
+    req.headers.get('authorization') === `Bearer ${secret}` ||
+    req.headers.get('x-internal-secret') === secret
+  );
+}
+
 export async function GET(_req: NextRequest) {
+  if (!isAuthorizedCron(_req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const userIds = await findUsersWithActiveTemplates();
     let totalReplied = 0;
@@ -96,6 +116,19 @@ async function processUserAutoReply(userId: string): Promise<number> {
         replied += await autoReplyTwitter(userId, twTemplate, twAcc);
       } catch (err: any) {
         console.error('[AUTO-REPLY] TW account', twAcc.platformId, err.message);
+      }
+    }
+  }
+
+  // LinkedIn — every connected LinkedIn account
+  const liTemplate = templates.find((t: any) => t.platforms?.includes('linkedin'));
+  if (liTemplate) {
+    const liAccounts = accounts.filter((a: any) => a.platform === 'linkedin');
+    for (const liAcc of liAccounts) {
+      try {
+        replied += await autoReplyLinkedIn(userId, liTemplate, liAcc);
+      } catch (err: any) {
+        console.error('[AUTO-REPLY] LI account', liAcc.platformId, err.message);
       }
     }
   }
@@ -193,6 +226,32 @@ async function autoReplyTwitter(
     if (ok) {
       await twMarkReplied(userId, mention.id, 'autoReply');
       replied++;
+    }
+  }
+
+  return replied;
+}
+
+async function autoReplyLinkedIn(
+  userId: string,
+  template: any,
+  liAcc: any,
+): Promise<number> {
+  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS_PER_ACCOUNT);
+  let replied = 0;
+
+  for (const postUrn of postUrns) {
+    const comments = await fetchLinkedInComments(liAcc, postUrn, MAX_COMMENTS_PER_VIDEO);
+    for (const comment of comments) {
+      if (comment.actorUrn === liAcc.authorUrn) continue;
+      if (await checkLIReplied(userId, comment.id, 'autoReply')) continue;
+
+      const replyText = await buildReplyText(template, comment.text, '');
+      const ok = await replyToLinkedInComment(liAcc, comment.id, replyText);
+      if (ok) {
+        await markLIReplied(userId, comment.id, 'autoReply');
+        replied++;
+      }
     }
   }
 

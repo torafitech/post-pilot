@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminFieldValue } from "@/lib/firebaseAdmin";
+import { getUserIdFromRequest } from "@/lib/getUserFromRequest";
 // import type { PlatformKey } from "@/types/platform"; // keep your central type
 
 // If you really need it local, don't re-declare; rely on the imported type.
@@ -29,7 +30,10 @@ export async function DELETE(
     }
 
     const typedPlatform: PlatformKey = platform;
-    const userId = "demo_user"; // TODO: replace with real authenticated user id
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
     // Get the user document
     const snap = await adminDb.collection("users").doc(userId).get();
