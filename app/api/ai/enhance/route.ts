@@ -1,9 +1,15 @@
 // app/api/ai/enhance/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 export async function POST(req: NextRequest) {
   console.log('🎯 AI Enhancement API Called');
+
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
