@@ -271,31 +271,35 @@ export default function DashboardPage() {
 
       if (acc.platform === 'twitter') {
         try {
-          const res = await fetch(`/api/twitter/user?userId=${user.uid}`);
+          const res = await fetch(`/api/twitter/user?userId=${user.uid}&accountId=${acc.id}`);
           const json = await res.json();
           if (json.needsReauth) {
             updates[acc.id] = { needsReauth: true };
           } else if (res.ok && json.followerCount !== undefined) {
-            // Also fetch recent tweets for expanded view
             let recentPosts: RecentPost[] = [];
+            let aggViews = 0, aggLikes = 0, aggComments = 0;
             try {
-              const tr = await fetch(`/api/twitter/tweets?userId=${user.uid}&maxResults=5`);
+              const tr = await fetch(`/api/twitter/tweets?userId=${user.uid}&accountId=${acc.id}&maxResults=10`);
               const tj = await tr.json();
               recentPosts = (tj.tweets || []).map((t: any) => ({
                 id: t.id,
-                title: t.text?.slice(0, 120) || 'Tweet',
+                title: t.text?.slice(0, 140) || 'Tweet',
                 url: t.permalink || `https://twitter.com/${json.username}/status/${t.id}`,
-                views: t.metrics?.impressions || 0,
-                likes: t.metrics?.likes || 0,
-                comments: t.metrics?.replies || 0,
+                views:    t.metrics?.impressions || 0,
+                likes:    t.metrics?.likes       || 0,
+                comments: t.metrics?.replies     || 0,
                 publishedAt: t.createdAt,
               }));
+              aggViews    = recentPosts.reduce((s, t) => s + t.views,    0);
+              aggLikes    = recentPosts.reduce((s, t) => s + t.likes,    0);
+              aggComments = recentPosts.reduce((s, t) => s + t.comments, 0);
             } catch { /* tweets optional */ }
             updates[acc.id] = {
               followers: json.followerCount || 0,
-              views: 0,
-              likes: 0,
-              comments: 0,
+              postCount: json.tweetCount    || 0,
+              views:    aggViews,
+              likes:    aggLikes,
+              comments: aggComments,
               recentPosts,
             };
           } else {

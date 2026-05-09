@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
+    const accountId = url.searchParams.get('accountId');
 
-    console.log('[TWITTER USER] Fetching for userId:', userId);
+    console.log('[TWITTER USER] Fetching for userId:', userId, 'accountId:', accountId);
 
     if (!userId) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Get Twitter account from Firestore
     const userDoc = await adminDb.collection('users').doc(userId).get();
-    
+
     if (!userDoc.exists) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -31,10 +32,11 @@ export async function GET(request: NextRequest) {
 
     const userData = userDoc.data() as any;
     const connectedAccounts = userData.connectedAccounts || [];
-    
-    const twitterAccount = connectedAccounts.find(
-      (acc: any) => acc.platform === 'twitter' || acc.platform === 'twitter/x'
-    );
+
+    const isTwitter = (acc: any) => acc.platform === 'twitter' || acc.platform === 'twitter/x';
+    const twitterAccount = accountId
+      ? connectedAccounts.find((acc: any) => acc.id === accountId && isTwitter(acc))
+      : connectedAccounts.find(isTwitter);
 
     if (!twitterAccount) {
       console.log('[TWITTER USER] No Twitter account connected');
