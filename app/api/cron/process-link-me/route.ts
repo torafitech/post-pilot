@@ -23,6 +23,7 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import { parsePostUrls } from '@/lib/postScopeUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,19 +142,29 @@ async function processLinkedInLinkMe(
   rules: any[],
   liAcc: any,
 ): Promise<number> {
-  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS_PER_ACCOUNT);
-  let replied = 0;
+  const maxRecent = Math.max(...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5), 0);
+  const recentUrns = maxRecent > 0 ? await fetchRecentLinkedInPostUrns(liAcc, Math.min(maxRecent, MAX_VIDEOS_PER_ACCOUNT)) : [];
+  const customUrns = new Set<string>(
+    rules.flatMap(r => r.postScope === 'custom' ? parsePostUrls(r.customUrls || [], 'linkedin') : [])
+  );
+  const allUrns = [...new Set([...recentUrns, ...customUrns])];
 
-  for (const postUrn of postUrns) {
+  let replied = 0;
+  for (const postUrn of allUrns) {
+    const applicableRules = rules.filter(r =>
+      r.postScope === 'custom'
+        ? parsePostUrls(r.customUrls || [], 'linkedin').includes(postUrn)
+        : recentUrns.slice(0, r.recentCount || 5).includes(postUrn)
+    );
+    if (!applicableRules.length) continue;
+
     const comments = await fetchLinkedInComments(liAcc, postUrn, MAX_COMMENTS_PER_VIDEO);
     for (const comment of comments) {
       if (comment.actorUrn === liAcc.authorUrn) continue;
       if (await checkLIReplied(userId, comment.id, 'linkMe')) continue;
-
       const text = comment.text.toLowerCase();
-      const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
       if (!rule) continue;
-
       const ok = await replyToLinkedInComment(liAcc, comment.id, rule.replyMessage);
       if (ok) {
         await markLIReplied(userId, comment.id, 'linkMe');
@@ -162,7 +173,6 @@ async function processLinkedInLinkMe(
       }
     }
   }
-
   return replied;
 }
 
@@ -172,35 +182,40 @@ async function processYouTubeLinkMe(
   ytAccount: any,
 ): Promise<number> {
   const youtube = buildYouTubeClient(ytAccount);
-  const videoIds = await fetchRecentVideoIds(ytAccount, MAX_VIDEOS_PER_ACCOUNT);
-  let replied = 0;
 
-  for (const videoId of videoIds) {
+  // Collect video IDs for each rule's scope
+  const maxRecent = Math.max(...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5), 0);
+  const recentIds = maxRecent > 0 ? await fetchRecentVideoIds(ytAccount, Math.min(maxRecent, MAX_VIDEOS_PER_ACCOUNT)) : [];
+  const customIds = new Set<string>(
+    rules.flatMap(r => r.postScope === 'custom' ? parsePostUrls(r.customUrls || [], 'youtube') : [])
+  );
+  const allIds = [...new Set([...recentIds, ...customIds])];
+
+  let replied = 0;
+  for (const videoId of allIds) {
+    const applicableRules = rules.filter(r =>
+      r.postScope === 'custom'
+        ? parsePostUrls(r.customUrls || [], 'youtube').includes(videoId)
+        : recentIds.slice(0, r.recentCount || 5).includes(videoId)
+    );
+    if (!applicableRules.length) continue;
+
     try {
       const commentsRes = await youtube.commentThreads.list({
-        part: ['snippet'],
-        videoId,
-        maxResults: MAX_COMMENTS_PER_VIDEO,
-        order: 'time',
+        part: ['snippet'], videoId, maxResults: MAX_COMMENTS_PER_VIDEO, order: 'time',
       });
-
       for (const thread of commentsRes.data.items || []) {
         const commentId = thread.id!;
         const text = (thread.snippet?.topLevelComment?.snippet?.textDisplay || '').toLowerCase();
         const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
         if (authorChannelId === ytAccount.platformId) continue;
-
         if (await checkYTReplied(userId, commentId, 'linkMe')) continue;
-
-        const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+        const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
         if (!rule) continue;
-
         try {
           await youtube.comments.insert({
             part: ['snippet'],
-            requestBody: {
-              snippet: { parentId: commentId, textOriginal: rule.replyMessage },
-            },
+            requestBody: { snippet: { parentId: commentId, textOriginal: rule.replyMessage } },
           });
           await markYTReplied(userId, commentId, 'linkMe');
           await incrementRuleMatch(userId, rule.id);
@@ -213,7 +228,6 @@ async function processYouTubeLinkMe(
       console.error('[LINK-ME] YT video error', videoId, err.message);
     }
   }
-
   return replied;
 }
 
@@ -229,8 +243,18 @@ async function processTwitterLinkMe(
     if (mention.authorId === twAccount.platformId) continue;
     if (await twCheckReplied(userId, mention.id, 'linkMe')) continue;
 
+    // Scope filter: custom-scope rules only apply to replies to specific tweet IDs
+    const applicableRules = rules.filter(r => {
+      if (r.postScope === 'custom') {
+        const targetIds = parsePostUrls(r.customUrls || [], 'twitter');
+        return targetIds.includes(mention.inReplyToStatusId || '');
+      }
+      return true;
+    });
+    if (!applicableRules.length) continue;
+
     const text = mention.text.toLowerCase();
-    const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+    const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
     if (!rule) continue;
 
     const ok = await replyToTweet(twAccount, mention.id, rule.replyMessage);

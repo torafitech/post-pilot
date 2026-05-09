@@ -28,6 +28,7 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import { parsePostUrls } from '@/lib/postScopeUtils';
 
 const MAX_VIDEOS = 10;
 const MAX_COMMENTS_PER_VIDEO = 20;
@@ -192,14 +193,24 @@ async function runLinkMe(userId: string) {
 
 async function lmYouTube(userId: string, rules: any[], ytAcc: any, acc: AccountStat) {
   const youtube = buildYouTubeClient(ytAcc);
-  const videoIds = await fetchRecentVideoIds(ytAcc, MAX_VIDEOS);
+  const maxRecent = Math.max(...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5), 0);
+  const recentIds = maxRecent > 0 ? await fetchRecentVideoIds(ytAcc, Math.min(maxRecent, MAX_VIDEOS)) : [];
+  const customIds = new Set<string>(rules.flatMap(r => r.postScope === 'custom' ? parsePostUrls(r.customUrls || [], 'youtube') : []));
+  const videoIds = [...new Set([...recentIds, ...customIds])];
   acc.scanned = videoIds.length;
   if (!videoIds.length) {
-    acc.errors.push('No recent videos found on this channel.');
+    acc.errors.push('No videos to scan (check scope/URLs).');
     return;
   }
 
   for (const videoId of videoIds) {
+    const applicableRules = rules.filter(r =>
+      r.postScope === 'custom'
+        ? parsePostUrls(r.customUrls || [], 'youtube').includes(videoId)
+        : recentIds.slice(0, r.recentCount || 5).includes(videoId)
+    );
+    if (!applicableRules.length) continue;
+
     try {
       const res = await youtube.commentThreads.list({
         part: ['snippet'], videoId, maxResults: MAX_COMMENTS_PER_VIDEO, order: 'time',
@@ -213,7 +224,7 @@ async function lmYouTube(userId: string, rules: any[], ytAcc: any, acc: AccountS
         const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
         if (authorChannelId === ytAcc.platformId) continue;
 
-        const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+        const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
         if (!rule) continue;
         acc.matched++;
 
@@ -254,7 +265,16 @@ async function lmTwitter(userId: string, rules: any[], twAcc: any, acc: AccountS
   for (const mention of mentions) {
     if (mention.authorId === twAcc.platformId) continue;
 
-    const rule = rules.find((r: any) =>
+    const applicableRules = rules.filter(r => {
+      if (r.postScope === 'custom') {
+        const targetIds = parsePostUrls(r.customUrls || [], 'twitter');
+        return targetIds.includes(mention.inReplyToStatusId || '');
+      }
+      return true;
+    });
+    if (!applicableRules.length) continue;
+
+    const rule = applicableRules.find((r: any) =>
       mention.text.toLowerCase().includes(r.keyword.toLowerCase()),
     );
     if (!rule) continue;

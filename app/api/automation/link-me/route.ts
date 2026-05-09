@@ -6,13 +6,16 @@ import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 export interface LinkMeRule {
   id?: string;
-  keyword: string;          // Trigger keyword (case-insensitive match)
-  replyMessage: string;     // Message to send when keyword detected
-  platforms: string[];      // Which platforms to apply on ['youtube', 'twitter', 'linkedin']
+  keyword: string;
+  replyMessage: string;
+  platforms: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  totalMatches?: number;    // How many times this rule fired
+  totalMatches?: number;
+  postScope?: 'recent' | 'custom'; // default: 'recent'
+  recentCount?: number;            // 1-10, default 5 (used when postScope === 'recent')
+  customUrls?: string[];           // post URLs to scan (used when postScope === 'custom')
 }
 
 // GET /api/automation/link-me — list all rules for user
@@ -51,10 +54,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { keyword, replyMessage, platforms } = body as {
+    const { keyword, replyMessage, platforms, postScope, recentCount, customUrls } = body as {
       keyword?: string;
       replyMessage?: string;
       platforms?: string[];
+      postScope?: 'recent' | 'custom';
+      recentCount?: number;
+      customUrls?: string[];
     };
 
     if (!keyword?.trim()) {
@@ -82,6 +88,9 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
       totalMatches: 0,
+      postScope: postScope === 'custom' ? 'custom' : 'recent',
+      recentCount: postScope !== 'custom' ? Math.min(Math.max(recentCount || 5, 1), 10) : undefined,
+      customUrls: postScope === 'custom' ? (customUrls || []).slice(0, 20) : undefined,
     };
 
     const docRef = await adminDb

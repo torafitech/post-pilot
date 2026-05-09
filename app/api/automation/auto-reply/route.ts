@@ -6,13 +6,16 @@ import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 export interface AutoReplyTemplate {
   id?: string;
-  name: string;             // Template name for UI
-  message: string;          // Reply message (may include {username} placeholder)
-  platforms: string[];      // Platforms to apply on
+  name: string;
+  message: string;
+  platforms: string[];
   isActive: boolean;
-  useAI: boolean;           // If true, generate reply with AI instead of fixed message
+  useAI: boolean;
   createdAt: Date;
   updatedAt: Date;
+  postScope?: 'recent' | 'custom';
+  recentCount?: number;
+  customUrls?: string[];
 }
 
 export async function GET(request: NextRequest) {
@@ -48,11 +51,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, message, platforms, useAI } = body as {
+    const { name, message, platforms, useAI, postScope, recentCount, customUrls } = body as {
       name?: string;
       message?: string;
       platforms?: string[];
       useAI?: boolean;
+      postScope?: 'recent' | 'custom';
+      recentCount?: number;
+      customUrls?: string[];
     };
 
     if (!name?.trim()) {
@@ -77,6 +83,9 @@ export async function POST(request: NextRequest) {
       useAI: !!useAI,
       createdAt: now,
       updatedAt: now,
+      postScope: postScope === 'custom' ? 'custom' : 'recent',
+      recentCount: postScope !== 'custom' ? Math.min(Math.max(recentCount || 5, 1), 10) : undefined,
+      customUrls: postScope === 'custom' ? (customUrls || []).slice(0, 20) : undefined,
     };
 
     const docRef = await adminDb

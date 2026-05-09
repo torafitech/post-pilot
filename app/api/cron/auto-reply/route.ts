@@ -24,6 +24,7 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import { parsePostUrls } from '@/lib/postScopeUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,18 +169,17 @@ async function autoReplyYouTube(
   ytAccount: any,
 ): Promise<number> {
   const youtube = buildYouTubeClient(ytAccount);
-  const videoIds = await fetchRecentVideoIds(ytAccount, MAX_VIDEOS_PER_ACCOUNT);
-  let replied = 0;
+  const count = template.postScope === 'custom' ? 0 : Math.min(template.recentCount || 5, MAX_VIDEOS_PER_ACCOUNT);
+  const recentIds = count > 0 ? await fetchRecentVideoIds(ytAccount, count) : [];
+  const customIds = template.postScope === 'custom' ? parsePostUrls(template.customUrls || [], 'youtube') : [];
+  const videoIds = [...new Set([...recentIds, ...customIds])];
 
+  let replied = 0;
   for (const videoId of videoIds) {
     try {
       const commentsRes = await youtube.commentThreads.list({
-        part: ['snippet'],
-        videoId,
-        maxResults: MAX_COMMENTS_PER_VIDEO,
-        order: 'time',
+        part: ['snippet'], videoId, maxResults: MAX_COMMENTS_PER_VIDEO, order: 'time',
       });
-
       for (const thread of commentsRes.data.items || []) {
         const commentId = thread.id!;
         const commentText = thread.snippet?.topLevelComment?.snippet?.textDisplay || '';
@@ -187,9 +187,7 @@ async function autoReplyYouTube(
         const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
         if (authorChannelId === ytAccount.platformId) continue;
         if (await checkYTReplied(userId, commentId, 'autoReply')) continue;
-
         const replyText = await buildReplyText(template, commentText, authorName);
-
         try {
           await youtube.comments.insert({
             part: ['snippet'],
@@ -205,7 +203,6 @@ async function autoReplyYouTube(
       console.error('[AUTO-REPLY] YT video error', videoId, err.message);
     }
   }
-
   return replied;
 }
 
@@ -215,12 +212,13 @@ async function autoReplyTwitter(
   twAccount: any,
 ): Promise<number> {
   const mentions = await fetchMentions(twAccount, MAX_MENTIONS);
+  const targetTweetIds = template.postScope === 'custom' ? parsePostUrls(template.customUrls || [], 'twitter') : [];
   let replied = 0;
 
   for (const mention of mentions) {
     if (mention.authorId === twAccount.platformId) continue;
+    if (template.postScope === 'custom' && !targetTweetIds.includes(mention.inReplyToStatusId || '')) continue;
     if (await twCheckReplied(userId, mention.id, 'autoReply')) continue;
-
     const replyText = await buildReplyText(template, mention.text, `@${mention.authorHandle}`);
     const ok = await replyToTweet(twAccount, mention.id, replyText);
     if (ok) {
@@ -237,15 +235,17 @@ async function autoReplyLinkedIn(
   template: any,
   liAcc: any,
 ): Promise<number> {
-  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS_PER_ACCOUNT);
-  let replied = 0;
+  const count = template.postScope === 'custom' ? 0 : Math.min(template.recentCount || 5, MAX_VIDEOS_PER_ACCOUNT);
+  const recentUrns = count > 0 ? await fetchRecentLinkedInPostUrns(liAcc, count) : [];
+  const customUrns = template.postScope === 'custom' ? parsePostUrls(template.customUrls || [], 'linkedin') : [];
+  const postUrns = [...new Set([...recentUrns, ...customUrns])];
 
+  let replied = 0;
   for (const postUrn of postUrns) {
     const comments = await fetchLinkedInComments(liAcc, postUrn, MAX_COMMENTS_PER_VIDEO);
     for (const comment of comments) {
       if (comment.actorUrn === liAcc.authorUrn) continue;
       if (await checkLIReplied(userId, comment.id, 'autoReply')) continue;
-
       const replyText = await buildReplyText(template, comment.text, '');
       const ok = await replyToLinkedInComment(liAcc, comment.id, replyText);
       if (ok) {
@@ -254,6 +254,5 @@ async function autoReplyLinkedIn(
       }
     }
   }
-
   return replied;
 }

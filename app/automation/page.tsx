@@ -30,6 +30,9 @@ interface LinkMeRule {
   platforms: string[];
   isActive: boolean;
   totalMatches: number;
+  postScope?: 'recent' | 'custom';
+  recentCount?: number;
+  customUrls?: string[];
 }
 
 interface AutoReplyTemplate {
@@ -39,6 +42,9 @@ interface AutoReplyTemplate {
   platforms: string[];
   isActive: boolean;
   useAI: boolean;
+  postScope?: 'recent' | 'custom';
+  recentCount?: number;
+  customUrls?: string[];
 }
 
 const platformIcons: Record<string, React.ReactNode> = {
@@ -67,6 +73,10 @@ export default function AutomationPage() {
   const [lmReply, setLmReply] = useState('');
   const [lmPlatforms, setLmPlatforms] = useState<string[]>([]);
   const [lmSaving, setLmSaving] = useState(false);
+  const [lmScope, setLmScope] = useState<'recent' | 'custom'>('recent');
+  const [lmRecentCount, setLmRecentCount] = useState(5);
+  const [lmCustomUrls, setLmCustomUrls] = useState<string[]>([]);
+  const [lmUrlInput, setLmUrlInput] = useState('');
 
   // Auto Reply form
   const [showArForm, setShowArForm] = useState(false);
@@ -75,6 +85,10 @@ export default function AutomationPage() {
   const [arPlatforms, setArPlatforms] = useState<string[]>([]);
   const [arUseAI, setArUseAI] = useState(false);
   const [arSaving, setArSaving] = useState(false);
+  const [arScope, setArScope] = useState<'recent' | 'custom'>('recent');
+  const [arRecentCount, setArRecentCount] = useState(5);
+  const [arCustomUrls, setArCustomUrls] = useState<string[]>([]);
+  const [arUrlInput, setArUrlInput] = useState('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -119,6 +133,7 @@ export default function AutomationPage() {
   // ---- Link Me handlers ----
   const saveLinkMeRule = async () => {
     if (!lmKeyword.trim() || !lmReply.trim() || lmPlatforms.length === 0) return;
+    if (lmScope === 'custom' && lmCustomUrls.length === 0) return;
     setLmSaving(true);
     try {
       const res = await authFetch('/api/automation/link-me', {
@@ -128,12 +143,16 @@ export default function AutomationPage() {
           keyword: lmKeyword,
           replyMessage: lmReply,
           platforms: lmPlatforms,
+          postScope: lmScope,
+          recentCount: lmRecentCount,
+          customUrls: lmCustomUrls,
         }),
       });
       if (res.ok) {
         const rule = await res.json();
         setLinkMeRules((prev) => [rule, ...prev]);
         setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
+        setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
         setShowLinkMeForm(false);
       }
     } finally {
@@ -170,12 +189,16 @@ export default function AutomationPage() {
           message: arMessage,
           platforms: arPlatforms,
           useAI: arUseAI,
+          postScope: arScope,
+          recentCount: arRecentCount,
+          customUrls: arCustomUrls,
         }),
       });
       if (res.ok) {
         const tmpl = await res.json();
         setAutoReplyTemplates((prev) => [tmpl, ...prev]);
         setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
+        setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
         setShowArForm(false);
       }
     } finally {
@@ -384,18 +407,78 @@ export default function AutomationPage() {
                         </button>
                       ))}
                     </div>
-                    {lmPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
-                      <p className="mt-2 text-xs text-amber-300/90">
-                        LinkedIn comment automation is coming soon — selected LinkedIn rules
-                        will be saved but won't run yet.
-                      </p>
+                  </div>
+
+                  {/* Post scope */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-2">Post Scope</label>
+                    <div className="flex gap-2 mb-3">
+                      {(['recent', 'custom'] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setLmScope(s)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            lmScope === s
+                              ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
+                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {s === 'recent' ? 'Recent posts' : 'Custom URLs'}
+                        </button>
+                      ))}
+                    </div>
+                    {lmScope === 'recent' ? (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">Last</span>
+                        <input
+                          type="number"
+                          min={1} max={10}
+                          value={lmRecentCount}
+                          onChange={(e) => setLmRecentCount(Math.min(10, Math.max(1, +e.target.value)))}
+                          className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-purple-500 focus:outline-none"
+                        />
+                        <span className="text-xs text-gray-400">posts</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={lmUrlInput}
+                            onChange={(e) => setLmUrlInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && lmUrlInput.trim()) {
+                                setLmCustomUrls(prev => [...prev, lmUrlInput.trim()]);
+                                setLmUrlInput('');
+                              }
+                            }}
+                            placeholder="https://youtube.com/watch?v=... or tweet URL"
+                            className="flex-1 px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 focus:border-purple-500 focus:outline-none text-xs text-white placeholder-gray-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => { if (lmUrlInput.trim()) { setLmCustomUrls(prev => [...prev, lmUrlInput.trim()]); setLmUrlInput(''); }}}
+                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {lmCustomUrls.map((url, i) => (
+                          <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-lg">
+                            <span className="flex-1 text-xs text-gray-300 truncate">{url}</span>
+                            <button type="button" onClick={() => setLmCustomUrls(prev => prev.filter((_, j) => j !== i))} className="text-gray-500 hover:text-red-400 transition-colors">×</button>
+                          </div>
+                        ))}
+                        {lmCustomUrls.length === 0 && <p className="text-xs text-gray-500">Add at least one post URL</p>}
+                      </div>
                     )}
                   </div>
 
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={saveLinkMeRule}
-                      disabled={lmSaving || !lmKeyword.trim() || !lmReply.trim() || lmPlatforms.length === 0}
+                      disabled={lmSaving || !lmKeyword.trim() || !lmReply.trim() || lmPlatforms.length === 0 || (lmScope === 'custom' && lmCustomUrls.length === 0)}
                       className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                     >
                       {lmSaving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
@@ -440,26 +523,18 @@ export default function AutomationPage() {
                         )}
                       </div>
                       <p className="text-sm text-gray-300 mb-3 line-clamp-2">{rule.replyMessage}</p>
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div className="flex gap-1.5 flex-wrap items-center">
                         {rule.platforms.map((p) => (
-                          <span
-                            key={p}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                              comingSoonPlatforms.has(p)
-                                ? 'bg-amber-500/10 text-amber-300/90'
-                                : 'bg-gray-800 text-gray-400'
-                            }`}
-                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
-                          >
+                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400">
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
-                            {comingSoonPlatforms.has(p) && (
-                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
-                                soon
-                              </span>
-                            )}
                           </span>
                         ))}
+                        <span className="px-2 py-0.5 rounded text-xs bg-gray-800/60 text-gray-500">
+                          {rule.postScope === 'custom'
+                            ? `${rule.customUrls?.length ?? 0} URL${(rule.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
+                            : `last ${rule.recentCount ?? 5} posts`}
+                        </span>
                       </div>
                     </div>
 
@@ -619,11 +694,71 @@ export default function AutomationPage() {
                         </button>
                       ))}
                     </div>
-                    {arPlatforms.some((p) => comingSoonPlatforms.has(p)) && (
-                      <p className="mt-2 text-xs text-amber-300/90">
-                        LinkedIn comment automation is coming soon — selected LinkedIn templates
-                        will be saved but won't run yet.
-                      </p>
+                  </div>
+
+                  {/* Post scope */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-2">Post Scope</label>
+                    <div className="flex gap-2 mb-3">
+                      {(['recent', 'custom'] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setArScope(s)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            arScope === s
+                              ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
+                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
+                          }`}
+                        >
+                          {s === 'recent' ? 'Recent posts' : 'Custom URLs'}
+                        </button>
+                      ))}
+                    </div>
+                    {arScope === 'recent' ? (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">Last</span>
+                        <input
+                          type="number"
+                          min={1} max={10}
+                          value={arRecentCount}
+                          onChange={(e) => setArRecentCount(Math.min(10, Math.max(1, +e.target.value)))}
+                          className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-blue-500 focus:outline-none"
+                        />
+                        <span className="text-xs text-gray-400">posts</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={arUrlInput}
+                            onChange={(e) => setArUrlInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && arUrlInput.trim()) {
+                                setArCustomUrls(prev => [...prev, arUrlInput.trim()]);
+                                setArUrlInput('');
+                              }
+                            }}
+                            placeholder="https://youtube.com/watch?v=... or tweet URL"
+                            className="flex-1 px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 focus:border-blue-500 focus:outline-none text-xs text-white placeholder-gray-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => { if (arUrlInput.trim()) { setArCustomUrls(prev => [...prev, arUrlInput.trim()]); setArUrlInput(''); }}}
+                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {arCustomUrls.map((url, i) => (
+                          <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-lg">
+                            <span className="flex-1 text-xs text-gray-300 truncate">{url}</span>
+                            <button type="button" onClick={() => setArCustomUrls(prev => prev.filter((_, j) => j !== i))} className="text-gray-500 hover:text-red-400 transition-colors">×</button>
+                          </div>
+                        ))}
+                        {arCustomUrls.length === 0 && <p className="text-xs text-gray-500">Add at least one post URL</p>}
+                      </div>
                     )}
                   </div>
 
@@ -634,7 +769,8 @@ export default function AutomationPage() {
                         arSaving ||
                         !arName.trim() ||
                         (!arUseAI && !arMessage.trim()) ||
-                        arPlatforms.length === 0
+                        arPlatforms.length === 0 ||
+                        (arScope === 'custom' && arCustomUrls.length === 0)
                       }
                       className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                     >
@@ -684,26 +820,18 @@ export default function AutomationPage() {
                       {tmpl.useAI && (
                         <p className="text-sm text-gray-500 mb-3 italic">AI generates unique replies</p>
                       )}
-                      <div className="flex gap-1.5 flex-wrap">
+                      <div className="flex gap-1.5 flex-wrap items-center">
                         {tmpl.platforms.map((p) => (
-                          <span
-                            key={p}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                              comingSoonPlatforms.has(p)
-                                ? 'bg-amber-500/10 text-amber-300/90'
-                                : 'bg-gray-800 text-gray-400'
-                            }`}
-                            title={comingSoonPlatforms.has(p) ? 'LinkedIn automation coming soon — currently skipped' : undefined}
-                          >
+                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400">
                             {platformIcons[p]}
                             <span className="capitalize">{p}</span>
-                            {comingSoonPlatforms.has(p) && (
-                              <span className="ml-0.5 text-[10px] uppercase tracking-wide font-semibold">
-                                soon
-                              </span>
-                            )}
                           </span>
                         ))}
+                        <span className="px-2 py-0.5 rounded text-xs bg-gray-800/60 text-gray-500">
+                          {tmpl.postScope === 'custom'
+                            ? `${tmpl.customUrls?.length ?? 0} URL${(tmpl.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
+                            : `last ${tmpl.recentCount ?? 5} posts`}
+                        </span>
                       </div>
                     </div>
 
