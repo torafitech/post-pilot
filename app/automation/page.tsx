@@ -56,7 +56,7 @@ const platformIcons: Record<string, React.ReactNode> = {
 };
 
 const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
-const comingSoonPlatforms = new Set<string>();
+const comingSoonPlatforms = new Set<string>(['linkedin']);
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();
@@ -485,8 +485,9 @@ export default function AutomationPage() {
                         <button
                           key={p}
                           type="button"
+                          disabled={comingSoonPlatforms.has(p)}
                           onClick={() => togglePlatform(p, lmPlatforms, setLmPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             lmPlatforms.includes(p)
                               ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
                               : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
@@ -796,8 +797,9 @@ export default function AutomationPage() {
                         <button
                           key={p}
                           type="button"
+                          disabled={comingSoonPlatforms.has(p)}
                           onClick={() => togglePlatform(p, arPlatforms, setArPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                             arPlatforms.includes(p)
                               ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
                               : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
