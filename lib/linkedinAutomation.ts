@@ -24,16 +24,20 @@ function urnToDocId(urn: string): string {
 
 // Reads post URNs from Firestore (posts published via PostPilot) instead of
 // calling /v2/ugcPosts which requires restricted r_member_social scope.
+// No composite index needed — filter by platform in memory after orderBy.
 export async function fetchRecentLinkedInPostUrns(userId: string, count = 10): Promise<string[]> {
   try {
     const snap = await adminDb
       .collection('users').doc(userId)
       .collection('posts')
-      .where('platform', '==', 'linkedin')
       .orderBy('publishedAt', 'desc')
-      .limit(count)
+      .limit(count * 5)
       .get();
-    return snap.docs.map((d) => d.data().platformPostId as string).filter(Boolean);
+    return snap.docs
+      .filter((d) => d.data().platform === 'linkedin')
+      .slice(0, count)
+      .map((d) => d.data().platformPostId as string)
+      .filter(Boolean);
   } catch (err: any) {
     console.error('[LinkedIn] fetchRecentPostUrns (Firestore) error:', err.message);
     return [];
