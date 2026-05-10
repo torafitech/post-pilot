@@ -336,7 +336,7 @@ async function publishToLinkedin(
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-Restli-Protocol-Version': '2.0.0',
-      'LinkedIn-Version': '202504',
+      'LinkedIn-Version': '202604',
     },
     body: JSON.stringify(postBody),
   });
@@ -368,7 +368,7 @@ async function uploadLinkedInImage(
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-Restli-Protocol-Version': '2.0.0',
-      'LinkedIn-Version': '202504',
+      'LinkedIn-Version': '202604',
     },
     body: JSON.stringify({ initializeUploadRequest: { owner: authorUrn } }),
   });
