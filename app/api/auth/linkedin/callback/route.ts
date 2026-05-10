@@ -74,19 +74,25 @@ export async function GET(request: NextRequest) {
     const linkedinMemberId = profile.id as string; // e.g. "AbCdEfGhIj"
     const authorUrn = `urn:li:person:${linkedinMemberId}`;
 
-    // 3) Get authenticated userId from Firebase session
-    const sessionCookie = request.cookies.get('__session')?.value;
-    if (!sessionCookie) {
-      return NextResponse.redirect(`${origin}/login?error=session_expired`);
-    }
-
+    // 3) Get userId — state param carries uid (set during initiation)
+    const stateUid = url.searchParams.get('state');
     let userId: string;
-    try {
-      const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-      userId = decodedClaims.uid;
-    } catch (err) {
-      console.error('LinkedIn callback: session verification failed', err);
-      return NextResponse.redirect(`${origin}/login?error=session_expired`);
+
+    if (stateUid) {
+      userId = stateUid;
+    } else {
+      // Fallback: Firebase session cookie
+      const sessionCookie = request.cookies.get('__session')?.value;
+      if (!sessionCookie) {
+        return NextResponse.redirect(`${origin}/login?error=session_expired`);
+      }
+      try {
+        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+        userId = decodedClaims.uid;
+      } catch (err) {
+        console.error('LinkedIn callback: session verification failed', err);
+        return NextResponse.redirect(`${origin}/login?error=session_expired`);
+      }
     }
 
     // 4) Save LinkedIn account under user
