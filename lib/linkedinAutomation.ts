@@ -1,16 +1,14 @@
 // lib/linkedinAutomation.ts
 // LinkedIn automation helpers for Link Me and Auto Reply.
-// Requires LinkedIn Marketing Developer Platform access for Social Actions API.
 import { adminDb } from '@/lib/firebaseAdmin';
 
-const LI_REST = 'https://api.linkedin.com/rest';
-const LI_VERSION = '202604';
+// v2 API — no LinkedIn-Version header required (stable, unlike /rest endpoints)
+const LI_V2 = 'https://api.linkedin.com/v2';
 
 const liHeaders = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
   'Content-Type': 'application/json',
   'X-Restli-Protocol-Version': '2.0.0',
-  'LinkedIn-Version': LI_VERSION,
 });
 
 export interface LinkedInComment {
@@ -28,7 +26,8 @@ export async function fetchRecentLinkedInPostUrns(liAcc: any, count = 10): Promi
   const authorUrn = liAcc.authorUrn as string;
   if (!authorUrn) return [];
   try {
-    const url = `${LI_REST}/posts?q=author&author=${encodeURIComponent(authorUrn)}&count=${count}&sortBy=LAST_MODIFIED`;
+    const encodedUrn = encodeURIComponent(authorUrn);
+    const url = `${LI_V2}/ugcPosts?q=authors&authors=List(${encodedUrn})&sortBy=LAST_MODIFIED&count=${count}`;
     const res = await fetch(url, { headers: liHeaders(liAcc.accessToken) });
     if (!res.ok) {
       console.error('[LinkedIn] fetchRecentPosts', res.status, await res.text());
@@ -44,7 +43,7 @@ export async function fetchRecentLinkedInPostUrns(liAcc: any, count = 10): Promi
 
 export async function fetchLinkedInComments(liAcc: any, postUrn: string, count = 20): Promise<LinkedInComment[]> {
   try {
-    const url = `${LI_REST}/socialActions/${encodeURIComponent(postUrn)}/comments?count=${count}`;
+    const url = `${LI_V2}/socialActions/${encodeURIComponent(postUrn)}/comments?count=${count}`;
     const res = await fetch(url, { headers: liHeaders(liAcc.accessToken) });
     if (!res.ok) {
       console.error('[LinkedIn] fetchComments', res.status, await res.text());
@@ -68,7 +67,7 @@ export async function replyToLinkedInComment(
   replyText: string,
 ): Promise<boolean> {
   try {
-    const url = `${LI_REST}/socialActions/${encodeURIComponent(commentUrn)}/comments`;
+    const url = `${LI_V2}/socialActions/${encodeURIComponent(commentUrn)}/comments`;
     const res = await fetch(url, {
       method: 'POST',
       headers: liHeaders(liAcc.accessToken),
