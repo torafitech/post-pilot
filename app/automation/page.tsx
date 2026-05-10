@@ -21,6 +21,8 @@ import {
   Play,
   CheckCircle,
   AlertCircle,
+  Pencil,
+  X,
 } from 'lucide-react';
 
 interface LinkMeRule {
@@ -90,6 +92,10 @@ export default function AutomationPage() {
   const [arCustomUrls, setArCustomUrls] = useState<string[]>([]);
   const [arUrlInput, setArUrlInput] = useState('');
 
+  // Editing state
+  const [editingLmId, setEditingLmId] = useState<string | null>(null);
+  const [editingArId, setEditingArId] = useState<string | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) { router.push('/login'); return; }
@@ -136,24 +142,39 @@ export default function AutomationPage() {
     if (lmScope === 'custom' && lmCustomUrls.length === 0) return;
     setLmSaving(true);
     try {
-      const res = await authFetch('/api/automation/link-me', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword: lmKeyword,
-          replyMessage: lmReply,
-          platforms: lmPlatforms,
-          postScope: lmScope,
-          recentCount: lmRecentCount,
-          customUrls: lmCustomUrls,
-        }),
+      const body = JSON.stringify({
+        keyword: lmKeyword,
+        replyMessage: lmReply,
+        platforms: lmPlatforms,
+        postScope: lmScope,
+        recentCount: lmRecentCount,
+        customUrls: lmCustomUrls,
       });
+      const res = editingLmId
+        ? await authFetch(`/api/automation/link-me/${editingLmId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          })
+        : await authFetch('/api/automation/link-me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          });
       if (res.ok) {
         const rule = await res.json();
-        setLinkMeRules((prev) => [rule, ...prev]);
+        if (editingLmId) {
+          setLinkMeRules((prev) => prev.map((r) => (r.id === editingLmId ? { ...r, ...rule } : r)));
+        } else {
+          setLinkMeRules((prev) => [rule, ...prev]);
+        }
         setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
         setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
+        setEditingLmId(null);
         setShowLinkMeForm(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setTestResult({ ok: false, message: data.error || 'Failed to save' });
       }
     } finally {
       setLmSaving(false);
@@ -161,19 +182,44 @@ export default function AutomationPage() {
   };
 
   const toggleLinkMeRule = async (rule: LinkMeRule) => {
-    await authFetch(`/api/automation/link-me/${rule.id}`, {
+    setLinkMeRules((prev) =>
+      prev.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
+    );
+    const res = await authFetch(`/api/automation/link-me/${rule.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !rule.isActive }),
     });
-    setLinkMeRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
-    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTestResult({ ok: false, message: data.error || 'Failed to save' });
+      setLinkMeRules((prev) =>
+        prev.map((r) => (r.id === rule.id ? { ...r, isActive: rule.isActive } : r)),
+      );
+    }
   };
 
   const deleteLinkMeRule = async (id: string) => {
-    await authFetch(`/api/automation/link-me/${id}`, { method: 'DELETE' });
+    const prevRules = linkMeRules;
     setLinkMeRules((prev) => prev.filter((r) => r.id !== id));
+    const res = await authFetch(`/api/automation/link-me/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTestResult({ ok: false, message: data.error || 'Failed to save' });
+      setLinkMeRules(prevRules);
+    }
+  };
+
+  const editLinkMeRule = (rule: LinkMeRule) => {
+    setEditingLmId(rule.id);
+    setLmKeyword(rule.keyword);
+    setLmReply(rule.replyMessage);
+    setLmPlatforms(rule.platforms);
+    setLmScope(rule.postScope ?? 'recent');
+    setLmRecentCount(rule.recentCount ?? 5);
+    setLmCustomUrls(rule.customUrls ?? []);
+    setLmUrlInput('');
+    setShowLinkMeForm(true);
   };
 
   // ---- Auto Reply handlers ----
@@ -181,25 +227,40 @@ export default function AutomationPage() {
     if (!arName.trim() || (!arUseAI && !arMessage.trim()) || arPlatforms.length === 0) return;
     setArSaving(true);
     try {
-      const res = await authFetch('/api/automation/auto-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: arName,
-          message: arMessage,
-          platforms: arPlatforms,
-          useAI: arUseAI,
-          postScope: arScope,
-          recentCount: arRecentCount,
-          customUrls: arCustomUrls,
-        }),
+      const body = JSON.stringify({
+        name: arName,
+        message: arMessage,
+        platforms: arPlatforms,
+        useAI: arUseAI,
+        postScope: arScope,
+        recentCount: arRecentCount,
+        customUrls: arCustomUrls,
       });
+      const res = editingArId
+        ? await authFetch(`/api/automation/auto-reply/${editingArId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          })
+        : await authFetch('/api/automation/auto-reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          });
       if (res.ok) {
         const tmpl = await res.json();
-        setAutoReplyTemplates((prev) => [tmpl, ...prev]);
+        if (editingArId) {
+          setAutoReplyTemplates((prev) => prev.map((t) => (t.id === editingArId ? { ...t, ...tmpl } : t)));
+        } else {
+          setAutoReplyTemplates((prev) => [tmpl, ...prev]);
+        }
         setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
         setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
+        setEditingArId(null);
         setShowArForm(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setTestResult({ ok: false, message: data.error || 'Failed to save' });
       }
     } finally {
       setArSaving(false);
@@ -207,19 +268,45 @@ export default function AutomationPage() {
   };
 
   const toggleAutoReply = async (tmpl: AutoReplyTemplate) => {
-    await authFetch(`/api/automation/auto-reply/${tmpl.id}`, {
+    setAutoReplyTemplates((prev) =>
+      prev.map((t) => (t.id === tmpl.id ? { ...t, isActive: !t.isActive } : t)),
+    );
+    const res = await authFetch(`/api/automation/auto-reply/${tmpl.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !tmpl.isActive }),
     });
-    setAutoReplyTemplates((prev) =>
-      prev.map((t) => (t.id === tmpl.id ? { ...t, isActive: !t.isActive } : t)),
-    );
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTestResult({ ok: false, message: data.error || 'Failed to save' });
+      setAutoReplyTemplates((prev) =>
+        prev.map((t) => (t.id === tmpl.id ? { ...t, isActive: tmpl.isActive } : t)),
+      );
+    }
   };
 
   const deleteAutoReply = async (id: string) => {
-    await authFetch(`/api/automation/auto-reply/${id}`, { method: 'DELETE' });
+    const prevTemplates = autoReplyTemplates;
     setAutoReplyTemplates((prev) => prev.filter((t) => t.id !== id));
+    const res = await authFetch(`/api/automation/auto-reply/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setTestResult({ ok: false, message: data.error || 'Failed to save' });
+      setAutoReplyTemplates(prevTemplates);
+    }
+  };
+
+  const editAutoReply = (tmpl: AutoReplyTemplate) => {
+    setEditingArId(tmpl.id);
+    setArName(tmpl.name);
+    setArMessage(tmpl.message);
+    setArPlatforms(tmpl.platforms);
+    setArUseAI(tmpl.useAI);
+    setArScope(tmpl.postScope ?? 'recent');
+    setArRecentCount(tmpl.recentCount ?? 5);
+    setArCustomUrls(tmpl.customUrls ?? []);
+    setArUrlInput('');
+    setShowArForm(true);
   };
 
   const runTestNow = async () => {
@@ -237,7 +324,7 @@ export default function AutomationPage() {
       setTestResult({ ok: false, message: 'Failed to run test.' });
     } finally {
       setTestRunning(false);
-      setTimeout(() => setTestResult(null), 15000);
+      setTimeout(() => setTestResult(null), 30000);
     }
   };
 
@@ -276,6 +363,14 @@ export default function AutomationPage() {
               ? <CheckCircle size={16} className="mt-0.5 shrink-0" />
               : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed flex-1">{testResult.message}</pre>
+            <button
+              type="button"
+              onClick={() => setTestResult(null)}
+              className="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
+              title="Dismiss"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 
@@ -349,7 +444,7 @@ export default function AutomationPage() {
             {/* Add form */}
             {showLinkMeForm && (
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
-                <h3 className="text-sm font-semibold text-white mb-4">New Link Me Rule</h3>
+                <h3 className="text-sm font-semibold text-white mb-4">{editingLmId ? 'Edit Link Me Rule' : 'New Link Me Rule'}</h3>
 
                 <div className="space-y-4">
                   <div>
@@ -435,7 +530,10 @@ export default function AutomationPage() {
                           type="number"
                           min={1} max={10}
                           value={lmRecentCount}
-                          onChange={(e) => setLmRecentCount(Math.min(10, Math.max(1, +e.target.value)))}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            setLmRecentCount(Math.min(10, Math.max(1, Number.isFinite(n) ? n : 1)));
+                          }}
                           className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-purple-500 focus:outline-none"
                         />
                         <span className="text-xs text-gray-400">posts</span>
@@ -448,9 +546,12 @@ export default function AutomationPage() {
                             value={lmUrlInput}
                             onChange={(e) => setLmUrlInput(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && lmUrlInput.trim()) {
-                                setLmCustomUrls(prev => [...prev, lmUrlInput.trim()]);
-                                setLmUrlInput('');
+                              if (e.key === 'Enter') {
+                                const trimmed = lmUrlInput.trim();
+                                if (trimmed.length > 8 && !lmCustomUrls.includes(trimmed)) {
+                                  setLmCustomUrls(prev => [...prev, trimmed]);
+                                  setLmUrlInput('');
+                                }
                               }
                             }}
                             placeholder="https://youtube.com/watch?v=... or tweet URL"
@@ -458,7 +559,13 @@ export default function AutomationPage() {
                           />
                           <button
                             type="button"
-                            onClick={() => { if (lmUrlInput.trim()) { setLmCustomUrls(prev => [...prev, lmUrlInput.trim()]); setLmUrlInput(''); }}}
+                            onClick={() => {
+                              const trimmed = lmUrlInput.trim();
+                              if (trimmed.length > 8 && !lmCustomUrls.includes(trimmed)) {
+                                setLmCustomUrls(prev => [...prev, trimmed]);
+                                setLmUrlInput('');
+                              }
+                            }}
                             className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
                           >
                             Add
@@ -482,10 +589,15 @@ export default function AutomationPage() {
                       className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                     >
                       {lmSaving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                      Save Rule
+                      {editingLmId ? 'Update Rule' : 'Save Rule'}
                     </button>
                     <button
-                      onClick={() => setShowLinkMeForm(false)}
+                      onClick={() => {
+                        setShowLinkMeForm(false);
+                        setEditingLmId(null);
+                        setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
+                        setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
+                      }}
                       className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-xl transition-colors"
                     >
                       Cancel
@@ -551,6 +663,13 @@ export default function AutomationPage() {
                         {rule.isActive ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
                       </button>
                       <button
+                        onClick={() => editLinkMeRule(rule)}
+                        className="p-1.5 rounded-lg text-gray-600 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                        title="Edit rule"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
                         onClick={() => deleteLinkMeRule(rule.id)}
                         className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                       >
@@ -574,7 +693,7 @@ export default function AutomationPage() {
                   <h3 className="text-sm font-semibold text-white mb-1">How Auto Reply works</h3>
                   <p className="text-xs text-gray-400 leading-relaxed">
                     Automatically reply to new comments on your posts using a fixed template or
-                    AI-generated responses. Runs every few hours. Use {`{username}`} in your message
+                    AI-generated responses. Runs every 15 minutes. Use {`{username}`} in your message
                     to personalize the reply.
                   </p>
                 </div>
@@ -608,7 +727,7 @@ export default function AutomationPage() {
             {/* Add form */}
             {showArForm && (
               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
-                <h3 className="text-sm font-semibold text-white mb-4">New Auto Reply Template</h3>
+                <h3 className="text-sm font-semibold text-white mb-4">{editingArId ? 'Edit Auto Reply Template' : 'New Auto Reply Template'}</h3>
 
                 <div className="space-y-4">
                   <div>
@@ -722,7 +841,10 @@ export default function AutomationPage() {
                           type="number"
                           min={1} max={10}
                           value={arRecentCount}
-                          onChange={(e) => setArRecentCount(Math.min(10, Math.max(1, +e.target.value)))}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            setArRecentCount(Math.min(10, Math.max(1, Number.isFinite(n) ? n : 1)));
+                          }}
                           className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-blue-500 focus:outline-none"
                         />
                         <span className="text-xs text-gray-400">posts</span>
@@ -735,9 +857,12 @@ export default function AutomationPage() {
                             value={arUrlInput}
                             onChange={(e) => setArUrlInput(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && arUrlInput.trim()) {
-                                setArCustomUrls(prev => [...prev, arUrlInput.trim()]);
-                                setArUrlInput('');
+                              if (e.key === 'Enter') {
+                                const trimmed = arUrlInput.trim();
+                                if (trimmed.length > 8 && !arCustomUrls.includes(trimmed)) {
+                                  setArCustomUrls(prev => [...prev, trimmed]);
+                                  setArUrlInput('');
+                                }
                               }
                             }}
                             placeholder="https://youtube.com/watch?v=... or tweet URL"
@@ -745,7 +870,13 @@ export default function AutomationPage() {
                           />
                           <button
                             type="button"
-                            onClick={() => { if (arUrlInput.trim()) { setArCustomUrls(prev => [...prev, arUrlInput.trim()]); setArUrlInput(''); }}}
+                            onClick={() => {
+                              const trimmed = arUrlInput.trim();
+                              if (trimmed.length > 8 && !arCustomUrls.includes(trimmed)) {
+                                setArCustomUrls(prev => [...prev, trimmed]);
+                                setArUrlInput('');
+                              }
+                            }}
                             className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
                           >
                             Add
@@ -775,10 +906,15 @@ export default function AutomationPage() {
                       className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                     >
                       {arSaving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                      Save Template
+                      {editingArId ? 'Update Template' : 'Save Template'}
                     </button>
                     <button
-                      onClick={() => setShowArForm(false)}
+                      onClick={() => {
+                        setShowArForm(false);
+                        setEditingArId(null);
+                        setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
+                        setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
+                      }}
                       className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-xl transition-colors"
                     >
                       Cancel
@@ -845,6 +981,13 @@ export default function AutomationPage() {
                         }`}
                       >
                         {tmpl.isActive ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+                      </button>
+                      <button
+                        onClick={() => editAutoReply(tmpl)}
+                        className="p-1.5 rounded-lg text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                        title="Edit template"
+                      >
+                        <Pencil size={16} />
                       </button>
                       <button
                         onClick={() => deleteAutoReply(tmpl.id)}

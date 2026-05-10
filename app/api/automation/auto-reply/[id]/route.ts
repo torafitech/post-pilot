@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
+const BETA_PLATFORMS = new Set(['youtube', 'twitter', 'linkedin']);
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -15,10 +17,43 @@ export async function PATCH(
   const { id } = await params;
   try {
     const body = await request.json();
-    const allowed = ['name', 'message', 'platforms', 'isActive', 'useAI'];
     const updates: Record<string, any> = { updatedAt: new Date() };
-    for (const f of allowed) {
-      if (f in body) updates[f] = body[f];
+
+    if ('name' in body) {
+      const n = (body.name || '').toString().trim();
+      if (!n) return NextResponse.json({ error: 'Template name cannot be empty' }, { status: 400 });
+      updates.name = n;
+    }
+    if ('message' in body) {
+      updates.message = (body.message || '').toString().trim();
+    }
+    if ('platforms' in body) {
+      const ps = (Array.isArray(body.platforms) ? body.platforms : []).filter((p: string) => BETA_PLATFORMS.has(p));
+      if (ps.length === 0) return NextResponse.json({ error: 'At least one valid platform required' }, { status: 400 });
+      updates.platforms = ps;
+    }
+    if ('isActive' in body) {
+      updates.isActive = !!body.isActive;
+    }
+    if ('useAI' in body) {
+      updates.useAI = !!body.useAI;
+    }
+    if ('postScope' in body) {
+      updates.postScope = body.postScope === 'custom' ? 'custom' : 'recent';
+    }
+    if ('recentCount' in body) {
+      const n = Number(body.recentCount);
+      updates.recentCount = Math.min(Math.max(Number.isFinite(n) ? n : 5, 1), 10);
+    }
+    if ('customUrls' in body) {
+      const urls = (Array.isArray(body.customUrls) ? body.customUrls : [])
+        .filter((u: any) => typeof u === 'string' && u.trim())
+        .slice(0, 20);
+      updates.customUrls = urls;
+    }
+
+    if (updates.useAI === false && 'message' in updates && !updates.message) {
+      return NextResponse.json({ error: 'Message is required when not using AI' }, { status: 400 });
     }
 
     await adminDb
@@ -30,6 +65,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error('Auto Reply PATCH error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -54,6 +90,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error('Auto Reply DELETE error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

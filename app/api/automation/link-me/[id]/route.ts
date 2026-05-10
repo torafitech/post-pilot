@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
-// PATCH /api/automation/link-me/:id — update rule (toggle active, edit fields)
+const BETA_PLATFORMS = new Set(['youtube', 'twitter', 'linkedin']);
+
+// PATCH /api/automation/link-me/:id — update rule fields
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -16,17 +18,38 @@ export async function PATCH(
   const { id } = await params;
   try {
     const body = await request.json();
-    const allowedFields = ['keyword', 'replyMessage', 'platforms', 'isActive'];
     const updates: Record<string, any> = { updatedAt: new Date() };
 
-    for (const field of allowedFields) {
-      if (field in body) {
-        if (field === 'keyword' && typeof body.keyword === 'string') {
-          updates.keyword = body.keyword.trim().toLowerCase();
-        } else {
-          updates[field] = body[field];
-        }
-      }
+    if ('keyword' in body) {
+      const k = (body.keyword || '').toString().trim().toLowerCase();
+      if (!k) return NextResponse.json({ error: 'Keyword cannot be empty' }, { status: 400 });
+      updates.keyword = k;
+    }
+    if ('replyMessage' in body) {
+      const m = (body.replyMessage || '').toString().trim();
+      if (!m) return NextResponse.json({ error: 'Reply message cannot be empty' }, { status: 400 });
+      updates.replyMessage = m;
+    }
+    if ('platforms' in body) {
+      const ps = (Array.isArray(body.platforms) ? body.platforms : []).filter((p: string) => BETA_PLATFORMS.has(p));
+      if (ps.length === 0) return NextResponse.json({ error: 'At least one valid platform required' }, { status: 400 });
+      updates.platforms = ps;
+    }
+    if ('isActive' in body) {
+      updates.isActive = !!body.isActive;
+    }
+    if ('postScope' in body) {
+      updates.postScope = body.postScope === 'custom' ? 'custom' : 'recent';
+    }
+    if ('recentCount' in body) {
+      const n = Number(body.recentCount);
+      updates.recentCount = Math.min(Math.max(Number.isFinite(n) ? n : 5, 1), 10);
+    }
+    if ('customUrls' in body) {
+      const urls = (Array.isArray(body.customUrls) ? body.customUrls : [])
+        .filter((u: any) => typeof u === 'string' && u.trim())
+        .slice(0, 20);
+      updates.customUrls = urls;
     }
 
     await adminDb
@@ -43,7 +66,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/automation/link-me/:id — delete rule
+// DELETE /api/automation/link-me/:id
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
