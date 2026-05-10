@@ -461,7 +461,7 @@ async function arTwitter(userId: string, template: any, twAcc: any, acc: Account
 }
 
 async function lmLinkedIn(userId: string, rules: any[], liAcc: any, acc: AccountStat) {
-  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS);
+  const postUrns = await fetchRecentLinkedInPostUrns(userId, MAX_VIDEOS);
   acc.scanned = postUrns.length;
 
   for (const postUrn of postUrns) {
@@ -495,7 +495,7 @@ async function lmLinkedIn(userId: string, rules: any[], liAcc: any, acc: Account
 }
 
 async function arLinkedIn(userId: string, template: any, liAcc: any, acc: AccountStat) {
-  const postUrns = await fetchRecentLinkedInPostUrns(liAcc, MAX_VIDEOS);
+  const postUrns = await fetchRecentLinkedInPostUrns(userId, MAX_VIDEOS);
   acc.scanned = postUrns.length;
 
   for (const postUrn of postUrns) {
