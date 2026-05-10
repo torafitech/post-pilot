@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
     process.env.LINKEDIN_REDIRECT_URI ||
     `${origin}/api/auth/linkedin/callback`;
 
-  // w_member_social is required for posting + reading comments (Link Me / Auto Reply)
+  // r_liteprofile + r_emailaddress = standard LinkedIn OAuth (v2/me endpoint)
+  // w_member_social = post + comment (Link Me / Auto Reply)
   const scopes = [
-    'openid',
-    'profile',
-    'email',
+    'r_liteprofile',
+    'r_emailaddress',
     'w_member_social',
   ];
 
