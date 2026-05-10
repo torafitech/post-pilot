@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
       totalMatches: 0,
       postScope: postScope === 'custom' ? 'custom' : 'recent',
-      recentCount: postScope !== 'custom' ? Math.min(Math.max(recentCount || 5, 1), 10) : undefined,
-      customUrls: postScope === 'custom' ? (customUrls || []).slice(0, 20) : undefined,
+      ...(postScope !== 'custom' && { recentCount: Math.min(Math.max(recentCount || 5, 1), 10) }),
+      ...(postScope === 'custom' && { customUrls: (customUrls || []).slice(0, 20) }),
     };
 
     const docRef = await adminDb
