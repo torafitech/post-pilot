@@ -293,22 +293,106 @@ async function publishToLinkedin(
   caption: string,
   imageUrl?: string,
 ) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
-  const response = await fetch(`${baseUrl}/api/auth/linkedin/post`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      text: caption,
-      imageUrl: imageUrl || undefined,
-    }),
-  });
+  // Load LinkedIn account directly — avoid HTTP hop to /api/auth/linkedin/post
+  const userSnap = await adminDb.collection('users').doc(userId).get();
+  const accounts: any[] = userSnap.data()?.connectedAccounts || [];
+  const liAcc = accounts.find((a: any) => a.platform === 'linkedin');
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to publish to LinkedIn');
+  if (!liAcc?.accessToken || !liAcc?.authorUrn) {
+    throw new Error('LinkedIn account not connected or missing authorUrn');
   }
 
-  return { id: data.linkedinPostUrn };
+  const { accessToken, authorUrn } = liAcc;
+
+  // Optionally upload image
+  let imageAsset: string | null = null;
+  if (imageUrl) {
+    try {
+      imageAsset = await uploadLinkedInImage(accessToken, authorUrn, imageUrl);
+    } catch (err: any) {
+      console.warn('[LI PUBLISH] Image upload failed, posting text-only:', err.message);
+    }
+  }
+
+  const postBody: any = {
+    author: authorUrn,
+    commentary: caption,
+    visibility: 'PUBLIC',
+    lifecycleState: 'PUBLISHED',
+    distribution: {
+      feedDistribution: 'MAIN_FEED',
+      targetEntities: [],
+      thirdPartyDistributionChannels: [],
+    },
+  };
+
+  if (imageAsset) {
+    postBody.content = { media: { id: imageAsset } };
+  }
+
+  const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': '202411',
+    },
+    body: JSON.stringify(postBody),
+  });
+
+  if (!postRes.ok) {
+    const errText = await postRes.text();
+    console.error('[LI PUBLISH] API error:', postRes.status, errText);
+    throw new Error(`LinkedIn API error ${postRes.status}: ${errText}`);
+  }
+
+  // URN is in the x-restli-id header; body is typically empty on 201
+  const postUrn =
+    postRes.headers.get('x-restli-id') ||
+    postRes.headers.get('x-linkedin-id') ||
+    (await postRes.text().then(t => t.trim() || undefined).catch(() => undefined));
+
+  console.log('[LI PUBLISH] Published, URN:', postUrn);
+  return { id: postUrn };
+}
+
+async function uploadLinkedInImage(
+  accessToken: string,
+  authorUrn: string,
+  imageUrl: string,
+): Promise<string> {
+  const initRes = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': '202411',
+    },
+    body: JSON.stringify({ initializeUploadRequest: { owner: authorUrn } }),
+  });
+
+  if (!initRes.ok) throw new Error(`LinkedIn image init failed: ${await initRes.text()}`);
+
+  const initData = await initRes.json();
+  const uploadUrl: string = initData.value?.uploadUrl;
+  const imageUrn: string  = initData.value?.image;
+  if (!uploadUrl || !imageUrn) throw new Error('LinkedIn did not return upload URL');
+
+  const imgRes = await fetch(imageUrl);
+  if (!imgRes.ok) throw new Error('Failed to download image for LinkedIn');
+  const imgBuffer = await imgRes.arrayBuffer();
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': imgRes.headers.get('content-type') || 'image/jpeg',
+    },
+    body: imgBuffer,
+  });
+
+  if (!uploadRes.ok) throw new Error(`LinkedIn image upload failed: ${await uploadRes.text()}`);
+  return imageUrn;
 }
