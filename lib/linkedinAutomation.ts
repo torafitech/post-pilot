@@ -2,13 +2,15 @@
 // LinkedIn automation helpers for Link Me and Auto Reply.
 import { adminDb } from '@/lib/firebaseAdmin';
 
-// v2 API — no LinkedIn-Version header required (stable, unlike /rest endpoints)
 const LI_V2 = 'https://api.linkedin.com/v2';
+// socialActions GET requires a LinkedIn-Version header even on v2
+const LI_VERSION = '202501';
 
-const liHeaders = (accessToken: string) => ({
+const liHeaders = (accessToken: string, versioned = false) => ({
   Authorization: `Bearer ${accessToken}`,
   'Content-Type': 'application/json',
   'X-Restli-Protocol-Version': '2.0.0',
+  ...(versioned && { 'LinkedIn-Version': LI_VERSION }),
 });
 
 export interface LinkedInComment {
@@ -47,7 +49,7 @@ export async function fetchRecentLinkedInPostUrns(userId: string, count = 10): P
 export async function fetchLinkedInComments(liAcc: any, postUrn: string, count = 20): Promise<LinkedInComment[]> {
   try {
     const url = `${LI_V2}/socialActions/${encodeURIComponent(postUrn)}/comments?count=${count}`;
-    const res = await fetch(url, { headers: liHeaders(liAcc.accessToken) });
+    const res = await fetch(url, { headers: liHeaders(liAcc.accessToken, true) });
     if (!res.ok) {
       console.error('[LinkedIn] fetchComments', res.status, await res.text());
       return [];
