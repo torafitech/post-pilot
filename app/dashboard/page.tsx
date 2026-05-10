@@ -312,9 +312,23 @@ export default function DashboardPage() {
       }
 
       if (acc.platform === 'linkedin') {
-        // LinkedIn personal profile analytics require MDP (Marketing Developer Platform)
-        // Standard OAuth only gives profile identity, not follower/engagement stats
-        updates[acc.id] = { analyticsUnavailable: true };
+        try {
+          const res = await fetch(`/api/linkedin/posts?userId=${user.uid}`);
+          const json = await res.json();
+          if (res.ok && json.recentPosts) {
+            updates[acc.id] = {
+              postCount:   json.postCount   || 0,
+              likes:       json.totalLikes  || 0,
+              comments:    json.totalComments || 0,
+              recentPosts: json.recentPosts || [],
+              // followers/views require LinkedIn MDP — not available on personal profiles
+            };
+          } else {
+            updates[acc.id] = { analyticsUnavailable: true };
+          }
+        } catch {
+          updates[acc.id] = { analyticsUnavailable: true };
+        }
       }
     }));
 
@@ -724,13 +738,17 @@ export default function DashboardPage() {
                         <p className="text-[9px] text-gray-700 mt-0.5">LinkedIn MDP access required</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
+                      <div className={`grid gap-2 ${pl === 'linkedin' ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                        {(pl === 'linkedin' ? [
+                          { v: plStats.posts,            l: 'Posts' },
+                          { v: fmtNum(plStats.likes),    l: 'Likes' },
+                          { v: fmtNum(plStats.comments), l: 'Comments' },
+                        ] : [
                           { v: fmtNum(plStats.followers), l: 'Followers' },
-                          { v: plStats.posts, l: 'Posts' },
-                          { v: fmtNum(plStats.views), l: 'Views' },
-                          { v: fmtNum(plStats.likes), l: 'Likes' },
-                        ].map(s => (
+                          { v: plStats.posts,             l: 'Posts' },
+                          { v: fmtNum(plStats.views),     l: 'Views' },
+                          { v: fmtNum(plStats.likes),     l: 'Likes' },
+                        ]).map(s => (
                           <div key={s.l} className="bg-gray-800/40 rounded-xl p-2 text-center">
                             <div className="text-sm font-bold text-white">{s.v}</div>
                             <div className="text-[10px] text-gray-600">{s.l}</div>
