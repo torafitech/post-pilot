@@ -358,7 +358,11 @@ export default function DashboardPage() {
     [posts]);
 
   const filtered = useMemo(() =>
-    postFilter === 'all' ? published : published.filter(p => p.platform?.toLowerCase() === postFilter),
+    postFilter === 'all' ? published : published.filter(p => {
+      const pl = p.platform?.toLowerCase();
+      const pls = p.platforms?.map(x => x.toLowerCase());
+      return pl === postFilter || pls?.includes(postFilter);
+    }),
     [published, postFilter]);
 
   // Aggregate live stats across all accounts
@@ -393,7 +397,11 @@ export default function DashboardPage() {
   const platformStats = useMemo(() => {
     return PLATFORMS.map(pl => {
       const plAccounts = accounts.filter(a => a.platform === pl);
-      const plPosts = published.filter(p => p.platform?.toLowerCase() === pl);
+      const plPosts = published.filter(p => {
+        const singlePl = p.platform?.toLowerCase();
+        const multiPl = p.platforms?.map(x => x.toLowerCase());
+        return singlePl === pl || multiPl?.includes(pl);
+      });
       const liveViews    = plAccounts.reduce((s, a) => s + (liveData[a.id]?.views    ?? 0), 0);
       const liveLikes    = plAccounts.reduce((s, a) => s + (liveData[a.id]?.likes    ?? 0), 0);
       const liveComments = plAccounts.reduce((s, a) => s + (liveData[a.id]?.comments ?? 0), 0);
@@ -767,7 +775,8 @@ export default function DashboardPage() {
                     <Link href="/posts/create" className="text-xs text-cyan-400 hover:text-cyan-300">Create your first post →</Link>
                   </div>
                 ) : filtered.slice(0, 10).map(post => {
-                  const meta = platformMeta[post.platform?.toLowerCase() as Platform];
+                  const primaryPl = (post.platform || post.platforms?.[0] || '').toLowerCase();
+                  const meta = platformMeta[primaryPl as Platform];
                   const date = post.publishedAt?.toDate();
                   const views    = post.metrics?.views || post.metrics?.impressions || 0;
                   const likes    = post.metrics?.likes || 0;
