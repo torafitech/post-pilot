@@ -236,7 +236,7 @@ async function autoReplyLinkedIn(
   liAcc: any,
 ): Promise<number> {
   const count = template.postScope === 'custom' ? 0 : Math.min(template.recentCount || 5, MAX_VIDEOS_PER_ACCOUNT);
-  const recentUrns = count > 0 ? await fetchRecentLinkedInPostUrns(liAcc, count) : [];
+  const recentUrns = count > 0 ? await fetchRecentLinkedInPostUrns(userId, count) : [];
   const customUrns = template.postScope === 'custom' ? parsePostUrls(template.customUrls || [], 'linkedin') : [];
   const postUrns = [...new Set([...recentUrns, ...customUrns])];
 

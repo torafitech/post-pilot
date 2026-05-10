@@ -22,21 +22,20 @@ function urnToDocId(urn: string): string {
   return urn.replace(/\//g, '_').replace(/[(),]/g, '-');
 }
 
-export async function fetchRecentLinkedInPostUrns(liAcc: any, count = 10): Promise<string[]> {
-  const authorUrn = liAcc.authorUrn as string;
-  if (!authorUrn) return [];
+// Reads post URNs from Firestore (posts published via PostPilot) instead of
+// calling /v2/ugcPosts which requires restricted r_member_social scope.
+export async function fetchRecentLinkedInPostUrns(userId: string, count = 10): Promise<string[]> {
   try {
-    const encodedUrn = encodeURIComponent(authorUrn);
-    const url = `${LI_V2}/ugcPosts?q=authors&authors=List(${encodedUrn})&sortBy=LAST_MODIFIED&count=${count}`;
-    const res = await fetch(url, { headers: liHeaders(liAcc.accessToken) });
-    if (!res.ok) {
-      console.error('[LinkedIn] fetchRecentPosts', res.status, await res.text());
-      return [];
-    }
-    const data = await res.json();
-    return (data.elements || []).map((e: any) => e.id as string).filter(Boolean);
+    const snap = await adminDb
+      .collection('users').doc(userId)
+      .collection('posts')
+      .where('platform', '==', 'linkedin')
+      .orderBy('publishedAt', 'desc')
+      .limit(count)
+      .get();
+    return snap.docs.map((d) => d.data().platformPostId as string).filter(Boolean);
   } catch (err: any) {
-    console.error('[LinkedIn] fetchRecentPosts error:', err.message);
+    console.error('[LinkedIn] fetchRecentPostUrns (Firestore) error:', err.message);
     return [];
   }
 }

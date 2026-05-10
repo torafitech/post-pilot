@@ -143,7 +143,7 @@ async function processLinkedInLinkMe(
   liAcc: any,
 ): Promise<number> {
   const maxRecent = Math.max(...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5), 0);
-  const recentUrns = maxRecent > 0 ? await fetchRecentLinkedInPostUrns(liAcc, Math.min(maxRecent, MAX_VIDEOS_PER_ACCOUNT)) : [];
+  const recentUrns = maxRecent > 0 ? await fetchRecentLinkedInPostUrns(userId, Math.min(maxRecent, MAX_VIDEOS_PER_ACCOUNT)) : [];
   const customUrns = new Set<string>(
     rules.flatMap(r => r.postScope === 'custom' ? parsePostUrls(r.customUrls || [], 'linkedin') : [])
   );
