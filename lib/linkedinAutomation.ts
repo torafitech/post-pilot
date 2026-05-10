@@ -4,7 +4,7 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 
 const LI_REST = 'https://api.linkedin.com/rest';
-const LI_VERSION = '202501';
+const LI_VERSION = '202504';
 
 const liHeaders = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
