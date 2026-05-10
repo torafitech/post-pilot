@@ -42,6 +42,7 @@ interface LiveAccountData {
   recentPosts?: RecentPost[];
   needsReauth?: boolean;
   error?: string;
+  analyticsUnavailable?: boolean;
 }
 
 interface RecentPost {
@@ -311,8 +312,9 @@ export default function DashboardPage() {
       }
 
       if (acc.platform === 'linkedin') {
-        // LinkedIn live stats not available without MDP Analytics API
-        updates[acc.id] = { followers: undefined };
+        // LinkedIn personal profile analytics require MDP (Marketing Developer Platform)
+        // Standard OAuth only gives profile identity, not follower/engagement stats
+        updates[acc.id] = { analyticsUnavailable: true };
       }
     }));
 
@@ -708,6 +710,11 @@ export default function DashboardPage() {
                         className="w-full py-2 rounded-xl border border-dashed border-gray-700 text-gray-600 hover:text-gray-400 text-xs transition-colors">
                         Connect {meta.label}
                       </button>
+                    ) : plAccounts.every(a => liveData[a.id]?.analyticsUnavailable) ? (
+                      <div className="text-center py-2">
+                        <p className="text-[10px] text-gray-600">Analytics unavailable</p>
+                        <p className="text-[9px] text-gray-700 mt-0.5">LinkedIn MDP access required</p>
+                      </div>
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
                         {[
@@ -990,20 +997,27 @@ export default function DashboardPage() {
                         <div className="text-xs text-gray-600">{plAccounts.length} account(s)</div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Followers', value: s.followers },
-                        { label: 'Posts',     value: s.posts     },
-                        { label: 'Views',     value: s.views     },
-                        { label: 'Likes',     value: s.likes     },
-                        { label: 'Comments',  value: s.comments  },
-                      ].map(row => (
-                        <div key={row.label} className="flex justify-between items-center text-xs">
-                          <span className="text-gray-600">{row.label}</span>
-                          <span className="font-bold text-white">{fmtNum(row.value)}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {plAccounts.every(a => liveData[a.id]?.analyticsUnavailable) ? (
+                      <div className="py-2 text-center">
+                        <p className="text-xs text-gray-600">Analytics unavailable</p>
+                        <p className="text-[10px] text-gray-700 mt-1">LinkedIn MDP access required for personal profile stats</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {[
+                          { label: 'Followers', value: s.followers },
+                          { label: 'Posts',     value: s.posts     },
+                          { label: 'Views',     value: s.views     },
+                          { label: 'Likes',     value: s.likes     },
+                          { label: 'Comments',  value: s.comments  },
+                        ].map(row => (
+                          <div key={row.label} className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600">{row.label}</span>
+                            <span className="font-bold text-white">{fmtNum(row.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
