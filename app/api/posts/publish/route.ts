@@ -115,12 +115,12 @@ export async function POST(request: NextRequest) {
         console.log('Publishing to LinkedIn...');
         const linkedinCaption =
           platformContent?.linkedin?.caption?.trim() || caption;
-        const linkedinMediaUrl = imageUrl || undefined;
 
         const linkedinResult = await publishToLinkedin(
           userId,
           linkedinCaption,
-          linkedinMediaUrl,
+          imageUrl || undefined,
+          videoUrl || undefined,
         );
         results.linkedin = linkedinResult;
       } catch (error: any) {
@@ -292,8 +292,8 @@ async function publishToLinkedin(
   userId: string,
   caption: string,
   imageUrl?: string,
+  videoUrl?: string,
 ) {
-  // Load LinkedIn account directly — avoid HTTP hop to /api/auth/linkedin/post
   const userSnap = await adminDb.collection('users').doc(userId).get();
   const accounts: any[] = userSnap.data()?.connectedAccounts || [];
   const liAcc = accounts.find((a: any) => a.platform === 'linkedin');
@@ -304,9 +304,17 @@ async function publishToLinkedin(
 
   const { accessToken, authorUrn } = liAcc;
 
-  // Optionally upload image
+  let videoAsset: string | null = null;
   let imageAsset: string | null = null;
-  if (imageUrl) {
+
+  if (videoUrl) {
+    try {
+      videoAsset = await uploadLinkedInVideo(accessToken, authorUrn, videoUrl);
+      console.log('[LI PUBLISH] Video asset registered:', videoAsset);
+    } catch (err: any) {
+      console.warn('[LI PUBLISH] Video upload failed, posting text-only:', err.message);
+    }
+  } else if (imageUrl) {
     try {
       imageAsset = await uploadLinkedInImage(accessToken, authorUrn, imageUrl);
     } catch (err: any) {
@@ -314,13 +322,21 @@ async function publishToLinkedin(
     }
   }
 
-  // Use v2 UGC Posts API — no LinkedIn-Version header required, stable endpoint
+  // v2 UGC Posts — no LinkedIn-Version header required
   const shareContent: any = {
     shareCommentary: { text: caption },
     shareMediaCategory: 'NONE',
   };
 
-  if (imageAsset) {
+  if (videoAsset) {
+    shareContent.shareMediaCategory = 'VIDEO';
+    shareContent.media = [{
+      status: 'READY',
+      description: { text: caption.slice(0, 200) },
+      media: videoAsset,
+      title: { text: caption.slice(0, 100) },
+    }];
+  } else if (imageAsset) {
     shareContent.shareMediaCategory = 'IMAGE';
     shareContent.media = [{
       status: 'READY',
@@ -410,4 +426,52 @@ async function uploadLinkedInImage(
 
   if (!uploadRes.ok) throw new Error(`LinkedIn image upload failed: ${await uploadRes.text()}`);
   return imageUrn;
+}
+
+async function uploadLinkedInVideo(
+  accessToken: string,
+  authorUrn: string,
+  videoUrl: string,
+): Promise<string> {
+  const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+    },
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ['urn:li:digitalmediaRecipe:feedshare-video'],
+        owner: authorUrn,
+        serviceRelationships: [{
+          relationshipType: 'OWNER',
+          identifier: 'urn:li:userGeneratedContent',
+        }],
+      },
+    }),
+  });
+
+  if (!registerRes.ok) throw new Error(`LinkedIn video register failed: ${await registerRes.text()}`);
+
+  const regData = await registerRes.json();
+  const uploadUrl: string = regData.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
+  const videoUrn: string  = regData.value?.asset;
+  if (!uploadUrl || !videoUrn) throw new Error('LinkedIn did not return video upload URL');
+
+  const vidRes = await fetch(videoUrl);
+  if (!vidRes.ok) throw new Error('Failed to download video for LinkedIn');
+  const vidBuffer = await vidRes.arrayBuffer();
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': vidRes.headers.get('content-type') || 'video/mp4',
+    },
+    body: vidBuffer,
+  });
+
+  if (!uploadRes.ok) throw new Error(`LinkedIn video upload failed: ${await uploadRes.text()}`);
+  return videoUrn;
 }
