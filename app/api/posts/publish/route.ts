@@ -314,29 +314,39 @@ async function publishToLinkedin(
     }
   }
 
-  const postBody: any = {
-    author: authorUrn,
-    commentary: caption,
-    visibility: 'PUBLIC',
-    lifecycleState: 'PUBLISHED',
-    distribution: {
-      feedDistribution: 'MAIN_FEED',
-      targetEntities: [],
-      thirdPartyDistributionChannels: [],
-    },
+  // Use v2 UGC Posts API — no LinkedIn-Version header required, stable endpoint
+  const shareContent: any = {
+    shareCommentary: { text: caption },
+    shareMediaCategory: 'NONE',
   };
 
   if (imageAsset) {
-    postBody.content = { media: { id: imageAsset } };
+    shareContent.shareMediaCategory = 'IMAGE';
+    shareContent.media = [{
+      status: 'READY',
+      description: { text: caption.slice(0, 200) },
+      media: imageAsset,
+      title: { text: 'Image' },
+    }];
   }
 
-  const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+  const postBody = {
+    author: authorUrn,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': shareContent,
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+    },
+  };
+
+  const postRes = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-Restli-Protocol-Version': '2.0.0',
-      'LinkedIn-Version': '202604',
     },
     body: JSON.stringify(postBody),
   });
@@ -347,12 +357,8 @@ async function publishToLinkedin(
     throw new Error(`LinkedIn API error ${postRes.status}: ${errText}`);
   }
 
-  // URN is in the x-restli-id header; body is typically empty on 201
-  const postUrn =
-    postRes.headers.get('x-restli-id') ||
-    postRes.headers.get('x-linkedin-id') ||
-    (await postRes.text().then(t => t.trim() || undefined).catch(() => undefined));
-
+  const resJson = await postRes.json().catch(() => ({}));
+  const postUrn = resJson.id || postRes.headers.get('x-restli-id') || '';
   console.log('[LI PUBLISH] Published, URN:', postUrn);
   return { id: postUrn };
 }
@@ -362,22 +368,31 @@ async function uploadLinkedInImage(
   authorUrn: string,
   imageUrl: string,
 ): Promise<string> {
-  const initRes = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+  // Register image asset with v2 assets API (no version header needed)
+  const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
       'X-Restli-Protocol-Version': '2.0.0',
-      'LinkedIn-Version': '202604',
     },
-    body: JSON.stringify({ initializeUploadRequest: { owner: authorUrn } }),
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+        owner: authorUrn,
+        serviceRelationships: [{
+          relationshipType: 'OWNER',
+          identifier: 'urn:li:userGeneratedContent',
+        }],
+      },
+    }),
   });
 
-  if (!initRes.ok) throw new Error(`LinkedIn image init failed: ${await initRes.text()}`);
+  if (!registerRes.ok) throw new Error(`LinkedIn image init failed: ${await registerRes.text()}`);
 
-  const initData = await initRes.json();
-  const uploadUrl: string = initData.value?.uploadUrl;
-  const imageUrn: string  = initData.value?.image;
+  const regData = await registerRes.json();
+  const uploadUrl: string = regData.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl;
+  const imageUrn: string  = regData.value?.asset;
   if (!uploadUrl || !imageUrn) throw new Error('LinkedIn did not return upload URL');
 
   const imgRes = await fetch(imageUrl);
