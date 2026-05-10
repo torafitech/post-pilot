@@ -75,9 +75,6 @@ export async function GET(request: NextRequest) {
         'tweet.fields': [
           'created_at',
           'public_metrics',
-          'organic_metrics',
-          'non_public_metrics',
-          'context_annotations',
           'entities',
           'attachments',
           'referenced_tweets',
@@ -96,18 +93,16 @@ export async function GET(request: NextRequest) {
       });
 
       // Format tweets
-      const formattedTweets = tweets.data.data.map((tweet: any) => {
+      const formattedTweets = (tweets.data?.data || []).map((tweet: any) => {
         const metrics = tweet.public_metrics || {};
-        const organicMetrics = tweet.organic_metrics || {};
-        
-        // Calculate engagement rate
-        const totalEngagements = 
-          (metrics.like_count || 0) + 
-          (metrics.retweet_count || 0) + 
-          (metrics.reply_count || 0) + 
+
+        const totalEngagements =
+          (metrics.like_count || 0) +
+          (metrics.retweet_count || 0) +
+          (metrics.reply_count || 0) +
           (metrics.quote_count || 0);
-        
-        const impressions = organicMetrics.impression_count || metrics.impression_count || 0;
+
+        const impressions = metrics.impression_count || 0;
         const engagementRate = impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
 
         // Get media attachments

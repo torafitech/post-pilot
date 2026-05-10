@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // app/api/auth/twitter/oauth1/callback/route.ts (or similar)
     const connection = {
-      id: `twitter_${uid}`,
+      id: `twitter_${me.data.id}`,
       platform: 'twitter',
       platformId: me.data.id,   // from Twitter API
       accountName: me.data.username,

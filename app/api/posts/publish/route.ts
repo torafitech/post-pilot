@@ -239,13 +239,15 @@ async function publishToTwitter(
   caption: string,
   mediaUrl?: string,
   mediaType?: 'image' | 'video',
+  accountId?: string,
 ) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
   const response = await fetch(`${baseUrl}/api/auth/twitter/post`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      userId,          // required for account lookup
+      userId,
+      accountId: accountId || undefined,
       text: caption,
       mediaUrl: mediaUrl || undefined,
       mediaType: mediaType || undefined,

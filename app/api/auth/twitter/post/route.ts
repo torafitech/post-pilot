@@ -4,16 +4,17 @@ import { TwitterApi } from 'twitter-api-v2';
 import { adminDb } from '@/lib/firebaseAdmin';
 
 // Helper: get Twitter account from users/{userId}/connectedAccounts
-async function getTwitterAccount(userId: string) {
+async function getTwitterAccount(userId: string, accountId?: string) {
   const snap = await adminDb.collection('users').doc(userId).get();
 
   if (!snap.exists) return null;
 
   const userData = snap.data() as any;
-  const accounts = userData.connectedAccounts || [];
-  const twitterAccount = accounts.find(
-    (acc: any) => acc.platform === 'twitter',
-  );
+  const accounts: any[] = userData.connectedAccounts || [];
+  const isTwitter = (acc: any) => acc.platform === 'twitter' || acc.platform === 'twitter/x';
+  const twitterAccount = accountId
+    ? accounts.find((acc) => acc.id === accountId && isTwitter(acc))
+    : accounts.find(isTwitter);
 
   return twitterAccount || null;
 }
@@ -21,11 +22,12 @@ async function getTwitterAccount(userId: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, mediaUrl, mediaType, userId } = body as {
+    const { text, mediaUrl, mediaType, userId, accountId } = body as {
       text?: string;
-      mediaUrl?: string;                 // Cloudinary URL (image or video)
-      mediaType?: 'image' | 'video';     // Must be sent by client
-      userId?: string;                   // Firebase uid (required)
+      mediaUrl?: string;
+      mediaType?: 'image' | 'video';
+      userId?: string;
+      accountId?: string;
     };
 
     console.log('Twitter post request body:', body);
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2) Load Twitter OAuth1 tokens from Firestore
-    const twitterAccount = await getTwitterAccount(userId);
+    const twitterAccount = await getTwitterAccount(userId, accountId);
 
     if (!twitterAccount) {
       console.error('Twitter connection not found for user:', userId);
