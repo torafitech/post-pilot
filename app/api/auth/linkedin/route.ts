@@ -23,11 +23,12 @@ export async function GET(request: NextRequest) {
     process.env.LINKEDIN_REDIRECT_URI ||
     `${origin}/api/auth/linkedin/callback`;
 
-  // Only scopes granted to this LinkedIn app:
-  // r_profile_basicinfo = name, headline, photo, profile URL
-  // w_member_social     = create/delete posts, comments, reactions
+  // OpenID Connect scopes (Sign In with LinkedIn product now enabled)
+  // w_member_social = create/delete posts, comments, reactions
   const scopes = [
-    'r_profile_basicinfo',
+    'openid',
+    'profile',
+    'email',
     'w_member_social',
   ];
 

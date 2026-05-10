@@ -56,22 +56,17 @@ export async function GET(request: NextRequest) {
 
     const accessToken = tokenData.access_token as string;
 
-    // 2) Fetch profile to get name + member URN
-    const profileRes = await fetch(
-      'https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName)',
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-    );
+    // 2) Fetch profile via OIDC userinfo endpoint (openid + profile scopes)
+    const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     const profile = await profileRes.json();
+    // sub = member ID (e.g. "AbCdEfGhIj"), name = full display name
+    const linkedinMemberId = profile.sub as string;
     const profileName =
-      `${profile.localizedFirstName || ''} ${
-        profile.localizedLastName || ''
-      }`.trim() || 'LinkedIn Profile';
-
-    const linkedinMemberId = profile.id as string; // e.g. "AbCdEfGhIj"
+      profile.name ||
+      `${profile.given_name || ''} ${profile.family_name || ''}`.trim() ||
+      'LinkedIn Profile';
     const authorUrn = `urn:li:person:${linkedinMemberId}`;
 
     // 3) Get userId — state param carries uid (set during initiation)
