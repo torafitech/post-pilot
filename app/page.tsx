@@ -3,20 +3,22 @@ import type { Metadata } from 'next';
 import { LandingPage } from '@/components/LandingPage';
 
 export const metadata: Metadata = {
-  title: 'StarlingPost — Schedule & Automate YouTube, Twitter/X & LinkedIn Content',
+  title: 'StarlingPost — One post, six platforms',
   description:
-    'StarlingPost is the all-in-one content scheduling and automation platform for creators. Schedule posts, auto-reply to comments, and grow faster on YouTube, Twitter/X, and LinkedIn.',
+    'StarlingPost publishes once to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads. AI captions per platform, scheduling, keyword auto-reply, and comment automation — built for creators and agencies.',
   keywords: [
     'social media scheduler',
     'YouTube scheduler',
     'Twitter scheduler',
     'LinkedIn automation',
-    'content automation',
+    'Instagram scheduler',
+    'Facebook page scheduler',
+    'Threads scheduler',
+    'multi platform posting',
+    'AI caption generator',
     'auto reply comments',
-    'social media management tool',
-    'creator tools',
-    'schedule YouTube videos',
-    'grow on social media',
+    'content automation',
+    'social media agency tool',
   ],
   authors: [{ name: 'StarlingPost' }],
   creator: 'StarlingPost',
@@ -24,9 +26,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.starlingpost.com'),
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'StarlingPost — Automate Your Social Media Growth',
+    title: 'StarlingPost — One post, six platforms',
     description:
-      'Schedule posts, auto-reply to comments, and analyze performance across YouTube, Twitter/X, and LinkedIn — all from one powerful dashboard.',
+      'Publish once to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads. AI captions, scheduling, and comment automation in one dashboard.',
     url: 'https://www.starlingpost.com',
     siteName: 'StarlingPost',
     images: [
@@ -42,9 +44,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'StarlingPost — Social Media Automation for Creators',
+    title: 'StarlingPost — One post, six platforms',
     description:
-      'Schedule, automate, and grow on YouTube, Twitter/X, and LinkedIn with AI-powered tools.',
+      'Publish to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads from one composer. AI captions + scheduling + comment automation.',
     images: ['/images/og-cover.png'],
     creator: '@starlingpost',
   },
@@ -63,7 +65,7 @@ const jsonLd = {
   operatingSystem: 'Web',
   url: 'https://www.starlingpost.com',
   description:
-    'All-in-one social media scheduling and automation platform for YouTube, Twitter/X, and LinkedIn creators.',
+    'All-in-one social media scheduling and automation platform for YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads creators and agencies.',
   offers: {
     '@type': 'AggregateOffer',
     lowPrice: '0',

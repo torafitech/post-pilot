@@ -1,18 +1,38 @@
 // app/layout.tsx
 import type { Metadata } from 'next';
+import { Fraunces, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  axes: ['opsz', 'SOFT'],
+});
+
+const instrumentSans = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.starlingpost.com'),
   title: {
-    default: 'StarlingPost — Social Media Automation for Creators',
+    default: 'StarlingPost — One Post, Six Platforms',
     template: '%s | StarlingPost',
   },
   description:
-    'Schedule posts, auto-reply to comments, and grow your audience on YouTube, Twitter/X, and LinkedIn with StarlingPost.',
+    'StarlingPost publishes one post to YouTube, Twitter/X, LinkedIn, Instagram, Facebook and Threads. AI-enhanced captions, scheduling, keyword replies, and auto reply — built for creators and agencies who manage multiple accounts.',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
@@ -21,7 +41,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         <script
           async
