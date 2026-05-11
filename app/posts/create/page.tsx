@@ -22,6 +22,8 @@ import {
   Youtube,
   Twitter,
   Linkedin,
+  Facebook,
+  MessageCircle,
   MessageSquare,
   Target,
   CheckCircle,
@@ -49,6 +51,9 @@ interface PlatformSettings {
   youtube: PlatformContent;
   twitter: PlatformContent;
   linkedin: PlatformContent;
+  instagram: PlatformContent;
+  facebook: PlatformContent;
+  threads: PlatformContent;
 }
 
 interface AiTimeSlot {
@@ -62,10 +67,21 @@ interface AiTimeSlot {
 type TabId = 'content' | 'platforms' | 'schedule' | 'preview';
 type ScheduleMode = 'now' | 'ai' | 'custom';
 
+const InstagramIcon = ({ size = 20 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-500">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 const platformIcons: Record<string, React.ReactNode> = {
   youtube: <Youtube size={20} className="text-red-500" />,
   twitter: <Twitter size={20} className="text-blue-400" />,
   linkedin: <Linkedin size={20} className="text-blue-600" />,
+  instagram: <InstagramIcon size={20} />,
+  facebook: <Facebook size={20} className="text-blue-500" />,
+  threads: <MessageCircle size={20} className="text-gray-100" />,
 };
 
 const platformTips: Record<string, string> = {
@@ -73,6 +89,12 @@ const platformTips: Record<string, string> = {
     'Keep it under 280 characters, use 1-2 hashtags, and tag relevant accounts.',
   linkedin:
     'Use a professional tone, share insights, and ask thought-provoking questions.',
+  instagram:
+    'Instagram requires an image or video. Use up to 30 hashtags and a strong hook in the first line.',
+  facebook:
+    'Facebook supports text, image, and video. Ask questions to boost comments and engagement.',
+  threads:
+    'Threads is text-first. Keep it under 500 chars. Images and videos supported. Replies drive reach.',
 };
 
 // Per-platform content limits and media rules
@@ -120,6 +142,33 @@ const PLATFORM_RULES: Record<string, {
     imageSizeMB: 5,
     videoSizeMB: 5000,
   },
+  instagram: {
+    captionMax: 2200,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG',
+    videoFormats: 'MP4 (max 60s)',
+    imageSizeMB: 8,
+    videoSizeMB: 100,
+  },
+  facebook: {
+    captionMax: 63206,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG, GIF, WebP',
+    videoFormats: 'MP4, MOV',
+    imageSizeMB: 25,
+    videoSizeMB: 10000,
+  },
+  threads: {
+    captionMax: 500,
+    allowsImage: true,
+    allowsVideo: true,
+    imageFormats: 'JPG, PNG',
+    videoFormats: 'MP4 (max 5 min)',
+    imageSizeMB: 8,
+    videoSizeMB: 1000,
+  },
 };
 
 const orderedTabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
@@ -160,6 +209,21 @@ export default function CreatePostPage() {
       tags: [],
     },
     linkedin: {
+      caption: '',
+      hashtags: [],
+      tags: [],
+    },
+    instagram: {
+      caption: '',
+      hashtags: [],
+      tags: [],
+    },
+    facebook: {
+      caption: '',
+      hashtags: [],
+      tags: [],
+    },
+    threads: {
       caption: '',
       hashtags: [],
       tags: [],
@@ -220,9 +284,22 @@ export default function CreatePostPage() {
       },
       linkedin: {
         caption: cleanCaption,
-        hashtags: hashtags.filter(
-          (h) => !h.includes('youtube'),
-        ),
+        hashtags: hashtags.filter((h) => !h.includes('youtube')),
+        tags: [],
+      },
+      instagram: {
+        caption: cleanCaption.substring(0, 2200),
+        hashtags: hashtags.slice(0, 30),
+        tags: [],
+      },
+      facebook: {
+        caption: cleanCaption,
+        hashtags: hashtags.slice(0, 10),
+        tags: [],
+      },
+      threads: {
+        caption: cleanCaption.substring(0, 500),
+        hashtags: hashtags.slice(0, 5),
         tags: [],
       },
     });
@@ -513,15 +590,12 @@ export default function CreatePostPage() {
       });
 
       setPlatformContent({
-        youtube: {
-          title: '',
-          description: '',
-          caption: '',
-          hashtags: [],
-          tags: [],
-        },
+        youtube: { title: '', description: '', caption: '', hashtags: [], tags: [] },
         twitter: { caption: '', hashtags: [], tags: [] },
         linkedin: { caption: '', hashtags: [], tags: [] },
+        instagram: { caption: '', hashtags: [], tags: [] },
+        facebook: { caption: '', hashtags: [], tags: [] },
+        threads: { caption: '', hashtags: [], tags: [] },
       });
 
       router.push('/dashboard');
@@ -977,7 +1051,7 @@ export default function CreatePostPage() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {['youtube', 'twitter', 'linkedin'].map((platform) => (
+                    {['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'].map((platform) => (
                       <div
                         key={platform}
                         className="bg-gray-950 rounded-xl p-4 border border-gray-800"
@@ -1036,6 +1110,24 @@ export default function CreatePostPage() {
                       name: 'LinkedIn',
                       color: 'from-blue-600 to-blue-800',
                       stats: '950M users',
+                    },
+                    {
+                      id: 'instagram',
+                      name: 'Instagram',
+                      color: 'from-pink-500 to-purple-600',
+                      stats: '2B users',
+                    },
+                    {
+                      id: 'facebook',
+                      name: 'Facebook',
+                      color: 'from-blue-500 to-blue-700',
+                      stats: '3B users',
+                    },
+                    {
+                      id: 'threads',
+                      name: 'Threads',
+                      color: 'from-gray-600 to-gray-900',
+                      stats: '300M users',
                     },
                   ].map((platform) => {
                     const isSelected = formData.platforms.includes(platform.id);
@@ -1142,6 +1234,8 @@ export default function CreatePostPage() {
                         issues.push({ type: 'warn', msg: `Images not supported on ${platform}` });
                       if (formData.imageUrl && !formData.videoUrl && !rules.allowsImage)
                         issues.push({ type: 'error', msg: `${platform} does not support standalone images` });
+                      if (platform === 'instagram' && !formData.imageUrl && !formData.videoUrl)
+                        issues.push({ type: 'error', msg: 'Instagram requires an image or video' });
 
                       const hasError = issues.some(i => i.type === 'error');
                       const hasWarn = issues.some(i => i.type === 'warn');

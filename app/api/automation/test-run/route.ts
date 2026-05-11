@@ -224,7 +224,7 @@ async function lmYouTube(userId: string, rules: any[], ytAcc: any, acc: AccountS
         const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
         if (authorChannelId === ytAcc.platformId) continue;
 
-        const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+        const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
         if (!rule) continue;
         acc.matched++;
 
@@ -275,7 +275,7 @@ async function lmTwitter(userId: string, rules: any[], twAcc: any, acc: AccountS
     if (!applicableRules.length) continue;
 
     const rule = applicableRules.find((r: any) =>
-      mention.text.toLowerCase().includes(r.keyword.toLowerCase()),
+      mention.text.toLowerCase().includes(r.keyword.trim().toLowerCase()),
     );
     if (!rule) continue;
     acc.matched++;
@@ -472,7 +472,7 @@ async function lmLinkedIn(userId: string, rules: any[], liAcc: any, acc: Account
       if (comment.actorUrn === liAcc.authorUrn) continue;
 
       const text = comment.text.toLowerCase();
-      const rule = rules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      const rule = rules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
       if (!rule) continue;
       acc.matched++;
 

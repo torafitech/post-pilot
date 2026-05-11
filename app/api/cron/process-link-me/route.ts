@@ -23,6 +23,20 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import {
+  fetchRecentFBPostIds,
+  fetchFBPostComments,
+  replyToFBComment,
+  checkFBReplied,
+  markFBReplied,
+} from '@/lib/facebookAutomation';
+import {
+  fetchRecentThreadIds,
+  fetchThreadReplies,
+  postThreadReply,
+  checkTHReplied,
+  markTHReplied,
+} from '@/lib/threadsAutomation';
 import { parsePostUrls } from '@/lib/postScopeUtils';
 
 export const dynamic = 'force-dynamic';
@@ -134,6 +148,32 @@ async function processUserLinkMe(userId: string): Promise<number> {
     }
   }
 
+  // Threads — every connected Threads account
+  const thRules = rules.filter((r: any) => r.platforms?.includes('threads'));
+  if (thRules.length) {
+    const thAccounts = accounts.filter((a: any) => a.platform === 'threads');
+    for (const thAcc of thAccounts) {
+      try {
+        replied += await processThreadsLinkMe(userId, thRules, thAcc);
+      } catch (err: any) {
+        console.error('[LINK-ME] TH account', thAcc.platformId, err.message);
+      }
+    }
+  }
+
+  // Facebook — every connected Facebook Page account
+  const fbRules = rules.filter((r: any) => r.platforms?.includes('facebook'));
+  if (fbRules.length) {
+    const fbAccounts = accounts.filter((a: any) => a.platform === 'facebook');
+    for (const fbAcc of fbAccounts) {
+      try {
+        replied += await processFacebookLinkMe(userId, fbRules, fbAcc);
+      } catch (err: any) {
+        console.error('[LINK-ME] FB account', fbAcc.platformId, err.message);
+      }
+    }
+  }
+
   return replied;
 }
 
@@ -163,7 +203,7 @@ async function processLinkedInLinkMe(
       if (comment.actorUrn === liAcc.authorUrn) continue;
       if (await checkLIReplied(userId, comment.id, 'linkMe')) continue;
       const text = comment.text.toLowerCase();
-      const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+      const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
       if (!rule) continue;
       const ok = await replyToLinkedInComment(liAcc, comment.id, rule.replyMessage);
       if (ok) {
@@ -210,7 +250,7 @@ async function processYouTubeLinkMe(
         const authorChannelId = thread.snippet?.topLevelComment?.snippet?.authorChannelId?.value || '';
         if (authorChannelId === ytAccount.platformId) continue;
         if (await checkYTReplied(userId, commentId, 'linkMe')) continue;
-        const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+        const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
         if (!rule) continue;
         try {
           await youtube.comments.insert({
@@ -254,7 +294,7 @@ async function processTwitterLinkMe(
     if (!applicableRules.length) continue;
 
     const text = mention.text.toLowerCase();
-    const rule = applicableRules.find((r: any) => text.includes(r.keyword.toLowerCase()));
+    const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
     if (!rule) continue;
 
     const ok = await replyToTweet(twAccount, mention.id, rule.replyMessage);
@@ -265,6 +305,86 @@ async function processTwitterLinkMe(
     }
   }
 
+  return replied;
+}
+
+async function processThreadsLinkMe(
+  userId: string,
+  rules: any[],
+  thAcc: any,
+): Promise<number> {
+  const maxRecent = Math.max(
+    ...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5),
+    0,
+  );
+  const { ids: threadIds } = maxRecent > 0
+    ? await fetchRecentThreadIds(thAcc, Math.min(maxRecent, MAX_COMMENTS_PER_VIDEO))
+    : { ids: [] };
+
+  let replied = 0;
+  for (const threadId of threadIds) {
+    const applicableRules = rules.filter(r =>
+      r.postScope !== 'custom'
+        ? threadIds.slice(0, r.recentCount || 5).includes(threadId)
+        : false,
+    );
+    if (!applicableRules.length) continue;
+
+    const { replies } = await fetchThreadReplies(thAcc, threadId);
+    for (const reply of replies) {
+      if (reply.userId === thAcc.platformId) continue;
+      if (await checkTHReplied(userId, reply.id, 'linkMe')) continue;
+      const text = reply.text.toLowerCase();
+      const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
+      if (!rule) continue;
+      const ok = await postThreadReply(thAcc, reply.id, rule.replyMessage);
+      if (ok) {
+        await markTHReplied(userId, reply.id, 'linkMe');
+        await incrementRuleMatch(userId, rule.id);
+        replied++;
+      }
+    }
+  }
+  return replied;
+}
+
+async function processFacebookLinkMe(
+  userId: string,
+  rules: any[],
+  fbAcc: any,
+): Promise<number> {
+  const maxRecent = Math.max(
+    ...rules.filter(r => r.postScope !== 'custom').map(r => r.recentCount || 5),
+    0,
+  );
+  const { ids: recentIds } = maxRecent > 0
+    ? await fetchRecentFBPostIds(fbAcc, Math.min(maxRecent, MAX_COMMENTS_PER_VIDEO))
+    : { ids: [] };
+
+  let replied = 0;
+  for (const postId of recentIds) {
+    const applicableRules = rules.filter(r =>
+      r.postScope !== 'custom'
+        ? recentIds.slice(0, r.recentCount || 5).includes(postId)
+        : false,
+    );
+    if (!applicableRules.length) continue;
+
+    const { comments } = await fetchFBPostComments(fbAcc, postId);
+    for (const comment of comments) {
+      if (comment.fromId === fbAcc.platformId) continue;
+      if (await checkFBReplied(userId, comment.id, 'linkMe')) continue;
+      const text = comment.text.toLowerCase();
+      const rule = applicableRules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
+      if (!rule) continue;
+      const ok = await replyToFBComment(fbAcc, comment.id, rule.replyMessage);
+      if (ok) {
+        await markFBReplied(userId, comment.id, 'linkMe');
+        await incrementRuleMatch(userId, rule.id);
+        replied++;
+      }
+    }
+  }
   return replied;
 }
 

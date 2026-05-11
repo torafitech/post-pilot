@@ -24,6 +24,20 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import {
+  fetchRecentFBPostIds,
+  fetchFBPostComments,
+  replyToFBComment,
+  checkFBReplied,
+  markFBReplied,
+} from '@/lib/facebookAutomation';
+import {
+  fetchRecentThreadIds,
+  fetchThreadReplies,
+  postThreadReply,
+  checkTHReplied,
+  markTHReplied,
+} from '@/lib/threadsAutomation';
 import { parsePostUrls } from '@/lib/postScopeUtils';
 
 export const dynamic = 'force-dynamic';
@@ -130,6 +144,32 @@ async function processUserAutoReply(userId: string): Promise<number> {
         replied += await autoReplyLinkedIn(userId, liTemplate, liAcc);
       } catch (err: any) {
         console.error('[AUTO-REPLY] LI account', liAcc.platformId, err.message);
+      }
+    }
+  }
+
+  // Threads — every connected Threads account
+  const thTemplate = templates.find((t: any) => t.platforms?.includes('threads'));
+  if (thTemplate) {
+    const thAccounts = accounts.filter((a: any) => a.platform === 'threads');
+    for (const thAcc of thAccounts) {
+      try {
+        replied += await autoReplyThreads(userId, thTemplate, thAcc);
+      } catch (err: any) {
+        console.error('[AUTO-REPLY] TH account', thAcc.platformId, err.message);
+      }
+    }
+  }
+
+  // Facebook — every connected Facebook Page account
+  const fbTemplate = templates.find((t: any) => t.platforms?.includes('facebook'));
+  if (fbTemplate) {
+    const fbAccounts = accounts.filter((a: any) => a.platform === 'facebook');
+    for (const fbAcc of fbAccounts) {
+      try {
+        replied += await autoReplyFacebook(userId, fbTemplate, fbAcc);
+      } catch (err: any) {
+        console.error('[AUTO-REPLY] FB account', fbAcc.platformId, err.message);
       }
     }
   }
@@ -250,6 +290,56 @@ async function autoReplyLinkedIn(
       const ok = await replyToLinkedInComment(liAcc, comment.id, replyText);
       if (ok) {
         await markLIReplied(userId, comment.id, 'autoReply');
+        replied++;
+      }
+    }
+  }
+  return replied;
+}
+
+async function autoReplyThreads(
+  userId: string,
+  template: any,
+  thAcc: any,
+): Promise<number> {
+  const count = template.postScope === 'custom' ? 0 : Math.min(template.recentCount || 5, MAX_VIDEOS_PER_ACCOUNT);
+  const { ids: threadIds } = count > 0 ? await fetchRecentThreadIds(thAcc, count) : { ids: [] };
+
+  let replied = 0;
+  for (const threadId of threadIds) {
+    const { replies } = await fetchThreadReplies(thAcc, threadId);
+    for (const reply of replies) {
+      if (reply.userId === thAcc.platformId) continue;
+      if (await checkTHReplied(userId, reply.id, 'autoReply')) continue;
+      const replyText = await buildReplyText(template, reply.text, reply.username);
+      const ok = await postThreadReply(thAcc, reply.id, replyText);
+      if (ok) {
+        await markTHReplied(userId, reply.id, 'autoReply');
+        replied++;
+      }
+    }
+  }
+  return replied;
+}
+
+async function autoReplyFacebook(
+  userId: string,
+  template: any,
+  fbAcc: any,
+): Promise<number> {
+  const count = template.postScope === 'custom' ? 0 : Math.min(template.recentCount || 5, MAX_VIDEOS_PER_ACCOUNT);
+  const { ids: postIds } = count > 0 ? await fetchRecentFBPostIds(fbAcc, count) : { ids: [] };
+
+  let replied = 0;
+  for (const postId of postIds) {
+    const { comments } = await fetchFBPostComments(fbAcc, postId);
+    for (const comment of comments) {
+      if (comment.fromId === fbAcc.platformId) continue;
+      if (await checkFBReplied(userId, comment.id, 'autoReply')) continue;
+      const replyText = await buildReplyText(template, comment.text, comment.fromName);
+      const ok = await replyToFBComment(fbAcc, comment.id, replyText);
+      if (ok) {
+        await markFBReplied(userId, comment.id, 'autoReply');
         replied++;
       }
     }

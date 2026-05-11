@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
       twitter: null as any,
       youtube: null as any,
       linkedin: null as any,
+      instagram: null as any,
+      facebook: null as any,
+      threads: null as any,
       errors: [] as any[],
     };
 
@@ -130,6 +133,68 @@ export async function POST(request: NextRequest) {
     }
 
     // -----------------------
+    // Publish to Instagram
+    // -----------------------
+    if (platforms.includes('instagram')) {
+      try {
+        console.log('Publishing to Instagram...');
+        const igCaption = platformContent?.instagram?.caption?.trim() || caption;
+        const igMediaUrl = imageUrl || videoUrl || undefined;
+        const igMediaType = imageUrl ? 'image' : videoUrl ? 'video' : undefined;
+
+        if (!igMediaUrl || !igMediaType) {
+          results.errors.push({ platform: 'instagram', error: 'Instagram requires an image or video' });
+        } else {
+          const igResult = await publishToInstagram(userId, igCaption, igMediaUrl, igMediaType);
+          results.instagram = igResult;
+        }
+      } catch (error: any) {
+        console.error('Instagram publish error:', error);
+        results.errors.push({ platform: 'instagram', error: error.message });
+      }
+    }
+
+    // -----------------------
+    // Publish to Facebook
+    // -----------------------
+    if (platforms.includes('facebook')) {
+      try {
+        console.log('Publishing to Facebook...');
+        const fbCaption = platformContent?.facebook?.caption?.trim() || caption;
+        const fbResult = await publishToFacebook(
+          userId,
+          fbCaption,
+          imageUrl || undefined,
+          videoUrl || undefined,
+        );
+        results.facebook = fbResult;
+      } catch (error: any) {
+        console.error('Facebook publish error:', error);
+        results.errors.push({ platform: 'facebook', error: error.message });
+      }
+    }
+
+    // -----------------------
+    // Publish to Threads
+    // -----------------------
+    if (platforms.includes('threads')) {
+      try {
+        console.log('Publishing to Threads...');
+        const thCaption = platformContent?.threads?.caption?.trim() || caption;
+        const thResult = await publishToThreads(
+          userId,
+          thCaption,
+          imageUrl || undefined,
+          videoUrl || undefined,
+        );
+        results.threads = thResult;
+      } catch (error: any) {
+        console.error('Threads publish error:', error);
+        results.errors.push({ platform: 'threads', error: error.message });
+      }
+    }
+
+    // -----------------------
     // Auto-pin first comment
     // -----------------------
     if (autoPinComment && pinnedCommentText?.trim()) {
@@ -159,6 +224,9 @@ export async function POST(request: NextRequest) {
     if (results.twitter?.id) platformPostIds.twitter = results.twitter.id;
     if (results.youtube?.id) platformPostIds.youtube = results.youtube.id;
     if (results.linkedin?.id) platformPostIds.linkedin = results.linkedin.id;
+    if (results.instagram?.id) platformPostIds.instagram = results.instagram.id;
+    if (results.facebook?.id) platformPostIds.facebook = results.facebook.id;
+    if (results.threads?.id) platformPostIds.threads = results.threads.id;
     await adminDb.collection('posts').doc(postId).update({
       status:
         results.errors.length === 0 ? 'published' : 'partially_published',
@@ -209,13 +277,48 @@ export async function POST(request: NextRequest) {
         {
           ...basePostData,
           platform: 'linkedin',
-          accountId: `linkedin_${userId}`, // or actual member/organization id
-          platformPostId: results.linkedin.id, // URN returned by LinkedIn
+          accountId: `linkedin_${userId}`,
+          platformPostId: results.linkedin.id,
         },
         { merge: true },
       );
     }
 
+    if (results.instagram?.id) {
+      await userPostsRef.doc(results.instagram.id).set(
+        {
+          ...basePostData,
+          platform: 'instagram',
+          accountId: `instagram_${userId}`,
+          platformPostId: results.instagram.id,
+        },
+        { merge: true },
+      );
+    }
+
+    if (results.facebook?.id) {
+      await userPostsRef.doc(results.facebook.id).set(
+        {
+          ...basePostData,
+          platform: 'facebook',
+          accountId: `facebook_${userId}`,
+          platformPostId: results.facebook.id,
+        },
+        { merge: true },
+      );
+    }
+
+    if (results.threads?.id) {
+      await userPostsRef.doc(results.threads.id).set(
+        {
+          ...basePostData,
+          platform: 'threads',
+          accountId: `threads_${userId}`,
+          platformPostId: results.threads.id,
+        },
+        { merge: true },
+      );
+    }
 
     return NextResponse.json({
       success: results.errors.length === 0,
@@ -231,6 +334,81 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// Helper: Publish to Threads (two-step container flow)
+async function publishToThreads(
+  userId: string,
+  caption: string,
+  imageUrl?: string,
+  videoUrl?: string,
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
+  const response = await fetch(`${baseUrl}/api/threads/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-call': '1',
+    },
+    body: JSON.stringify({ _userId: userId, caption, imageUrl, videoUrl }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to publish to Threads');
+  }
+
+  return { id: data.threadsPostId };
+}
+
+// Helper: Publish to Facebook Page
+async function publishToFacebook(
+  userId: string,
+  caption: string,
+  imageUrl?: string,
+  videoUrl?: string,
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
+  const response = await fetch(`${baseUrl}/api/facebook/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-call': '1',
+    },
+    body: JSON.stringify({ _userId: userId, caption, imageUrl, videoUrl }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to publish to Facebook');
+  }
+
+  return { id: data.facebookPostId };
+}
+
+// Helper: Publish to Instagram (two-step container API)
+async function publishToInstagram(
+  userId: string,
+  caption: string,
+  mediaUrl: string,
+  mediaType: 'image' | 'video',
+) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://www.starlingpost.com';
+  const response = await fetch(`${baseUrl}/api/instagram/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-call': '1',
+    },
+    body: JSON.stringify({ _userId: userId, caption, mediaUrl, mediaType }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to publish to Instagram');
+  }
+
+  return { id: data.instagramPostId };
 }
 
 // Helper: Publish to Twitter (OAuth1, using /api/auth/twitter/post)
