@@ -15,6 +15,7 @@ import {
   Youtube,
   Twitter,
   Linkedin,
+  Facebook,
   Sparkles,
   RefreshCw,
   Bot,
@@ -24,6 +25,14 @@ import {
   Pencil,
   X,
 } from 'lucide-react';
+
+const InstagramIconSm = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
 
 interface LinkMeRule {
   id: string;
@@ -53,10 +62,13 @@ const platformIcons: Record<string, React.ReactNode> = {
   youtube: <Youtube size={14} className="text-red-400" />,
   twitter: <Twitter size={14} className="text-sky-400" />,
   linkedin: <Linkedin size={14} className="text-blue-400" />,
+  instagram: <InstagramIconSm />,
+  facebook: <Facebook size={14} className="text-blue-500" />,
+  threads: <MessageCircle size={14} className="text-gray-200" />,
 };
 
-const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
-const comingSoonPlatforms = new Set<string>(['linkedin']);
+const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
+const comingSoonPlatforms = new Set<string>();
 
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();

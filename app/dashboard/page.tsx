@@ -14,10 +14,18 @@ import {
 } from 'recharts';
 import {
   ArrowUpRight, BarChart2, Bot, Calendar, CheckCircle2, ChevronDown, ChevronUp,
-  Clock, Eye, ExternalLink, Globe, Heart, Linkedin, MessageCircle,
+  Clock, Eye, ExternalLink, Facebook, Globe, Heart, Linkedin, MessageCircle,
   PlusCircle, RefreshCw, Settings, ThumbsUp, TrendingUp, Twitter, Users,
   Video, Youtube, Zap, Link2, AlertCircle, X, Activity, WifiOff,
 } from 'lucide-react';
+
+const InstagramIcon = ({ size = 16, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -61,22 +69,28 @@ interface AutomationStats {
   autoReplyActive: number;
 }
 
-const PLATFORMS = ['youtube', 'twitter', 'linkedin'] as const;
+const PLATFORMS = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'] as const;
 type Platform = typeof PLATFORMS[number];
 
 const platformMeta: Record<Platform, {
   Icon: React.ElementType; color: string; bg: string; border: string;
   label: string; chartColor: string;
 }> = {
-  youtube:  { Icon: Youtube,  color: 'text-red-400',  bg: 'bg-red-500/10',  border: 'border-red-500/30',  label: 'YouTube',   chartColor: '#f87171' },
-  twitter:  { Icon: Twitter,  color: 'text-sky-400',  bg: 'bg-sky-500/10',  border: 'border-sky-500/30',  label: 'Twitter/X', chartColor: '#38bdf8' },
-  linkedin: { Icon: Linkedin, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30', label: 'LinkedIn',  chartColor: '#60a5fa' },
+  youtube:   { Icon: Youtube,        color: 'text-red-400',   bg: 'bg-red-500/10',   border: 'border-red-500/30',   label: 'YouTube',   chartColor: '#f87171' },
+  twitter:   { Icon: Twitter,        color: 'text-sky-400',   bg: 'bg-sky-500/10',   border: 'border-sky-500/30',   label: 'Twitter/X', chartColor: '#38bdf8' },
+  linkedin:  { Icon: Linkedin,       color: 'text-blue-400',  bg: 'bg-blue-500/10',  border: 'border-blue-500/30',  label: 'LinkedIn',  chartColor: '#60a5fa' },
+  instagram: { Icon: InstagramIcon,  color: 'text-pink-400',  bg: 'bg-pink-500/10',  border: 'border-pink-500/30',  label: 'Instagram', chartColor: '#f472b6' },
+  facebook:  { Icon: Facebook,       color: 'text-blue-500',  bg: 'bg-blue-600/10',  border: 'border-blue-600/30',  label: 'Facebook',  chartColor: '#3b82f6' },
+  threads:   { Icon: MessageCircle,  color: 'text-gray-200',  bg: 'bg-gray-500/10',  border: 'border-gray-500/30',  label: 'Threads',   chartColor: '#9ca3af' },
 };
 
 const oauthRoute: Record<Platform, (uid: string) => string> = {
-  youtube:  uid => `/api/auth/youtube?uid=${encodeURIComponent(uid)}`,
-  twitter:  uid => `/api/auth/twitter/oauth1?uid=${encodeURIComponent(uid)}`,
-  linkedin: uid => `/api/auth/linkedin?uid=${encodeURIComponent(uid)}`,
+  youtube:   uid => `/api/auth/youtube?uid=${encodeURIComponent(uid)}`,
+  twitter:   uid => `/api/auth/twitter/oauth1?uid=${encodeURIComponent(uid)}`,
+  linkedin:  uid => `/api/auth/linkedin?uid=${encodeURIComponent(uid)}`,
+  instagram: uid => `/api/auth/instagram?uid=${encodeURIComponent(uid)}`,
+  facebook:  uid => `/api/auth/facebook?uid=${encodeURIComponent(uid)}`,
+  threads:   uid => `/api/auth/threads?uid=${encodeURIComponent(uid)}`,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -330,6 +344,12 @@ export default function DashboardPage() {
           updates[acc.id] = { analyticsUnavailable: true };
         }
       }
+
+      // Instagram / Facebook / Threads — no live analytics endpoints yet.
+      // Show "analyticsUnavailable" so the card renders without errors.
+      if (acc.platform === 'instagram' || acc.platform === 'facebook' || acc.platform === 'threads') {
+        updates[acc.id] = { analyticsUnavailable: true };
+      }
     }));
 
     setLiveData(prev => ({ ...prev, ...updates }));
@@ -436,15 +456,24 @@ export default function DashboardPage() {
 
   // Monthly posting frequency
   const postsByMonth = useMemo(() => {
-    const map: Record<string, { month: string; YouTube: number; 'Twitter/X': number; LinkedIn: number }> = {};
+    const empty = () => ({
+      YouTube: 0, 'Twitter/X': 0, LinkedIn: 0,
+      Instagram: 0, Facebook: 0, Threads: 0,
+    });
+    const map: Record<string, { month: string } & ReturnType<typeof empty>> = {};
     published.forEach(p => {
       const d = p.publishedAt!.toDate();
       const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!map[key]) map[key] = { month: key, YouTube: 0, 'Twitter/X': 0, LinkedIn: 0 };
-      const pl = p.platform?.toLowerCase();
-      if (pl === 'youtube') map[key].YouTube++;
-      else if (pl === 'twitter') map[key]['Twitter/X']++;
-      else if (pl === 'linkedin') map[key].LinkedIn++;
+      if (!map[key]) map[key] = { month: key, ...empty() };
+      const pls = p.platforms?.length ? p.platforms.map(x => x.toLowerCase()) : [p.platform?.toLowerCase()];
+      pls.forEach(pl => {
+        if (pl === 'youtube') map[key].YouTube++;
+        else if (pl === 'twitter') map[key]['Twitter/X']++;
+        else if (pl === 'linkedin') map[key].LinkedIn++;
+        else if (pl === 'instagram') map[key].Instagram++;
+        else if (pl === 'facebook') map[key].Facebook++;
+        else if (pl === 'threads') map[key].Threads++;
+      });
     });
     return Object.values(map).slice(-8);
   }, [published]);
@@ -970,9 +999,12 @@ export default function DashboardPage() {
                     <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#374151', strokeWidth: 1 }} />
                     <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                    <Area type="monotone" dataKey="YouTube"   stroke={platformMeta.youtube.chartColor}  fill="url(#grad-youtube)"  strokeWidth={2} dot={false} />
-                    <Area type="monotone" dataKey="Twitter/X" stroke={platformMeta.twitter.chartColor}  fill="url(#grad-twitter)"  strokeWidth={2} dot={false} />
-                    <Area type="monotone" dataKey="LinkedIn"  stroke={platformMeta.linkedin.chartColor} fill="url(#grad-linkedin)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="YouTube"   stroke={platformMeta.youtube.chartColor}   fill="url(#grad-youtube)"   strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Twitter/X" stroke={platformMeta.twitter.chartColor}   fill="url(#grad-twitter)"   strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="LinkedIn"  stroke={platformMeta.linkedin.chartColor}  fill="url(#grad-linkedin)"  strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Instagram" stroke={platformMeta.instagram.chartColor} fill="url(#grad-instagram)" strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Facebook"  stroke={platformMeta.facebook.chartColor}  fill="url(#grad-facebook)"  strokeWidth={2} dot={false} />
+                    <Area type="monotone" dataKey="Threads"   stroke={platformMeta.threads.chartColor}   fill="url(#grad-threads)"   strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
