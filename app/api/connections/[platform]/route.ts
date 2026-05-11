@@ -4,14 +4,14 @@ import { getUserIdFromRequest } from "@/lib/getUserFromRequest";
 // import type { PlatformKey } from "@/types/platform"; // keep your central type
 
 // If you really need it local, don't re-declare; rely on the imported type.
-type PlatformKey = "instagram" | "youtube" | "twitter" | "linkedin";
+type PlatformKey = "instagram" | "youtube" | "twitter" | "linkedin" | "facebook" | "threads";
 
 type RouteParams = {
   platform: string; // must be string for Next.js
 };
 
 function isValidPlatform(value: string): value is PlatformKey {
-  const allowed: PlatformKey[] = ["instagram", "youtube", "twitter", "linkedin"];
+  const allowed: PlatformKey[] = ["instagram", "youtube", "twitter", "linkedin", "facebook", "threads"];
   return allowed.includes(value as PlatformKey);
 }
 

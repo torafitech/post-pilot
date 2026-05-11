@@ -5,6 +5,8 @@ import { SocialPost, PostMetrics } from '@/types/post';
 import { fetchYouTubeMetrics } from '@/lib/metrics/youtube';
 import { fetchTwitterMetrics } from '@/lib/metrics/twitter';
 import { fetchLinkedinMetrics } from '@/lib/metrics/linkedin';
+import { fetchInstagramMetrics } from '@/lib/metrics/instagram';
+import { fetchFacebookMetrics } from '@/lib/metrics/facebook';
 
 export async function POST(req: NextRequest) {
   try {
@@ -143,6 +145,34 @@ async function fetchPlatformMetrics(
         platformPostId,
         liAcc.accessToken,
       );
+    }
+    case 'instagram': {
+      const igAcc = getAccount('instagram', connectedAccounts);
+      if (!igAcc) {
+        console.warn('[SYNC] No instagram account found for metrics');
+        return {};
+      }
+      return fetchInstagramMetrics(
+        igAcc.platformId || accountId,
+        platformPostId,
+        igAcc.accessToken,
+      );
+    }
+    case 'facebook': {
+      const fbAcc = getAccount('facebook', connectedAccounts);
+      if (!fbAcc) {
+        console.warn('[SYNC] No facebook account found for metrics');
+        return {};
+      }
+      return fetchFacebookMetrics(
+        fbAcc.platformId || accountId,
+        platformPostId,
+        fbAcc.accessToken,
+      );
+    }
+    case 'threads': {
+      // Threads insights endpoint not yet implemented; return empty metrics.
+      return {};
     }
     default:
       console.warn('[SYNC] Unknown or unsupported platform, skipping:', platform);

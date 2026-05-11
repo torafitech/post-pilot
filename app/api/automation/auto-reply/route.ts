@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one platform required' }, { status: 400 });
     }
 
-    const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+    const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
     const validPlatforms = platforms.filter((p) => betaPlatforms.includes(p));
 
     const now = new Date();

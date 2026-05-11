@@ -28,6 +28,20 @@ import {
   checkLIReplied,
   markLIReplied,
 } from '@/lib/linkedinAutomation';
+import {
+  fetchRecentFBPostIds,
+  fetchFBPostComments,
+  replyToFBComment,
+  checkFBReplied,
+  markFBReplied,
+} from '@/lib/facebookAutomation';
+import {
+  fetchRecentThreadIds,
+  fetchThreadReplies,
+  postThreadReply,
+  checkTHReplied,
+  markTHReplied,
+} from '@/lib/threadsAutomation';
 import { parsePostUrls } from '@/lib/postScopeUtils';
 
 const MAX_VIDEOS = 10;
@@ -35,7 +49,7 @@ const MAX_COMMENTS_PER_VIDEO = 20;
 const MAX_MENTIONS = 20;
 
 interface AccountStat {
-  platform: 'youtube' | 'twitter' | 'linkedin';
+  platform: 'youtube' | 'twitter' | 'linkedin' | 'instagram' | 'facebook' | 'threads';
   accountId: string;
   scanned: number;        // videos / mentions
   comments: number;       // comments seen (YT only)
@@ -80,27 +94,28 @@ function buildMessage(verb: string, total: number, stats: RunStats): string {
   const totalLabel = `${verb} ${total} comment${total !== 1 ? 's' : ''}.`;
   const lines: string[] = [];
 
+  const platformLabel: Record<string, string> = {
+    youtube: 'YouTube',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    instagram: 'Instagram',
+    facebook: 'Facebook',
+    threads: 'Threads',
+  };
   for (const acc of stats.accounts) {
-    if (acc.platform === 'youtube') {
+    const label = platformLabel[acc.platform] || acc.platform;
+    if (acc.platform === 'twitter') {
       lines.push(
-        `YouTube (${shortId(acc.accountId)}): scanned ${acc.scanned} video${acc.scanned !== 1 ? 's' : ''}, ` +
-        `${acc.comments} comment${acc.comments !== 1 ? 's' : ''}, ` +
-        `${acc.matched} match${acc.matched !== 1 ? 'es' : ''}, ` +
-        `${acc.replied} replied` +
-        (acc.skippedDedup ? `, ${acc.skippedDedup} already replied` : '') +
-        (acc.errors.length ? ` — ${acc.errors[0]}` : ''),
-      );
-    } else if (acc.platform === 'twitter') {
-      lines.push(
-        `Twitter (${shortId(acc.accountId)}): scanned ${acc.scanned} mention${acc.scanned !== 1 ? 's' : ''}, ` +
+        `${label} (${shortId(acc.accountId)}): scanned ${acc.scanned} mention${acc.scanned !== 1 ? 's' : ''}, ` +
         `${acc.matched} match${acc.matched !== 1 ? 'es' : ''}, ` +
         `${acc.replied} replied` +
         (acc.skippedDedup ? `, ${acc.skippedDedup} already replied` : '') +
         (acc.errors.length ? ` — ${acc.errors[0]}` : ''),
       );
     } else {
+      const unit = acc.platform === 'youtube' ? 'video' : 'post';
       lines.push(
-        `LinkedIn (${shortId(acc.accountId)}): scanned ${acc.scanned} post${acc.scanned !== 1 ? 's' : ''}, ` +
+        `${label} (${shortId(acc.accountId)}): scanned ${acc.scanned} ${unit}${acc.scanned !== 1 ? 's' : ''}, ` +
         `${acc.comments} comment${acc.comments !== 1 ? 's' : ''}, ` +
         `${acc.matched} match${acc.matched !== 1 ? 'es' : ''}, ` +
         `${acc.replied} replied` +
@@ -182,6 +197,40 @@ async function runLinkMe(userId: string) {
       } catch (err: any) {
         acc.errors.push(err.message);
         console.error('[TEST-RUN LinkMe LI]', liAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      matched += acc.replied;
+    }
+  }
+
+  const fbRules = rules.filter((r: any) => r.platforms?.includes('facebook'));
+  if (fbRules.length) {
+    const fbAccounts = accounts.filter((a: any) => a.platform === 'facebook');
+    if (!fbAccounts.length) stats.notes.push('No Facebook account connected.');
+    for (const fbAcc of fbAccounts) {
+      const acc: AccountStat = { platform: 'facebook', accountId: fbAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await lmFacebook(userId, fbRules, fbAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN LinkMe FB]', fbAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      matched += acc.replied;
+    }
+  }
+
+  const thRules = rules.filter((r: any) => r.platforms?.includes('threads'));
+  if (thRules.length) {
+    const thAccounts = accounts.filter((a: any) => a.platform === 'threads');
+    if (!thAccounts.length) stats.notes.push('No Threads account connected.');
+    for (const thAcc of thAccounts) {
+      const acc: AccountStat = { platform: 'threads', accountId: thAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await lmThreads(userId, thRules, thAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN LinkMe TH]', thAcc.platformId, err.message);
       }
       stats.accounts.push(acc);
       matched += acc.replied;
@@ -366,6 +415,40 @@ async function runAutoReply(userId: string) {
     }
   }
 
+  const fbTemplate = templates.find((t: any) => t.platforms?.includes('facebook'));
+  if (fbTemplate) {
+    const fbAccounts = accounts.filter((a: any) => a.platform === 'facebook');
+    if (!fbAccounts.length) stats.notes.push('No Facebook account connected.');
+    for (const fbAcc of fbAccounts) {
+      const acc: AccountStat = { platform: 'facebook', accountId: fbAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await arFacebook(userId, fbTemplate, fbAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN AR FB]', fbAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      replied += acc.replied;
+    }
+  }
+
+  const thTemplate = templates.find((t: any) => t.platforms?.includes('threads'));
+  if (thTemplate) {
+    const thAccounts = accounts.filter((a: any) => a.platform === 'threads');
+    if (!thAccounts.length) stats.notes.push('No Threads account connected.');
+    for (const thAcc of thAccounts) {
+      const acc: AccountStat = { platform: 'threads', accountId: thAcc.platformId, scanned: 0, comments: 0, matched: 0, replied: 0, skippedDedup: 0, errors: [] };
+      try {
+        await arThreads(userId, thTemplate, thAcc, acc);
+      } catch (err: any) {
+        acc.errors.push(err.message);
+        console.error('[TEST-RUN AR TH]', thAcc.platformId, err.message);
+      }
+      stats.accounts.push(acc);
+      replied += acc.replied;
+    }
+  }
+
   return { replied, message: buildMessage('Sent', replied, stats), stats };
 }
 
@@ -515,6 +598,134 @@ async function arLinkedIn(userId: string, template: any, liAcc: any, acc: Accoun
       const ok = await replyToLinkedInComment(liAcc, comment.id, replyText);
       if (ok) {
         await markLIReplied(userId, comment.id, 'autoReply');
+        acc.replied++;
+      }
+    }
+  }
+}
+
+// ── Facebook ──────────────────────────────────────────────────────────────────
+
+async function lmFacebook(userId: string, rules: any[], fbAcc: any, acc: AccountStat) {
+  const { ids: postIds, error } = await fetchRecentFBPostIds(fbAcc, MAX_VIDEOS);
+  acc.scanned = postIds.length;
+  if (error) acc.errors.push(error);
+
+  for (const postId of postIds) {
+    const { comments } = await fetchFBPostComments(fbAcc, postId);
+    acc.comments += comments.length;
+
+    for (const comment of comments) {
+      if (comment.fromId === fbAcc.platformId) continue;
+      const text = comment.text.toLowerCase();
+      const rule = rules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
+      if (!rule) continue;
+      acc.matched++;
+
+      if (await checkFBReplied(userId, comment.id, 'linkMe')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const ok = await replyToFBComment(fbAcc, comment.id, rule.replyMessage);
+      if (ok) {
+        await markFBReplied(userId, comment.id, 'linkMe');
+        await adminDb
+          .collection('users').doc(userId)
+          .collection('linkMeRules').doc(rule.id)
+          .update({ totalMatches: (rule.totalMatches || 0) + 1 });
+        acc.replied++;
+      }
+    }
+  }
+}
+
+async function arFacebook(userId: string, template: any, fbAcc: any, acc: AccountStat) {
+  const { ids: postIds, error } = await fetchRecentFBPostIds(fbAcc, MAX_VIDEOS);
+  acc.scanned = postIds.length;
+  if (error) acc.errors.push(error);
+
+  for (const postId of postIds) {
+    const { comments } = await fetchFBPostComments(fbAcc, postId);
+    acc.comments += comments.length;
+
+    for (const comment of comments) {
+      if (comment.fromId === fbAcc.platformId) continue;
+      acc.matched++;
+
+      if (await checkFBReplied(userId, comment.id, 'autoReply')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const replyText = await buildReplyText(template, comment.text, comment.fromName);
+      const ok = await replyToFBComment(fbAcc, comment.id, replyText);
+      if (ok) {
+        await markFBReplied(userId, comment.id, 'autoReply');
+        acc.replied++;
+      }
+    }
+  }
+}
+
+// ── Threads ───────────────────────────────────────────────────────────────────
+
+async function lmThreads(userId: string, rules: any[], thAcc: any, acc: AccountStat) {
+  const { ids: threadIds, error } = await fetchRecentThreadIds(thAcc, MAX_VIDEOS);
+  acc.scanned = threadIds.length;
+  if (error) acc.errors.push(error);
+
+  for (const threadId of threadIds) {
+    const { replies } = await fetchThreadReplies(thAcc, threadId);
+    acc.comments += replies.length;
+
+    for (const reply of replies) {
+      if (reply.userId === thAcc.platformId) continue;
+      const text = reply.text.toLowerCase();
+      const rule = rules.find((r: any) => text.includes(r.keyword.trim().toLowerCase()));
+      if (!rule) continue;
+      acc.matched++;
+
+      if (await checkTHReplied(userId, reply.id, 'linkMe')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const ok = await postThreadReply(thAcc, reply.id, rule.replyMessage);
+      if (ok) {
+        await markTHReplied(userId, reply.id, 'linkMe');
+        await adminDb
+          .collection('users').doc(userId)
+          .collection('linkMeRules').doc(rule.id)
+          .update({ totalMatches: (rule.totalMatches || 0) + 1 });
+        acc.replied++;
+      }
+    }
+  }
+}
+
+async function arThreads(userId: string, template: any, thAcc: any, acc: AccountStat) {
+  const { ids: threadIds, error } = await fetchRecentThreadIds(thAcc, MAX_VIDEOS);
+  acc.scanned = threadIds.length;
+  if (error) acc.errors.push(error);
+
+  for (const threadId of threadIds) {
+    const { replies } = await fetchThreadReplies(thAcc, threadId);
+    acc.comments += replies.length;
+
+    for (const reply of replies) {
+      if (reply.userId === thAcc.platformId) continue;
+      acc.matched++;
+
+      if (await checkTHReplied(userId, reply.id, 'autoReply')) {
+        acc.skippedDedup++;
+        continue;
+      }
+
+      const replyText = await buildReplyText(template, reply.text, reply.username);
+      const ok = await postThreadReply(thAcc, reply.id, replyText);
+      if (ok) {
+        await markTHReplied(userId, reply.id, 'autoReply');
         acc.replied++;
       }
     }

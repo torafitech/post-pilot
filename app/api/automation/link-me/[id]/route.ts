@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
-const BETA_PLATFORMS = new Set(['youtube', 'twitter', 'linkedin']);
+const BETA_PLATFORMS = new Set(['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads']);
 
 // PATCH /api/automation/link-me/:id — update rule fields
 export async function PATCH(

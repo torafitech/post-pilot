@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one platform required' }, { status: 400 });
     }
 
-    const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+    const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
     const validPlatforms = platforms.filter((p) => betaPlatforms.includes(p));
     if (validPlatforms.length === 0) {
       return NextResponse.json({ error: 'No valid beta platforms selected' }, { status: 400 });

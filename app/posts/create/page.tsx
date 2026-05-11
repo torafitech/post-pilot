@@ -416,7 +416,7 @@ export default function CreatePostPage() {
         body: JSON.stringify({
           caption: baseCaption,
           platform: formData.platforms[0] || 'youtube',
-          platforms: ['youtube', 'twitter', 'linkedin'],
+          platforms: ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'],
           tone: 'engaging',
           contentType: formData.videoUrl ? 'video' : 'image',
         }),

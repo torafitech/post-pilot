@@ -635,7 +635,7 @@ export default function DashboardPage() {
             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Connected Accounts</h2>
             <span className="text-xs text-gray-600">{accounts.length} account{accounts.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {PLATFORMS.map(pl => {
               const meta = platformMeta[pl];
               const plAccounts = accountsByPlatform[pl] || [];
@@ -764,7 +764,12 @@ export default function DashboardPage() {
                     ) : plAccounts.every(a => liveData[a.id]?.analyticsUnavailable) ? (
                       <div className="text-center py-2">
                         <p className="text-[10px] text-gray-600">Analytics unavailable</p>
-                        <p className="text-[9px] text-gray-700 mt-0.5">LinkedIn MDP access required</p>
+                        <p className="text-[9px] text-gray-700 mt-0.5">
+                          {pl === 'linkedin' && 'LinkedIn MDP access required'}
+                          {pl === 'instagram' && 'Pending Meta App Review for insights'}
+                          {pl === 'facebook' && 'Pending Meta App Review for insights'}
+                          {pl === 'threads' && 'Threads insights API not yet wired'}
+                        </p>
                       </div>
                     ) : (
                       <div className={`grid gap-2 ${pl === 'linkedin' ? 'grid-cols-3' : 'grid-cols-4'}`}>
@@ -1041,7 +1046,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Per-platform stat cards */}
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {platformStats.map(s => {
                 const meta = platformMeta[s.platform as Platform];
                 const plAccounts = accountsByPlatform[s.platform as Platform] || [];
@@ -1059,7 +1064,12 @@ export default function DashboardPage() {
                     {plAccounts.every(a => liveData[a.id]?.analyticsUnavailable) ? (
                       <div className="py-2 text-center">
                         <p className="text-xs text-gray-600">Analytics unavailable</p>
-                        <p className="text-[10px] text-gray-700 mt-1">LinkedIn MDP access required for personal profile stats</p>
+                        <p className="text-[10px] text-gray-700 mt-1">
+                          {s.platform === 'linkedin' && 'LinkedIn MDP access required for personal profile stats'}
+                          {s.platform === 'instagram' && 'Pending Meta App Review for Instagram insights'}
+                          {s.platform === 'facebook' && 'Pending Meta App Review for Facebook Page insights'}
+                          {s.platform === 'threads' && 'Threads insights endpoint not yet wired'}
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-2">

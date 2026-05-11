@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
 
     const openai = new OpenAI({ apiKey });
 
-    // Beta platform rules (YouTube, Twitter/X, LinkedIn only)
     const platformRules: Record<string, any> = {
       youtube: {
         maxLength: 5000,
@@ -54,9 +53,24 @@ export async function POST(req: NextRequest) {
         tips: 'Professional tone, storytelling',
         style: 'Professional and thought-provoking',
       },
+      instagram: {
+        maxLength: 2200,
+        tips: 'Strong hook in first line, up to 30 hashtags, emojis welcome',
+        style: 'Visual-first, conversational, emotive',
+      },
+      facebook: {
+        maxLength: 5000,
+        tips: 'Ask questions to drive comments, mid-length works best',
+        style: 'Conversational, story-driven',
+      },
+      threads: {
+        maxLength: 500,
+        tips: 'Punchy, text-first, ask for replies to boost reach',
+        style: 'Casual and direct',
+      },
     };
 
-    const betaPlatforms = ['youtube', 'twitter', 'linkedin'];
+    const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
     const selectedPlatforms = (platforms || [platform]).filter(
       (p: string) => betaPlatforms.includes(p),
     );
