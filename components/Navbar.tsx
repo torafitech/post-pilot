@@ -4,66 +4,67 @@
 import { PremiumModal } from '@/components/PremiumModal';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Sparkles,
-  Zap,
-  Home,
-  PlusCircle,
-  LogOut,
-  User,
-  Settings,
-  Bell,
-  ChevronDown,
-  Bot,
+  Zap, PlusCircle, LogOut, User, Settings, ChevronDown, Bot,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 type NavbarVariant = 'landing' | 'dashboard' | 'create' | 'analytics';
 
-interface NavbarProps {
-  variant?: NavbarVariant;
-}
-
-export function Navbar({ variant }: NavbarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+export function Navbar({ variant }: { variant?: NavbarVariant }) {
+  const pathname  = usePathname();
+  const router    = useRouter();
   const { user, userProfile, logout } = useAuth();
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [scrolled, setScrolled]   = useState(false);
+  const [menuOpen, setMenuOpen]   = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const currentVariant: NavbarVariant =
+  // Close user menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [menuOpen]);
+
+  const current: NavbarVariant =
     variant ??
-    (pathname === '/'
-      ? 'landing'
-      : pathname?.includes('/create')
-      ? 'create'
-      : pathname?.includes('/analytics')
-      ? 'analytics'
-      : 'dashboard');
+    (pathname === '/'                   ? 'landing'
+    : pathname?.includes('/create')     ? 'create'
+    : pathname?.includes('/analytics')  ? 'analytics'
+    : 'dashboard');
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/');
-    } catch (e) {
-      console.error('Logout error:', e);
-    }
+    try { await logout(); router.push('/'); }
+    catch (e) { console.error('Logout error:', e); }
   };
 
+  const initial = (userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase();
+
+  const navBase = `
+    sticky top-0 z-50 w-full
+    bg-[#0a0a0b]
+    border-b border-stone-800
+    transition-colors duration-200
+    ${scrolled ? 'bg-[#0a0a0b]/95 backdrop-blur-md' : ''}
+  `;
+
   const Logo = (
-    <Link href="/" className="flex items-center gap-2 group">
-      <div className="relative h-9 w-36 md:h-10 md:w-40 transition-transform group-hover:scale-105">
+    <Link href="/" className="flex items-center">
+      <div className="relative h-9 w-36 md:h-10 md:w-40">
         <Image
           src="/images/logo.png"
           alt="StarlingPost"
@@ -76,271 +77,187 @@ export function Navbar({ variant }: NavbarProps) {
     </Link>
   );
 
-  // CREATE VARIANT
-  if (currentVariant === 'create') {
+  // ── LANDING ──────────────────────────────────────────────────────────────────
+  if (current === 'landing') {
+    const isAuthPage = pathname === '/login' || pathname === '/register';
     return (
-      <nav
-        className={`sticky top-0 z-50 pb-2 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-gradient-to-r from-gray-900/95 via-gray-900/95 to-gray-900/95 backdrop-blur-xl border-b border-gray-800 shadow-2xl'
-            : 'bg-gradient-to-r from-gray-900 via-gray-900 to-gray-900 border-b border-gray-800'
-        }`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              {Logo}
-              <div className="hidden md:flex flex-col leading-tight">
-                <span className="text-xs font-semibold text-gray-300">
-                  Content Studio
-                </span>
-                <span className="text-[11px] text-gray-500">
-                  Draft, refine, and publish in one place
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
+      <nav className={navBase.replace('sticky', 'fixed')}>
+        <div className="max-w-[1400px] mx-auto px-6 md:px-10 h-14 flex items-center justify-between">
+          {Logo}
+          <div className="flex items-center gap-2">
+            {!user && !isAuthPage && (
+              <>
+                <button
+                  onClick={() => router.push('/login')}
+                  className="hidden md:inline-flex px-4 py-2 border border-stone-800 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors"
+                >
+                  Sign In
+                </button>
+                <Link
+                  href="/register"
+                  className="bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
+            {user && (
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium"
+                className="bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors flex items-center gap-2"
               >
-                <Home size={16} />
-                Dashboard
+                Studio →
               </Link>
-            </div>
+            )}
           </div>
         </div>
       </nav>
     );
   }
 
-  // LANDING VARIANT
-  if (currentVariant === 'landing') {
-    const isAuthPage = pathname === '/login' || pathname === '/register';
-
+  // ── CREATE ───────────────────────────────────────────────────────────────────
+  if (current === 'create') {
     return (
-      <nav
-        className={`fixed top-0 z-50 w-full pb-2 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-gradient-to-r from-gray-900/95 via-gray-900/95 to-gray-900/95 backdrop-blur-xl border-b border-gray-800 shadow-2xl'
-            : 'bg-gradient-to-r from-gray-900 via-gray-900 to-gray-900 border-b border-gray-800'
-        }`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-3">
-              {Logo}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {!user && !isAuthPage && (
-                <>
-                  <button
-                    onClick={() => router.push('/login')}
-                    className="hidden md:inline-flex px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white transition-colors text-sm font-medium"
-                    aria-label="Sign In"
-                  >
-                    Sign In
-                  </button>
-                  <Link
-                    href="/register"
-                    className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 flex items-center gap-2 text-sm"
-                  >
-                    <Sparkles size={16} />
-                    Get Started Free
-                  </Link>
-                </>
-              )}
-
-              {user && (
-                <Link
-                  href="/dashboard"
-                  className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 flex items-center gap-2 text-sm"
-                >
-                  <Zap size={16} />
-                  Go to Dashboard
-                </Link>
-              )}
-            </div>
+      <nav className={navBase}>
+        <div className="max-w-[1400px] mx-auto px-6 md:px-10 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            {Logo}
+            <span className="hidden md:block w-px h-5 bg-stone-800" />
+            <span className="hidden md:block font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Content Studio
+            </span>
           </div>
+          <Link
+            href="/dashboard"
+            className="border border-stone-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors"
+          >
+            ← Dashboard
+          </Link>
         </div>
       </nav>
     );
   }
 
-  // DASHBOARD / ANALYTICS VARIANT
+  // ── DASHBOARD / ANALYTICS ────────────────────────────────────────────────────
   return (
     <>
-      <nav
-        className={`sticky top-0 z-50 pb-2 transition-all duration-300 ${
-          isScrolled
-            ? 'bg-gradient-to-r from-gray-900/95 via-gray-900/95 to-gray-900/95 backdrop-blur-xl border-b border-gray-800 shadow-2xl'
-            : 'bg-gradient-to-r from-gray-900 via-gray-900 to-gray-900 border-b border-gray-800'
-        }`}
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Left cluster: logo + context */}
-            <div className="flex items-center gap-3">
-              {Logo}
-              <div className="hidden md:flex flex-col leading-tight">
-                <span className="text-xs font-semibold text-gray-300">
-                  Creator dashboard
-                </span>
-                <span className="text-[11px] text-gray-500">
-                  Plan, publish, and measure performance
-                </span>
-              </div>
-            </div>
+      <nav className={navBase}>
+        <div className="max-w-[1400px] mx-auto px-6 md:px-10 h-14 flex items-center justify-between">
 
-            {/* Right cluster: actions + user */}
-            <div className="flex items-center gap-4">
-              {/* Automation */}
-              <Link
-                href="/automation"
-                className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 font-medium transition-all text-sm"
-              >
-                <Bot size={16} />
-                Automation
-              </Link>
+          {/* Left */}
+          <div className="flex items-center gap-5">
+            {Logo}
+            <span className="hidden md:block w-px h-5 bg-stone-800" />
+            <span className="hidden md:block font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500">
+              Studio
+            </span>
+          </div>
 
-              {/* CREATE as primary button */}
-              <Link
-                href="/posts/create"
-                className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 text-sm"
-              >
-                <PlusCircle size={16} />
-                Create
-              </Link>
+          {/* Right */}
+          <div className="flex items-center gap-1 md:gap-2">
+            <Link
+              href="/automation"
+              className="hidden md:inline-flex items-center gap-2 px-4 py-2 border border-stone-800 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors"
+            >
+              <Bot size={12} /> Automation
+            </Link>
 
-              {/* Premium */}
+            <Link
+              href="/posts/create"
+              className="hidden md:inline-flex items-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors"
+            >
+              <PlusCircle size={12} /> New Post
+            </Link>
+
+            <button
+              onClick={() => setShowPremiumModal(true)}
+              className="hidden md:inline-flex items-center gap-2 border border-stone-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-[#d4ff3a] hover:border-[#d4ff3a]/40 transition-colors"
+            >
+              <Zap size={12} /> Upgrade
+            </button>
+
+            {/* User menu */}
+            <div className="relative" ref={menuRef}>
               <button
-                onClick={() => setShowPremiumModal(true)}
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition-all duration-300 text-sm"
+                onClick={() => setMenuOpen(v => !v)}
+                className="flex items-center gap-2.5 border border-stone-800 px-3 py-2 hover:border-stone-600 transition-colors"
               >
-                <Sparkles size={16} />
-                Upgrade
+                <div className="w-7 h-7 bg-[#f4f1ea] text-[#0a0a0b] flex items-center justify-center font-display italic font-bold text-sm">
+                  {initial}
+                </div>
+                <span className="hidden md:block font-mono text-[10px] uppercase tracking-[0.15em] text-stone-300 max-w-[120px] truncate">
+                  {userProfile?.displayName || user?.email?.split('@')[0] || 'Account'}
+                </span>
+                <ChevronDown size={12} className={`text-stone-500 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Notifications */}
-              <button className="p-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-400 hover:text-white transition-colors">
-                <Bell size={18} />
-              </button>
-
-              {/* User Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
-                    {userProfile?.displayName?.charAt(0) ||
-                      user?.email?.charAt(0) ||
-                      'U'}
-                  </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-semibold text-white">
-                      {userProfile?.displayName || 'User'}
+              {menuOpen && (
+                <div className="absolute right-0 mt-1 w-60 bg-[#0a0a0b] border border-stone-800 shadow-2xl z-50">
+                  {/* Account info */}
+                  <div className="px-4 py-3.5 border-b border-stone-800">
+                    <div className="font-display italic text-stone-100 text-base">
+                      {userProfile?.displayName || 'Account'}
                     </div>
-                    <div className="text-xs text-gray-400 truncate max-w-[120px]">
+                    <div className="font-mono text-[10px] text-stone-500 truncate mt-0.5 uppercase tracking-[0.1em]">
                       {user?.email}
                     </div>
                   </div>
-                  <ChevronDown size={16} className="text-gray-400" />
-                </button>
 
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-800">
-                      <div className="text-sm font-semibold text-white">
-                        {userProfile?.displayName || 'User'}
-                      </div>
-                      <div className="text-xs text-gray-400 truncate">
-                        {user?.email}
-                      </div>
-                    </div>
-
+                  {[
+                    { Icon: User,     label: 'Profile',    href: '/profile' },
+                    { Icon: Bot,      label: 'Automation', href: '/automation' },
+                    { Icon: Settings, label: 'Settings',   href: '/settings' },
+                  ].map(item => (
                     <Link
-                      href="/profile"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-stone-400 hover:text-stone-100 hover:bg-stone-900/60 transition-colors border-b border-stone-900"
                     >
-                      <User size={16} />
-                      Your Profile
+                      <item.Icon size={14} className="text-stone-600" />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em]">{item.label}</span>
                     </Link>
-                    <Link
-                      href="/automation"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <Bot size={16} />
-                      Automation
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <Settings size={16} />
-                      Settings
-                    </Link>
+                  ))}
 
-                    <div className="h-px bg-gray-800 my-2" />
-
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-[#ff5e3a]/80 hover:text-[#ff5e3a] hover:bg-[#ff5e3a]/5 transition-colors"
+                  >
+                    <LogOut size={14} />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em]">Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Mobile actions row under main bar */}
-          <div className="md:hidden pb-1 flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2">
-              <Link
-                href="/posts/create"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-medium"
-              >
-                <PlusCircle size={14} />
-                Create
-              </Link>
-              <button
-                onClick={() => setShowPremiumModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium"
-              >
-                <Sparkles size={14} />
-                Upgrade
-              </button>
-            </div>
-            <button
-              onClick={() => setUserMenuOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-200 text-xs"
+        {/* Mobile secondary row */}
+        <div className="md:hidden border-t border-stone-900 flex items-center justify-between px-6 py-2">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/posts/create"
+              className="inline-flex items-center gap-1.5 bg-[#d4ff3a] text-[#0a0a0b] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] font-bold"
             >
-              <User size={14} />
-              Account
-            </button>
+              <PlusCircle size={11} /> New Post
+            </Link>
+            <Link
+              href="/automation"
+              className="inline-flex items-center gap-1.5 border border-stone-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-stone-400"
+            >
+              <Bot size={11} /> Bots
+            </Link>
           </div>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="border border-stone-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-stone-400"
+          >
+            {initial} ▾
+          </button>
         </div>
       </nav>
 
-      {userMenuOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setUserMenuOpen(false)}
-        />
-      )}
-
-      <PremiumModal
-        open={showPremiumModal}
-        onClose={() => setShowPremiumModal(false)}
-      />
+      <PremiumModal open={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
     </>
   );
 }
