@@ -5,7 +5,7 @@ import { Twitter, Linkedin, Youtube, Github } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const APP_PATHS = ['/dashboard', '/posts', '/automation', '/analytics', '/settings', '/profile'];
+const APP_PATHS = ['/dashboard', '/posts', '/automation', '/analytics', '/settings', '/profile', '/billing', '/signout'];
 
 export function Footer() {
   const pathname = usePathname();

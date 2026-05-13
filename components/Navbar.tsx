@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import {
-  PlusCircle, LogOut, User, Settings, ChevronDown, Bot,
+  PlusCircle, LogOut, User, Settings, ChevronDown, Bot, CreditCard,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -94,9 +94,10 @@ export function Navbar() {
           </div>
 
           {[
-            { Icon: User,     label: 'Profile',    href: '/profile'    },
-            { Icon: Bot,      label: 'Automation', href: '/automation' },
-            { Icon: Settings, label: 'Settings',   href: '/settings'   },
+            { Icon: User,       label: 'Profile',    href: '/profile'    },
+            { Icon: Bot,        label: 'Automation', href: '/automation' },
+            { Icon: CreditCard, label: 'Billing',    href: '/billing'    },
+            { Icon: Settings,   label: 'Settings',   href: '/settings'   },
           ].map(item => (
             <Link
               key={item.label}
@@ -177,7 +178,8 @@ export function Navbar() {
   // ── SUB-PAGES (automation / settings / profile) ───────────────────────────────
   const isSubPage = pathname?.startsWith('/automation') ||
                     pathname?.startsWith('/settings')   ||
-                    pathname?.startsWith('/profile');
+                    pathname?.startsWith('/profile')    ||
+                    pathname?.startsWith('/billing');
 
   if (isSubPage) {
     return (
