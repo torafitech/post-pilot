@@ -79,10 +79,10 @@ export default function RegisterPage() {
             className="font-display italic text-stone-100 leading-none"
             style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontVariationSettings: '"opsz" 144' }}
           >
-            Create account
+            Start your free trial.
           </h1>
           <p className="mt-3 text-sm text-stone-400">
-            One post. Six platforms. Start here.
+            14 days full access. No credit card required.
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export default function RegisterPage() {
                 transition-colors duration-200
               "
             >
-              {loading ? 'Creating account…' : 'Create account →'}
+              {loading ? 'Creating account…' : 'Start free trial →'}
             </button>
           </div>
         </form>
@@ -180,8 +180,8 @@ export default function RegisterPage() {
         {/* Three pillars */}
         <div className="mt-10 border border-stone-800 grid grid-cols-3 divide-x divide-stone-800">
           {[
+            { n: '14',   label: 'Day trial'  },
             { n: '6',    label: 'Platforms'  },
-            { n: 'AI',   label: 'Enhanced'   },
             { n: '24/7', label: 'Auto-reply' },
           ].map(item => (
             <div key={item.label} className="py-4 text-center">
