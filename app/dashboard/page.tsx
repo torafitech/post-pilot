@@ -187,6 +187,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showPremium, setShowPremium] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
+  const [analyticsView, setAnalyticsView] = useState<'platform' | 'activity'>('platform');
   const [postFilter, setPostFilter] = useState<'all' | Platform>('all');
 
   // Live data
@@ -473,6 +474,26 @@ export default function DashboardPage() {
       likes:    p.metrics?.likes || 0,
       comments: p.metrics?.comments || 0,
     }));
+  }, [published]);
+
+  const platformPerformance = useMemo(() => {
+    return (PLATFORMS.map(pl => {
+      const plPosts = published.filter(p => {
+        const spl = p.platform?.toLowerCase();
+        const mpl = p.platforms?.map(x => x.toLowerCase());
+        return spl === pl || mpl?.includes(pl);
+      });
+      if (plPosts.length === 0) return null;
+      const totalViews = plPosts.reduce((s, p) => s + (p.metrics?.views || p.metrics?.impressions || 0), 0);
+      const totalLikes = plPosts.reduce((s, p) => s + (p.metrics?.likes || 0), 0);
+      return {
+        platform: pl,
+        avgViews: Math.round(totalViews / plPosts.length),
+        avgLikes: Math.round(totalLikes / plPosts.length),
+        count: plPosts.length,
+      };
+    }).filter(Boolean) as { platform: string; avgViews: number; avgLikes: number; count: number }[])
+      .sort((a, b) => b.avgViews - a.avgViews);
   }, [published]);
 
   const accountsByPlatform = useMemo(() => {
@@ -970,173 +991,301 @@ export default function DashboardPage() {
 
         {/* ── ANALYTICS TAB ── */}
         {activeTab === 'analytics' && (
-          <div className="space-y-12">
+          <div className="space-y-10">
 
-            {/* Platform performance */}
-            <div>
-              <SectionHead
-                kicker="Performance"
-                title="By platform"
-                aside={liveTotals.totalViews > 0 ? <Eyebrow className="text-[#d4ff3a]">● Live</Eyebrow> : <Eyebrow>Historical</Eyebrow>}
-              />
-              <div className="border border-stone-800 p-6 md:p-8">
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={platformStats} barSize={20} barGap={4}>
-                    <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
-                    <XAxis
-                      dataKey="platform"
-                      tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }}
-                      tickFormatter={v => (platformMeta[v as Platform]?.label || v).toUpperCase()}
-                      axisLine={{ stroke: '#292524' }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={fmtNum}
-                      width={44}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(212, 255, 58, 0.04)' }} />
-                    <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
-                    <Bar dataKey="views"     name="Views"     fill={CHART_TONES.views} />
-                    <Bar dataKey="likes"     name="Likes"     fill={CHART_TONES.likes} />
-                    <Bar dataKey="comments"  name="Comments"  fill={CHART_TONES.comments} />
-                    <Bar dataKey="followers" name="Followers" fill={CHART_TONES.followers} />
-                  </BarChart>
-                </ResponsiveContainer>
+            {/* Analytics sub-tab switcher */}
+            <div className="flex items-center border-b border-stone-800">
+              {(['platform', 'activity'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setAnalyticsView(v)}
+                  className={`px-6 py-3 font-mono text-[10px] uppercase tracking-[0.2em] border-b-2 -mb-px transition-colors ${
+                    analyticsView === v
+                      ? 'border-[#d4ff3a] text-[#d4ff3a]'
+                      : 'border-transparent text-stone-500 hover:text-stone-300'
+                  }`}
+                >
+                  {v === 'platform' ? 'Platform Analytics' : 'StarlingPost Activity'}
+                </button>
+              ))}
+              <div className="ml-auto pb-3">
+                {analyticsView === 'platform'
+                  ? lastSync
+                    ? <Eyebrow className="text-[#d4ff3a]">● Live · {timeAgo(lastSync)}</Eyebrow>
+                    : <Eyebrow>{liveLoading ? 'Syncing…' : 'Not synced'}</Eyebrow>
+                  : <Eyebrow>Via StarlingPost · {published.length} posts</Eyebrow>
+                }
               </div>
             </div>
 
-            {/* Posting frequency */}
-            <div>
-              <SectionHead
-                kicker="Cadence"
-                title="Posts per month"
-              />
-              <div className="border border-stone-800 p-6 md:p-8">
-                {postsByMonth.length === 0 ? (
-                  <div className="flex flex-col items-center py-16 gap-3">
-                    <Eyebrow>Publish posts to see trends</Eyebrow>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <AreaChart data={postsByMonth}>
-                      <defs>
-                        <linearGradient id="gradMonth-citron" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%"  stopColor="#d4ff3a" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#d4ff3a" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
-                      <XAxis dataKey="month" tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={{ stroke: '#292524' }} tickLine={false} />
-                      <YAxis tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#44403c', strokeWidth: 1 }} />
-                      <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
-                      <Area type="monotone" dataKey="YouTube"   stroke={platformMeta.youtube.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="Twitter/X" stroke={platformMeta.twitter.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="LinkedIn"  stroke={platformMeta.linkedin.tone}  fill="transparent" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="Instagram" stroke={platformMeta.instagram.tone} fill="transparent" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="Facebook"  stroke={platformMeta.facebook.tone}  fill="transparent" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="Threads"   stroke={platformMeta.threads.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
+            {/* ── PLATFORM ANALYTICS ── */}
+            {analyticsView === 'platform' && (
+              <div className="space-y-12">
 
-            {/* Engagement trend */}
-            <div>
-              <SectionHead
-                kicker="Trend"
-                title="Last 12 posts"
-              />
-              <div className="border border-stone-800 p-6 md:p-8">
-                {viewsTrend.length === 0 ? (
-                  <div className="flex flex-col items-center py-16 gap-3">
-                    <TrendingUp size={20} className="text-stone-700" />
-                    <Eyebrow>No engagement data yet</Eyebrow>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={240}>
-                    <AreaChart data={viewsTrend}>
-                      <defs>
-                        <linearGradient id="gradV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d4ff3a" stopOpacity={0.35} /><stop offset="95%" stopColor="#d4ff3a" stopOpacity={0} /></linearGradient>
-                        <linearGradient id="gradL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f4f1ea" stopOpacity={0.25} /><stop offset="95%" stopColor="#f4f1ea" stopOpacity={0} /></linearGradient>
-                        <linearGradient id="gradC" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff5e3a" stopOpacity={0.25} /><stop offset="95%" stopColor="#ff5e3a" stopOpacity={0} /></linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
-                      <XAxis dataKey="idx" tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} tickFormatter={v => `#${v}`} axisLine={{ stroke: '#292524' }} tickLine={false} />
-                      <YAxis tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={false} tickLine={false} tickFormatter={fmtNum} width={40} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#44403c', strokeWidth: 1 }} />
-                      <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
-                      <Area type="monotone" dataKey="views"    name="Views"    stroke="#d4ff3a" fill="url(#gradV)" strokeWidth={1.8} dot={false} />
-                      <Area type="monotone" dataKey="likes"    name="Likes"    stroke="#f4f1ea" fill="url(#gradL)" strokeWidth={1.5} dot={false} />
-                      <Area type="monotone" dataKey="comments" name="Comments" stroke="#ff5e3a" fill="url(#gradC)" strokeWidth={1.5} dot={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-
-            {/* Per-platform breakdown cards */}
-            <div>
-              <SectionHead kicker="Breakdown" title="Platform detail" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border border-stone-800 [&>*]:border-stone-800">
-                {platformStats.map((s, idx) => {
-                  const meta = platformMeta[s.platform as Platform];
-                  const plAccounts = accountsByPlatform[s.platform as Platform] || [];
-                  const allUnavail = plAccounts.every(a => liveData[a.id]?.analyticsUnavailable);
-                  const col = idx % 3;
-                  const row = Math.floor(idx / 3);
-                  const totalRows = Math.ceil(platformStats.length / 3);
-                  return (
-                    <div
-                      key={s.platform}
-                      className={`p-6 ${col < 2 ? 'md:border-r lg:border-r' : ''} ${row < totalRows - 1 ? 'border-b' : ''}`}
-                    >
-                      <div className="flex items-center gap-3 mb-5">
-                        <div className="w-9 h-9 border border-stone-800 flex items-center justify-center" style={{ color: meta.tone }}>
-                          <meta.Icon size={16} />
-                        </div>
-                        <div>
-                          <div className="font-display italic text-lg text-stone-100 leading-tight">{meta.label}</div>
-                          <Eyebrow>{plAccounts.length} {plAccounts.length === 1 ? 'account' : 'accounts'}</Eyebrow>
-                        </div>
-                      </div>
-                      {plAccounts.length > 0 && allUnavail ? (
-                        <div className="py-3">
-                          <Eyebrow className="text-stone-600">Analytics pending</Eyebrow>
-                          <p className="font-mono text-[10px] text-stone-700 mt-2 leading-relaxed">
-                            {s.platform === 'linkedin'  && 'LinkedIn MDP access required for personal profile stats'}
-                            {s.platform === 'instagram' && 'Pending Meta App Review for insights'}
-                            {s.platform === 'facebook'  && 'Pending Meta App Review for insights'}
-                            {s.platform === 'threads'   && 'Threads insights endpoint not yet wired'}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5 border-t border-stone-800 pt-4">
-                          {[
-                            { label: 'Followers', value: s.followers },
-                            { label: 'Posts',     value: s.posts     },
-                            { label: 'Views',     value: s.views     },
-                            { label: 'Likes',     value: s.likes     },
-                            { label: 'Comments',  value: s.comments  },
-                          ].map(row => (
-                            <div key={row.label} className="flex items-baseline justify-between">
-                              <Eyebrow>{row.label}</Eyebrow>
-                              <span className="font-display tabular-nums text-stone-100 text-lg" style={{ fontVariationSettings: '"opsz" 80, "wght" 400' }}>
-                                {fmtNum(row.value)}
-                              </span>
+                {/* Live platform cards */}
+                <div>
+                  <SectionHead kicker="Live Data" title="Platform breakdown" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border border-stone-800 [&>*]:border-stone-800">
+                    {platformStats.map((s, idx) => {
+                      const meta = platformMeta[s.platform as Platform];
+                      const plAccounts = accountsByPlatform[s.platform as Platform] || [];
+                      const allUnavail = plAccounts.length > 0 && plAccounts.every(a => liveData[a.id]?.analyticsUnavailable);
+                      const hasLive = plAccounts.some(a => liveData[a.id] && !liveData[a.id]?.analyticsUnavailable && !liveData[a.id]?.error);
+                      const col = idx % 3;
+                      const row = Math.floor(idx / 3);
+                      const totalRows = Math.ceil(platformStats.length / 3);
+                      return (
+                        <div
+                          key={s.platform}
+                          className={`p-6 ${col < 2 ? 'md:border-r lg:border-r' : ''} ${row < totalRows - 1 ? 'border-b' : ''}`}
+                        >
+                          <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 border border-stone-800 flex items-center justify-center" style={{ color: meta.tone }}>
+                                <meta.Icon size={16} />
+                              </div>
+                              <div>
+                                <div className="font-display italic text-lg text-stone-100 leading-tight">{meta.label}</div>
+                                <Eyebrow>{plAccounts.length} {plAccounts.length === 1 ? 'account' : 'accounts'}</Eyebrow>
+                              </div>
                             </div>
-                          ))}
+                            {plAccounts.length > 0 && (
+                              <span className={`font-mono text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 border ${
+                                hasLive ? 'border-[#d4ff3a]/30 text-[#d4ff3a]' : 'border-stone-800 text-stone-600'
+                              }`}>
+                                {hasLive ? 'Live' : 'N/A'}
+                              </span>
+                            )}
+                          </div>
+                          {plAccounts.length === 0 ? (
+                            <Eyebrow className="text-stone-700">Not connected</Eyebrow>
+                          ) : allUnavail ? (
+                            <div className="py-2">
+                              <Eyebrow className="text-stone-600">Analytics pending</Eyebrow>
+                              <p className="font-mono text-[10px] text-stone-700 mt-2 leading-relaxed">
+                                {s.platform === 'linkedin'  && 'LinkedIn MDP access required'}
+                                {s.platform === 'instagram' && 'Pending Meta App Review'}
+                                {s.platform === 'facebook'  && 'Pending Meta App Review'}
+                                {s.platform === 'threads'   && 'Threads insights not yet wired'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5 border-t border-stone-800 pt-4">
+                              {[
+                                { label: 'Followers', value: s.followers },
+                                { label: 'Posts',     value: s.posts     },
+                                { label: 'Views',     value: s.views     },
+                                { label: 'Likes',     value: s.likes     },
+                                { label: 'Comments',  value: s.comments  },
+                              ].map(row => (
+                                <div key={row.label} className="flex items-baseline justify-between">
+                                  <Eyebrow>{row.label}</Eyebrow>
+                                  <span className="font-display tabular-nums text-stone-100 text-lg" style={{ fontVariationSettings: '"opsz" 80, "wght" 400' }}>
+                                    {fmtNum(row.value)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Cross-platform bar chart */}
+                <div>
+                  <SectionHead kicker="Engagement" title="Cross-platform comparison" />
+                  <div className="border border-stone-800 p-6 md:p-8">
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={platformStats} barSize={20} barGap={4}>
+                        <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
+                        <XAxis
+                          dataKey="platform"
+                          tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }}
+                          tickFormatter={v => (platformMeta[v as Platform]?.label || v).toUpperCase()}
+                          axisLine={{ stroke: '#292524' }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={fmtNum}
+                          width={44}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(212, 255, 58, 0.04)' }} />
+                        <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
+                        <Bar dataKey="views"     name="Views"     fill={CHART_TONES.views} />
+                        <Bar dataKey="likes"     name="Likes"     fill={CHART_TONES.likes} />
+                        <Bar dataKey="comments"  name="Comments"  fill={CHART_TONES.comments} />
+                        <Bar dataKey="followers" name="Followers" fill={CHART_TONES.followers} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
               </div>
-            </div>
+            )}
+
+            {/* ── STARLINGPOST ACTIVITY ── */}
+            {analyticsView === 'activity' && (
+              <div className="space-y-12">
+
+                {/* Publishing stats ledger */}
+                <div>
+                  <SectionHead kicker="Publishing" title="Activity overview" />
+                  <div className="grid grid-cols-2 md:grid-cols-4 border border-stone-800">
+                    {[
+                      { label: 'Published',  value: published.length,          unit: 'posts'   },
+                      { label: 'Scheduled',  value: scheduled.length,          unit: 'queued'  },
+                      { label: 'Link-Me',    value: autoStats.linkMeActive,    unit: 'active'  },
+                      { label: 'Auto-Reply', value: autoStats.autoReplyActive, unit: 'active'  },
+                    ].map((s, idx) => (
+                      <div key={s.label} className={`p-6 md:p-8 ${idx < 3 ? 'border-r border-stone-800' : ''} ${idx < 2 ? 'border-b md:border-b-0 border-stone-800' : ''}`}>
+                        <Eyebrow>{s.label}</Eyebrow>
+                        <div
+                          className="font-display text-stone-100 tabular-nums tracking-tight leading-none mt-2"
+                          style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontVariationSettings: '"opsz" 144, "wght" 350' }}
+                        >
+                          {s.value}
+                        </div>
+                        <Eyebrow className="mt-1">{s.unit}</Eyebrow>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Posts per month */}
+                <div>
+                  <SectionHead kicker="Cadence" title="Posts per month" />
+                  <div className="border border-stone-800 p-6 md:p-8">
+                    {postsByMonth.length === 0 ? (
+                      <div className="flex flex-col items-center py-16 gap-3">
+                        <Eyebrow>Publish posts to see trends</Eyebrow>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={240}>
+                        <AreaChart data={postsByMonth}>
+                          <defs>
+                            <linearGradient id="gradMonth-citron" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%"  stopColor="#d4ff3a" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#d4ff3a" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
+                          <XAxis dataKey="month" tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={{ stroke: '#292524' }} tickLine={false} />
+                          <YAxis tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={false} tickLine={false} allowDecimals={false} width={32} />
+                          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#44403c', strokeWidth: 1 }} />
+                          <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
+                          <Area type="monotone" dataKey="YouTube"   stroke={platformMeta.youtube.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="Twitter/X" stroke={platformMeta.twitter.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="LinkedIn"  stroke={platformMeta.linkedin.tone}  fill="transparent" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="Instagram" stroke={platformMeta.instagram.tone} fill="transparent" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="Facebook"  stroke={platformMeta.facebook.tone}  fill="transparent" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="Threads"   stroke={platformMeta.threads.tone}   fill="transparent" strokeWidth={1.5} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                {/* Best performing platform */}
+                <div>
+                  <SectionHead
+                    kicker="Performance"
+                    title="Best performing platform"
+                    aside={<Eyebrow>Avg per post · stored metrics</Eyebrow>}
+                  />
+                  {platformPerformance.length === 0 ? (
+                    <div className="border border-stone-800 flex flex-col items-center py-16 gap-3">
+                      <TrendingUp size={20} className="text-stone-700" />
+                      <Eyebrow>No engagement data yet</Eyebrow>
+                    </div>
+                  ) : (
+                    <div className="border border-stone-800">
+                      {platformPerformance.map((p, idx) => {
+                        const meta = platformMeta[p.platform as Platform];
+                        const maxViews = platformPerformance[0].avgViews || 1;
+                        const pct = Math.round((p.avgViews / maxViews) * 100);
+                        return (
+                          <div key={p.platform} className={`flex items-center gap-4 px-6 py-4 ${idx < platformPerformance.length - 1 ? 'border-b border-stone-800' : ''}`}>
+                            <span className="font-mono text-[10px] text-stone-700 w-4 flex-shrink-0">{idx + 1}</span>
+                            <div className="flex items-center gap-2 w-28 flex-shrink-0">
+                              <meta.Icon size={13} style={{ color: meta.tone }} />
+                              <Eyebrow className="text-stone-400">{meta.label}</Eyebrow>
+                            </div>
+                            <div className="flex-1 h-px bg-stone-900 relative mx-2">
+                              <div
+                                className="absolute inset-y-0 left-0 h-full"
+                                style={{ width: `${pct}%`, backgroundColor: meta.tone, opacity: 0.6, height: '1px' }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-6 flex-shrink-0">
+                              <div className="text-right">
+                                <div className="font-display tabular-nums text-stone-100 text-base leading-tight" style={{ fontVariationSettings: '"opsz" 80' }}>
+                                  {fmtNum(p.avgViews)}
+                                </div>
+                                <Eyebrow>avg views</Eyebrow>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-display tabular-nums text-stone-100 text-base leading-tight" style={{ fontVariationSettings: '"opsz" 80' }}>
+                                  {fmtNum(p.avgLikes)}
+                                </div>
+                                <Eyebrow>avg likes</Eyebrow>
+                              </div>
+                              <div className="text-right hidden md:block">
+                                <div className="font-display tabular-nums text-stone-500 text-sm leading-tight">
+                                  {p.count}
+                                </div>
+                                <Eyebrow>posts</Eyebrow>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Engagement trend */}
+                <div>
+                  <SectionHead
+                    kicker="Trend"
+                    title="Last 12 posts"
+                    aside={<Eyebrow>Stored metrics · via StarlingPost</Eyebrow>}
+                  />
+                  <div className="border border-stone-800 p-6 md:p-8">
+                    {viewsTrend.length === 0 ? (
+                      <div className="flex flex-col items-center py-16 gap-3">
+                        <TrendingUp size={20} className="text-stone-700" />
+                        <Eyebrow>No engagement data yet</Eyebrow>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={240}>
+                        <AreaChart data={viewsTrend}>
+                          <defs>
+                            <linearGradient id="gradV" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d4ff3a" stopOpacity={0.35} /><stop offset="95%" stopColor="#d4ff3a" stopOpacity={0} /></linearGradient>
+                            <linearGradient id="gradL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f4f1ea" stopOpacity={0.25} /><stop offset="95%" stopColor="#f4f1ea" stopOpacity={0} /></linearGradient>
+                            <linearGradient id="gradC" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff5e3a" stopOpacity={0.25} /><stop offset="95%" stopColor="#ff5e3a" stopOpacity={0} /></linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="2 4" stroke="#292524" vertical={false} />
+                          <XAxis dataKey="idx" tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} tickFormatter={v => `#${v}`} axisLine={{ stroke: '#292524' }} tickLine={false} />
+                          <YAxis tick={{ fill: '#78716c', fontSize: 11, fontFamily: 'var(--font-mono), monospace' }} axisLine={false} tickLine={false} tickFormatter={fmtNum} width={40} />
+                          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#44403c', strokeWidth: 1 }} />
+                          <Legend wrapperStyle={{ fontSize: 11, color: '#a8a29e', fontFamily: 'var(--font-mono), monospace', textTransform: 'uppercase', letterSpacing: '0.15em' }} />
+                          <Area type="monotone" dataKey="views"    name="Views"    stroke="#d4ff3a" fill="url(#gradV)" strokeWidth={1.8} dot={false} />
+                          <Area type="monotone" dataKey="likes"    name="Likes"    stroke="#f4f1ea" fill="url(#gradL)" strokeWidth={1.5} dot={false} />
+                          <Area type="monotone" dataKey="comments" name="Comments" stroke="#ff5e3a" fill="url(#gradC)" strokeWidth={1.5} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
         )}
 
