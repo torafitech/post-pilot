@@ -1,5 +1,5 @@
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
-import { razorpay } from '@/lib/razorpay';
+import { getRazorpay } from '@/lib/razorpay';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ plan: profile?.plan || 'trial', planStatus: profile?.planStatus || 'trial', subscription: null });
 
   try {
-    const sub = await razorpay.subscriptions.fetch(profile.subscriptionId);
+    const sub = await getRazorpay().subscriptions.fetch(profile.subscriptionId);
     return NextResponse.json({
       plan:           profile.plan,
       planStatus:     profile.planStatus,

@@ -1,5 +1,5 @@
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
-import { razorpay, PLAN_IDS, PLAN_AMOUNTS } from '@/lib/razorpay';
+import { getRazorpay, PLAN_IDS, PLAN_AMOUNTS } from '@/lib/razorpay';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const userDoc = await adminDb.collection('users').doc(userId).get();
   const profile = userDoc.data();
 
-  const subscription = await razorpay.subscriptions.create({
+  const subscription = await getRazorpay().subscriptions.create({
     plan_id:         planId,
     total_count:     120, // 10 years max — effectively indefinite
     quantity:        1,

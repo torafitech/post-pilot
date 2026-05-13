@@ -1,5 +1,5 @@
 import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
-import { razorpay } from '@/lib/razorpay';
+import { getRazorpay } from '@/lib/razorpay';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No active subscription found' }, { status: 400 });
 
   // cancel at end of current billing cycle (cancel_at_cycle_end = 1)
-  await razorpay.subscriptions.cancel(subscriptionId, true);
+  await getRazorpay().subscriptions.cancel(subscriptionId, true);
 
   await adminDb.collection('users').doc(userId).update({
     planStatus:    'cancelling',
