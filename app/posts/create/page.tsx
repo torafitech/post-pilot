@@ -225,18 +225,40 @@ export default function CreatePostPage() {
     if (!formData.mainCaption.trim()) { alert('Write a caption first.'); return; }
     setAiEnhancing(true);
     try {
-      const res = await fetch('/api/ai/enhance', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ caption: formData.mainCaption, platform: formData.platforms[0] || 'youtube', platforms: PLATFORMS.map(p=>p.id), tone:'engaging', contentType: formData.videoUrl ? 'video' : 'image' }) });
+      const res = await fetch('/api/ai/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption: formData.mainCaption, platforms: PLATFORMS.map(p => p.id), contentType: formData.videoUrl ? 'video' : 'image' }),
+      });
       if (!res.ok) throw new Error('AI Enhancement failed');
       const data = await res.json();
       if (data.success) {
-        setAiSuggestions(data); setShowAiPanel(true);
+        setAiSuggestions(data);
+        setShowAiPanel(true);
+
+        // apply platform-specific captions directly into platformContent
+        if (data.platformCaptions) {
+          const pc = data.platformCaptions;
+          setPlatformContent(prev => ({
+            youtube:   pc.youtube   ? { ...prev.youtube,   title: pc.youtube.title||'', description: pc.youtube.description||'', caption: pc.youtube.description||'', hashtags: [], tags: pc.youtube.tags||[] } : prev.youtube,
+            twitter:   pc.twitter   ? { ...prev.twitter,   caption: pc.twitter.caption||'',   hashtags: pc.twitter.hashtags||[]   } : prev.twitter,
+            linkedin:  pc.linkedin  ? { ...prev.linkedin,  caption: pc.linkedin.caption||'',  hashtags: pc.linkedin.hashtags||[]  } : prev.linkedin,
+            instagram: pc.instagram ? { ...prev.instagram, caption: pc.instagram.caption||'', hashtags: pc.instagram.hashtags||[] } : prev.instagram,
+            facebook:  pc.facebook  ? { ...prev.facebook,  caption: pc.facebook.caption||'',  hashtags: pc.facebook.hashtags||[]  } : prev.facebook,
+            threads:   pc.threads   ? { ...prev.threads,   caption: pc.threads.caption||'',   hashtags: pc.threads.hashtags||[]   } : prev.threads,
+          }));
+        }
+
+        // store platform times for schedule tab
         if (data.platformTimes) {
           const slots: AiTimeSlot[] = [];
           Object.entries(data.platformTimes).forEach(([plat, ti]: any) => {
-            const d = (ti.day||'').toLowerCase().includes('tomorrow') ? (() => { const t=new Date(); t.setDate(t.getDate()+1); return fmtDate(t); })() : ti.day ? weekdayToDate(ti.day) : fmtDate(new Date());
+            const d = (ti.day||'').toLowerCase().includes('tomorrow')
+              ? (() => { const t = new Date(); t.setDate(t.getDate()+1); return fmtDate(t); })()
+              : ti.day ? weekdayToDate(ti.day) : fmtDate(new Date());
             slots.push({ platform: plat, time: ti.time||'12:00', date: d, engagementScore: 90, description: ti.reason||`Recommended for ${plat}` });
           });
-          setAiTimeSlots(slots.sort((a,b) => b.engagementScore-a.engagementScore));
+          setAiTimeSlots(slots.sort((a, b) => b.engagementScore - a.engagementScore));
         }
       } else { alert(`AI failed: ${data.error}`); }
     } catch (err: any) { alert(`Enhancement failed: ${err.message}`); }
@@ -245,8 +267,11 @@ export default function CreatePostPage() {
 
   function applyAiSuggestion() {
     if (!aiSuggestions) return;
+    // set master caption to the enhanced general version
     setFormData(p => ({ ...p, mainCaption: aiSuggestions.enhancedCaption }));
-    setShowAiPanel(false); setActiveTab('platforms');
+    // platform-specific captions already applied in handleAiEnhance — skip genPlatformContent override
+    setShowAiPanel(false);
+    setActiveTab('platforms');
   }
 
   /* ─── submit ──────────────────────── */

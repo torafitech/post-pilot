@@ -1,198 +1,109 @@
-// app/api/ai/enhance/route.ts
+import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { getUserIdFromRequest } from '@/lib/getUserFromRequest';
 
 export async function POST(req: NextRequest) {
-  console.log('🎯 AI Enhancement API Called');
-
   const userId = await getUserIdFromRequest(req);
-  if (!userId) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const body = await req.json();
-    const { caption, platform, platforms, tone, contentType } = body;
+    const { caption, platforms, contentType } = await req.json();
 
-    console.log('Request data:', { caption, platform, platforms, tone, contentType });
-
-    if (!caption || caption.trim() === '') {
-      return NextResponse.json(
-        { success: false, error: 'Caption is required' },
-        { status: 400 },
-      );
-    }
+    if (!caption?.trim()) return NextResponse.json({ success: false, error: 'Caption is required' }, { status: 400 });
 
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('❌ No OpenAI API key found');
-      return NextResponse.json(
-        { success: false, error: 'OpenAI API key not configured' },
-        { status: 500 },
-      );
-    }
-
-    console.log('✅ API key found, initializing OpenAI...');
+    if (!apiKey) return NextResponse.json({ success: false, error: 'OpenAI API key not configured' }, { status: 500 });
 
     const openai = new OpenAI({ apiKey });
 
-    const platformRules: Record<string, any> = {
-      youtube: {
-        maxLength: 5000,
-        tips: 'Use engaging hooks, timestamps, call-to-action',
-        style: 'Descriptive and informative',
-      },
-      twitter: {
-        maxLength: 280,
-        tips: 'Concise, 1-2 hashtags, strategic emojis',
-        style: 'Punchy and conversational',
-      },
-      linkedin: {
-        maxLength: 3000,
-        tips: 'Professional tone, storytelling',
-        style: 'Professional and thought-provoking',
-      },
-      instagram: {
-        maxLength: 2200,
-        tips: 'Strong hook in first line, up to 30 hashtags, emojis welcome',
-        style: 'Visual-first, conversational, emotive',
-      },
-      facebook: {
-        maxLength: 5000,
-        tips: 'Ask questions to drive comments, mid-length works best',
-        style: 'Conversational, story-driven',
-      },
-      threads: {
-        maxLength: 500,
-        tips: 'Punchy, text-first, ask for replies to boost reach',
-        style: 'Casual and direct',
-      },
-    };
-
-    const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
-    const selectedPlatforms = (platforms || [platform]).filter(
-      (p: string) => betaPlatforms.includes(p),
+    const selectedPlatforms: string[] = (platforms || []).filter((p: string) =>
+      ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'].includes(p)
     );
-    const rules = platformRules[platform] || platformRules['youtube'];
 
-    console.log('📤 Generating enhanced caption...');
-
-    // Enhanced Caption
-    const captionResponse = await openai.chat.completions.create({
+    // ── Call 1: all platform captions + hashtags in one shot ──────────────
+    const captionsResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are a ${platform} content expert. Enhance captions to be viral-worthy with emojis and formatting. Style: ${rules.style}. Max: ${rules.maxLength} chars. ${rules.tips}`,
+          content: `You are a multi-platform social media expert. Given a caption, rewrite it optimally for each platform and generate relevant hashtags.
+
+Platform rules:
+- youtube: descriptive, engaging hooks, timestamps/CTAs encouraged, up to 5000 chars. Also provide a short video title (max 100 chars) and 5-8 SEO tags.
+- twitter: punchy, max 270 chars, 1-2 hashtags only, emojis OK
+- linkedin: professional, storytelling, thought-provoking question at end, 150-1500 chars
+- instagram: strong hook first line, emotive, up to 2200 chars, up to 10 hashtags
+- facebook: conversational, ask a question to drive comments, 100-500 chars ideal
+- threads: casual, direct, max 480 chars, 2-3 hashtags
+
+Return JSON exactly in this shape:
+{
+  "captions": {
+    "youtube":   { "title": "...", "description": "...", "tags": ["tag1","tag2"] },
+    "twitter":   { "caption": "...", "hashtags": ["#tag1","#tag2"] },
+    "linkedin":  { "caption": "...", "hashtags": ["#tag1","#tag2"] },
+    "instagram": { "caption": "...", "hashtags": ["#tag1","#tag2","#tag3"] },
+    "facebook":  { "caption": "...", "hashtags": ["#tag1","#tag2"] },
+    "threads":   { "caption": "...", "hashtags": ["#tag1","#tag2"] }
+  },
+  "enhancedCaption": "best general-purpose version of the caption"
+}`,
         },
         {
           role: 'user',
-          content: `Enhance this caption: "${caption}"`,
+          content: `Original caption: "${caption}"\nContent type: ${contentType || 'general'}`,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 500,
+      temperature: 0.75,
+      max_tokens: 1200,
     });
 
-    const enhancedCaption =
-      captionResponse.choices[0].message.content?.trim() || caption;
-    console.log('✅ Enhanced caption generated');
+    const captionsData = JSON.parse(captionsResponse.choices[0].message.content || '{}');
 
-    console.log('📤 Generating hashtags...');
-
-    // Hashtags
-    const hashtagResponse = await openai.chat.completions.create({
+    // ── Call 2: optimal post times for all selected platforms ─────────────
+    const timesResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `Generate 5-8 trending hashtags for ${platform}. Return ONLY hashtags separated by spaces, no explanations.`,
+          content: `You are a social media timing expert. Return the single best day and time to post on each platform in IST timezone for the given content type.
+
+Return JSON exactly:
+{
+  "platformTimes": {
+    "youtube":   { "day": "Thursday", "time": "14:00", "reason": "..." },
+    "twitter":   { "day": "Wednesday", "time": "09:00", "reason": "..." },
+    "linkedin":  { "day": "Tuesday", "time": "10:00", "reason": "..." },
+    "instagram": { "day": "Friday", "time": "18:00", "reason": "..." },
+    "facebook":  { "day": "Thursday", "time": "13:00", "reason": "..." },
+    "threads":   { "day": "Monday", "time": "20:00", "reason": "..." }
+  }
+}`,
         },
         {
           role: 'user',
-          content: caption,
+          content: `Platforms: ${selectedPlatforms.join(', ') || 'all'}. Content type: ${contentType || 'general'}. Topic: ${caption.substring(0, 80)}`,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 150,
+      temperature: 0.5,
+      max_tokens: 400,
     });
 
-    const hashtags = hashtagResponse.choices[0].message.content?.trim() || '';
-    console.log('✅ Hashtags generated');
-
-    console.log('📤 Calculating best posting times for all platforms...');
-
-    // 🔹 GENERATE BEST TIMES FOR ALL PLATFORMS
-    const platformTimes: Record<string, any> = {};
-
-    for (const plat of selectedPlatforms) {
-      try {
-        const timeResponse = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a social media expert. Suggest the BEST day and time to post on ${plat} for ${contentType || 'general'} content in IST timezone. 
-
-Format your response EXACTLY as JSON on a single line (NO line breaks):
-{"day": "Monday", "time": "09:00", "reason": "Peak engagement time"}
-
-Only JSON, nothing else.`,
-            },
-            {
-              role: 'user',
-              content: `Content type: ${contentType || 'general'}, Topic: ${caption.substring(0, 50)}`,
-            },
-          ],
-          temperature: 0.6,
-          max_tokens: 100,
-        });
-
-        const timeText = timeResponse.choices[0].message.content?.trim() || '';
-        console.log(`Raw time response for ${plat}:`, timeText);
-
-        // Parse JSON response
-        const timeData = JSON.parse(timeText);
-        platformTimes[plat] = {
-          day: timeData.day || 'Monday',
-          time: timeData.time || '12:00',
-          reason: timeData.reason || `Optimal posting time for ${plat}`,
-        };
-
-        console.log(`✅ Best time for ${plat}:`, platformTimes[plat]);
-      } catch (error) {
-        console.error(`Error getting time for ${plat}:`, error);
-        // Fallback times
-        const fallbackTimes: Record<string, any> = {
-          twitter: { day: 'Thursday', time: '09:00', reason: 'High activity' },
-          linkedin: { day: 'Tuesday', time: '10:00', reason: 'Professional hours' },
-          youtube: { day: 'Thursday', time: '14:00', reason: 'Peak viewing' },
-        };
-        platformTimes[plat] = fallbackTimes[plat] || fallbackTimes['youtube'];
-      }
-    }
-
-    console.log('✨ AI Enhancement Complete!');
+    const timesData = JSON.parse(timesResponse.choices[0].message.content || '{}');
 
     return NextResponse.json({
       success: true,
-      enhancedCaption,
-      hashtags,
-      platformTimes, // 🔹 Return times for ALL platforms
+      enhancedCaption: captionsData.enhancedCaption || caption,
+      platformCaptions: captionsData.captions || {},
+      platformTimes: timesData.platformTimes || {},
       originalLength: caption.length,
-      enhancedLength: enhancedCaption.length,
-      platform,
+      enhancedLength: (captionsData.enhancedCaption || caption).length,
     });
-  } catch (error: any) {
-    console.error('❌ AI Enhancement Error:', error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'AI enhancement failed. Please try again.',
-      },
-      { status: 500 },
-    );
+  } catch (error: any) {
+    console.error('AI Enhancement Error:', error);
+    return NextResponse.json({ success: false, error: error.message || 'AI enhancement failed' }, { status: 500 });
   }
 }
