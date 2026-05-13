@@ -1,4 +1,3 @@
-// app/createpost/page.tsx
 'use client';
 
 import FileUpload from '@/components/FileUpload';
@@ -11,33 +10,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Calendar,
-  Clock,
+  AlertCircle,
+  CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
-  Upload,
-  Zap,
-  Globe,
-  Youtube,
-  Twitter,
-  Linkedin,
   Facebook,
+  Linkedin,
   MessageCircle,
-  MessageSquare,
-  Target,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
   RefreshCw,
-  Eye,
-  Settings,
-  PenTool,
-  Calendar as CalendarIcon,
-  Bell,
-  Hash,
-  ShieldCheck,
+  Sparkles,
+  Twitter,
+  XCircle,
+  Youtube,
 } from 'lucide-react';
+
+/* ─── types ─────────────────────────────────────────────── */
 
 interface PlatformContent {
   caption: string;
@@ -67,1259 +54,647 @@ interface AiTimeSlot {
 type TabId = 'content' | 'platforms' | 'schedule' | 'preview';
 type ScheduleMode = 'now' | 'ai' | 'custom';
 
-const InstagramIcon = ({ size = 20 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-500">
+/* ─── static data ────────────────────────────────────────── */
+
+const InstagramIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
     <circle cx="12" cy="12" r="4" />
     <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
 
-const platformIcons: Record<string, React.ReactNode> = {
-  youtube: <Youtube size={20} className="text-red-500" />,
-  twitter: <Twitter size={20} className="text-blue-400" />,
-  linkedin: <Linkedin size={20} className="text-blue-600" />,
-  instagram: <InstagramIcon size={20} />,
-  facebook: <Facebook size={20} className="text-blue-500" />,
-  threads: <MessageCircle size={20} className="text-gray-100" />,
+const VideoIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+
+const PLATFORMS = [
+  { id: 'youtube',   name: 'YouTube',   users: '2.7B users', icon: <Youtube size={20} />,       color: 'text-red-400'  },
+  { id: 'twitter',   name: 'Twitter/X', users: '550M users', icon: <Twitter size={20} />,       color: 'text-sky-400'  },
+  { id: 'linkedin',  name: 'LinkedIn',  users: '950M users', icon: <Linkedin size={20} />,      color: 'text-blue-400' },
+  { id: 'instagram', name: 'Instagram', users: '2B users',   icon: <InstagramIcon size={20} />, color: 'text-pink-400' },
+  { id: 'facebook',  name: 'Facebook',  users: '3B users',   icon: <Facebook size={20} />,      color: 'text-blue-500' },
+  { id: 'threads',   name: 'Threads',   users: '300M users', icon: <MessageCircle size={20} />, color: 'text-stone-300'},
+] as const;
+
+type PlatformId = typeof PLATFORMS[number]['id'];
+
+const PLATFORM_TIPS: Partial<Record<PlatformId, string>> = {
+  twitter:   'Keep under 280 chars. 1–2 hashtags. Tag relevant accounts.',
+  linkedin:  'Professional tone. Share insight. End with a question.',
+  instagram: 'Requires image or video. Up to 30 hashtags. Strong hook first.',
+  facebook:  'Ask questions to boost comments. Text, image, and video all work.',
+  threads:   'Text-first. Under 500 chars. Replies drive reach.',
 };
 
-const platformTips: Record<string, string> = {
-  twitter:
-    'Keep it under 280 characters, use 1-2 hashtags, and tag relevant accounts.',
-  linkedin:
-    'Use a professional tone, share insights, and ask thought-provoking questions.',
-  instagram:
-    'Instagram requires an image or video. Use up to 30 hashtags and a strong hook in the first line.',
-  facebook:
-    'Facebook supports text, image, and video. Ask questions to boost comments and engagement.',
-  threads:
-    'Threads is text-first. Keep it under 500 chars. Images and videos supported. Replies drive reach.',
-};
-
-// Per-platform content limits and media rules
 const PLATFORM_RULES: Record<string, {
-  captionMax: number;
-  titleMax?: number;
-  descMax?: number;
-  allowsImage: boolean;
-  allowsVideo: boolean;
-  imageFormats: string;
-  videoFormats: string;
-  imageSizeMB: number;
-  videoSizeMB: number;
-  requiresVideo?: boolean;
-  requiresTitle?: boolean;
+  captionMax: number; titleMax?: number;
+  allowsImage: boolean; allowsVideo: boolean;
+  imageFormats: string; videoFormats: string;
+  requiresVideo?: boolean; requiresTitle?: boolean;
 }> = {
-  youtube: {
-    captionMax: 5000,
-    titleMax: 100,
-    descMax: 5000,
-    allowsImage: false,
-    allowsVideo: true,
-    imageFormats: '—',
-    videoFormats: 'MP4, MOV, AVI, WMV',
-    imageSizeMB: 0,
-    videoSizeMB: 256000,
-    requiresVideo: true,
-    requiresTitle: true,
-  },
-  twitter: {
-    captionMax: 280,
-    allowsImage: true,
-    allowsVideo: true,
-    imageFormats: 'JPG, PNG, GIF, WebP',
-    videoFormats: 'MP4 (max 2:20)',
-    imageSizeMB: 5,
-    videoSizeMB: 512,
-  },
-  linkedin: {
-    captionMax: 3000,
-    allowsImage: true,
-    allowsVideo: true,
-    imageFormats: 'JPG, PNG, GIF',
-    videoFormats: 'MP4',
-    imageSizeMB: 5,
-    videoSizeMB: 5000,
-  },
-  instagram: {
-    captionMax: 2200,
-    allowsImage: true,
-    allowsVideo: true,
-    imageFormats: 'JPG, PNG',
-    videoFormats: 'MP4 (max 60s)',
-    imageSizeMB: 8,
-    videoSizeMB: 100,
-  },
-  facebook: {
-    captionMax: 63206,
-    allowsImage: true,
-    allowsVideo: true,
-    imageFormats: 'JPG, PNG, GIF, WebP',
-    videoFormats: 'MP4, MOV',
-    imageSizeMB: 25,
-    videoSizeMB: 10000,
-  },
-  threads: {
-    captionMax: 500,
-    allowsImage: true,
-    allowsVideo: true,
-    imageFormats: 'JPG, PNG',
-    videoFormats: 'MP4 (max 5 min)',
-    imageSizeMB: 8,
-    videoSizeMB: 1000,
-  },
+  youtube:   { captionMax: 5000, titleMax: 100, allowsImage: false, allowsVideo: true,  imageFormats: '—',                   videoFormats: 'MP4, MOV, AVI',   requiresVideo: true, requiresTitle: true },
+  twitter:   { captionMax: 280,                 allowsImage: true,  allowsVideo: true,  imageFormats: 'JPG, PNG, GIF, WebP', videoFormats: 'MP4 (max 2:20)'  },
+  linkedin:  { captionMax: 3000,                allowsImage: true,  allowsVideo: true,  imageFormats: 'JPG, PNG, GIF',       videoFormats: 'MP4'              },
+  instagram: { captionMax: 2200,                allowsImage: true,  allowsVideo: true,  imageFormats: 'JPG, PNG',            videoFormats: 'MP4 (max 60s)'   },
+  facebook:  { captionMax: 63206,               allowsImage: true,  allowsVideo: true,  imageFormats: 'JPG, PNG, GIF, WebP', videoFormats: 'MP4, MOV'        },
+  threads:   { captionMax: 500,                 allowsImage: true,  allowsVideo: true,  imageFormats: 'JPG, PNG',            videoFormats: 'MP4 (max 5 min)' },
 };
 
-const orderedTabs: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
+const TABS: TabId[] = ['content', 'platforms', 'schedule', 'preview'];
+
+const EMPTY_PLATFORM_CONTENT: PlatformSettings = {
+  youtube:   { title: '', description: '', caption: '', hashtags: [], tags: [] },
+  twitter:   { caption: '', hashtags: [], tags: [] },
+  linkedin:  { caption: '', hashtags: [], tags: [] },
+  instagram: { caption: '', hashtags: [], tags: [] },
+  facebook:  { caption: '', hashtags: [], tags: [] },
+  threads:   { caption: '', hashtags: [], tags: [] },
+};
+
+/* ─── shared style tokens ────────────────────────────────── */
+
+const label = 'block font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 mb-3';
+const inputBase = [
+  'w-full bg-transparent border-0 border-b border-stone-800',
+  'focus:border-[#d4ff3a] focus:outline-none focus:ring-0',
+  'text-stone-100 placeholder-stone-700 text-sm py-3',
+  'transition-colors duration-200',
+].join(' ');
+const textareaBase = [
+  'w-full bg-transparent border border-stone-800',
+  'focus:border-[#d4ff3a] focus:outline-none focus:ring-0',
+  'text-stone-100 placeholder-stone-700 text-sm p-4',
+  'resize-none transition-colors duration-200',
+].join(' ');
+const sectionBox = 'border border-stone-800';
+const sectionHead = 'border-b border-stone-800 px-8 py-6';
+
+/* ─── component ──────────────────────────────────────────── */
 
 export default function CreatePostPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [loading, setLoading] = useState(false);
-  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('now');
-  const [activeTab, setActiveTab] = useState<TabId>('content');
-  const [aiTimeSlots, setAiTimeSlots] = useState<AiTimeSlot[]>([]);
+  const [activeTab,        setActiveTab]        = useState<TabId>('content');
+  const [scheduleMode,     setScheduleMode]     = useState<ScheduleMode>('now');
+  const [loading,          setLoading]          = useState(false);
+  const [aiEnhancing,      setAiEnhancing]      = useState(false);
+  const [aiSuggestions,    setAiSuggestions]    = useState<any>(null);
+  const [showAiPanel,      setShowAiPanel]      = useState(false);
+  const [showProTips,      setShowProTips]      = useState(false);
+  const [charCount,        setCharCount]        = useState(0);
+  const [aiTimeSlots,      setAiTimeSlots]      = useState<AiTimeSlot[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [showProTips, setShowProTips] = useState(false);
 
   const [formData, setFormData] = useState({
-    mainCaption: '',
-    platforms: [] as string[],
-    imageUrl: '',
-    videoUrl: '',
+    mainCaption:   '',
+    platforms:     [] as string[],
+    imageUrl:      '',
+    videoUrl:      '',
     scheduledDate: '',
-    scheduledTime: new Date(Date.now() + 3600000)
-      .toISOString()
-      .slice(11, 16),
+    scheduledTime: new Date(Date.now() + 3_600_000).toISOString().slice(11, 16),
   });
 
-  const [platformContent, setPlatformContent] = useState<PlatformSettings>({
-    youtube: {
-      title: '',
-      description: '',
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    twitter: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    linkedin: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    instagram: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    facebook: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-    threads: {
-      caption: '',
-      hashtags: [],
-      tags: [],
-    },
-  });
+  const [platformContent, setPlatformContent] = useState<PlatformSettings>(EMPTY_PLATFORM_CONTENT);
 
-  const [aiEnhancing, setAiEnhancing] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
-  const [showAiComparison, setShowAiComparison] = useState(false);
-  const [characterCount, setCharacterCount] = useState(0);
-
+  /* auth guard */
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push('/login');
-    }
+    if (!authLoading && !user) router.push('/login');
   }, [user, authLoading, router]);
 
+  /* auto-generate platform content when caption changes */
   useEffect(() => {
-    if (formData.mainCaption) {
-      generatePlatformContent(formData.mainCaption);
-    }
-  }, [formData.mainCaption]);
+    if (formData.mainCaption) genPlatformContent(formData.mainCaption);
+  }, [formData.mainCaption]); // eslint-disable-line
 
+  /* generate AI time slots when mode = ai */
   useEffect(() => {
-    if (
-      scheduleMode === 'ai' &&
-      aiTimeSlots.length === 0 &&
-      formData.platforms.length > 0
-    ) {
-      generateDefaultTimeSlots();
-    }
-  }, [scheduleMode, formData.platforms]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (scheduleMode === 'ai' && aiTimeSlots.length === 0 && formData.platforms.length > 0)
+      genDefaultSlots();
+  }, [scheduleMode, formData.platforms]); // eslint-disable-line
 
-  const generatePlatformContent = (mainCaption: string) => {
-    const hashtags = mainCaption.match(/#[\w]+/g) || [];
-    const cleanCaption = mainCaption.replace(/#[\w]+/g, '').trim();
+  /* ─── helpers ──────────────────────── */
 
-    const youtubeTitle = cleanCaption.substring(0, 100) || 'Untitled Video';
-    const youtubeDescription = `${cleanCaption}\n\nSubscribe for more content!\n${hashtags.join(' ')}`;
-    const youtubeTags = hashtags.map((h) => h.replace('#', ''));
-
-    const twitterCaption = cleanCaption.substring(0, 250);
-    const twitterHashtags = hashtags.slice(0, 3);
-
+  function genPlatformContent(main: string) {
+    const tags   = main.match(/#[\w]+/g) || [];
+    const clean  = main.replace(/#[\w]+/g, '').trim();
     setPlatformContent({
-      youtube: {
-        title: youtubeTitle,
-        description: youtubeDescription,
-        caption: cleanCaption,
-        hashtags: [],
-        tags: youtubeTags,
-      },
-      twitter: {
-        caption: twitterCaption,
-        hashtags: twitterHashtags,
-        tags: [],
-      },
-      linkedin: {
-        caption: cleanCaption,
-        hashtags: hashtags.filter((h) => !h.includes('youtube')),
-        tags: [],
-      },
-      instagram: {
-        caption: cleanCaption.substring(0, 2200),
-        hashtags: hashtags.slice(0, 30),
-        tags: [],
-      },
-      facebook: {
-        caption: cleanCaption,
-        hashtags: hashtags.slice(0, 10),
-        tags: [],
-      },
-      threads: {
-        caption: cleanCaption.substring(0, 500),
-        hashtags: hashtags.slice(0, 5),
-        tags: [],
-      },
+      youtube:   { title: clean.substring(0, 100) || 'Untitled Video', description: `${clean}\n\nSubscribe for more content!\n${tags.join(' ')}`, caption: clean, hashtags: [], tags: tags.map(h => h.replace('#', '')) },
+      twitter:   { caption: clean.substring(0, 250), hashtags: tags.slice(0, 3), tags: [] },
+      linkedin:  { caption: clean, hashtags: tags.filter(h => !h.includes('youtube')), tags: [] },
+      instagram: { caption: clean.substring(0, 2200), hashtags: tags.slice(0, 30), tags: [] },
+      facebook:  { caption: clean, hashtags: tags.slice(0, 10), tags: [] },
+      threads:   { caption: clean.substring(0, 500), hashtags: tags.slice(0, 5), tags: [] },
     });
-  };
+  }
 
-  const togglePlatform = (platform: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      platforms: prev.platforms.includes(platform)
-        ? prev.platforms.filter((p) => p !== platform)
-        : [...prev.platforms, platform],
-    }));
-  };
-
-  const generateDefaultTimeSlots = () => {
+  function genDefaultSlots() {
     const slots: AiTimeSlot[] = [];
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const platformTimes = {
-      twitter: ['07:00', '12:00', '16:00', '21:00'],
-      linkedin: ['08:00', '11:00', '14:00', '17:00'],
-      youtube: ['10:00', '14:00', '18:00', '21:00'],
-    } as const;
-
-    formData.platforms.forEach((platform) => {
-      const times =
-        platformTimes[platform as keyof typeof platformTimes] || ['12:00'];
-
-      times.slice(0, 2).forEach((time, idx) => {
-        const date = idx === 0 ? formatDate(now) : formatDate(tomorrow);
-        const engagementScore = 80 + Math.floor(Math.random() * 20);
-
-        const descriptions = {
-          twitter: 'High Twitter activity period',
-          linkedin: 'Professional hours for LinkedIn',
-          youtube: 'Optimal YouTube viewing time',
-        } as const;
-
-        slots.push({
-          platform,
-          time,
-          date,
-          engagementScore,
-          description:
-            descriptions[platform as keyof typeof descriptions] ||
-            'Recommended time',
-        });
-      });
+    const now = new Date(); const tmr = new Date(now); tmr.setDate(tmr.getDate() + 1);
+    const times = { twitter: ['07:00','12:00'], linkedin: ['08:00','11:00'], youtube: ['10:00','14:00'] } as const;
+    formData.platforms.forEach(p => {
+      const t = times[p as keyof typeof times] || ['12:00'];
+      t.forEach((time, i) => slots.push({ platform: p, time, date: [now,tmr][i].toISOString().split('T')[0], engagementScore: 80 + Math.floor(Math.random()*20), description: 'Recommended time' }));
     });
+    setAiTimeSlots(slots.sort((a,b) => b.engagementScore - a.engagementScore));
+  }
 
-    slots.sort((a, b) => b.engagementScore - a.engagementScore);
-    setAiTimeSlots(slots);
-  };
+  function fmtDate(d: Date) { return d.toISOString().split('T')[0]; }
+  function fmtDateTime(date: string, time: string) {
+    return new Date(`${date}T${time}`).toLocaleString('en-US', { weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true });
+  }
+  function weekdayToDate(w: string) {
+    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const ti = days.indexOf(w.toLowerCase()); if (ti === -1) return fmtDate(new Date());
+    const now = new Date(); let diff = ti - now.getDay(); if (diff < 0) diff += 7;
+    const r = new Date(now); r.setDate(r.getDate() + diff); return fmtDate(r);
+  }
 
-  const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-  };
+  const togglePlatform = (id: string) =>
+    setFormData(p => ({ ...p, platforms: p.platforms.includes(id) ? p.platforms.filter(x => x !== id) : [...p.platforms, id] }));
 
-  const formatTimeDisplay = (date: string, time: string): string => {
-    const dateObj = new Date(`${date}T${time}`);
-    return dateObj.toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  const updatePlatform = (platform: keyof PlatformSettings, field: string, value: any) =>
+    setPlatformContent(p => ({ ...p, [platform]: { ...p[platform], [field]: value } }));
 
-  const getDateForWeekday = (weekday: string): string => {
-    const weekdays = [
-      'sunday',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-    ];
+  /* ─── AI enhance ──────────────────── */
 
-    const targetIndex = weekdays.indexOf(weekday.toLowerCase());
-    if (targetIndex === -1) {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    const now = new Date();
-    const todayIndex = now.getDay();
-
-    let diff = targetIndex - todayIndex;
-    if (diff < 0) diff += 7;
-
-    const result = new Date(now);
-    result.setDate(result.getDate() + diff);
-    return result.toISOString().split('T')[0];
-  };
-
-  const handleAiEnhance = async () => {
-    const baseCaption = formData.mainCaption;
-
-    if (!baseCaption || baseCaption.trim() === '') {
-      alert('Please write a caption first!');
-      return;
-    }
-
+  async function handleAiEnhance() {
+    if (!formData.mainCaption.trim()) { alert('Write a caption first.'); return; }
     setAiEnhancing(true);
-
     try {
-      const response = await fetch('/api/ai/enhance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caption: baseCaption,
-          platform: formData.platforms[0] || 'youtube',
-          platforms: ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'],
-          tone: 'engaging',
-          contentType: formData.videoUrl ? 'video' : 'image',
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('AI Enhancement failed');
-      }
-
-      const data = await response.json();
-
+      const res = await fetch('/api/ai/enhance', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ caption: formData.mainCaption, platform: formData.platforms[0] || 'youtube', platforms: PLATFORMS.map(p=>p.id), tone:'engaging', contentType: formData.videoUrl ? 'video' : 'image' }) });
+      if (!res.ok) throw new Error('AI Enhancement failed');
+      const data = await res.json();
       if (data.success) {
-        setAiSuggestions(data);
-        setShowAiComparison(true);
-
+        setAiSuggestions(data); setShowAiPanel(true);
         if (data.platformTimes) {
           const slots: AiTimeSlot[] = [];
-
-          Object.entries(data.platformTimes).forEach(
-            ([plat, timeInfo]: any) => {
-              let baseDate: string;
-
-              if ((timeInfo.day || '').toLowerCase().includes('tomorrow')) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                baseDate = tomorrow.toISOString().split('T')[0];
-              } else if (timeInfo.day) {
-                baseDate = getDateForWeekday(timeInfo.day);
-              } else {
-                baseDate = new Date().toISOString().split('T')[0];
-              }
-
-              slots.push({
-                platform: plat,
-                time: timeInfo.time || '12:00',
-                date: baseDate,
-                engagementScore: 90,
-                description:
-                  timeInfo.reason || `AI-recommended time for ${plat}`,
-              });
-            },
-          );
-
-          slots.sort((a, b) => b.engagementScore - a.engagementScore);
-          setAiTimeSlots(slots);
+          Object.entries(data.platformTimes).forEach(([plat, ti]: any) => {
+            const d = (ti.day||'').toLowerCase().includes('tomorrow') ? (() => { const t=new Date(); t.setDate(t.getDate()+1); return fmtDate(t); })() : ti.day ? weekdayToDate(ti.day) : fmtDate(new Date());
+            slots.push({ platform: plat, time: ti.time||'12:00', date: d, engagementScore: 90, description: ti.reason||`Recommended for ${plat}` });
+          });
+          setAiTimeSlots(slots.sort((a,b) => b.engagementScore-a.engagementScore));
         }
-      } else {
-        alert(`AI enhancement failed: ${data.error}`);
-      }
-    } catch (error: any) {
-      console.error('AI Error:', error);
-      alert(`Failed to enhance caption: ${error.message}`);
-    } finally {
-      setAiEnhancing(false);
-    }
-  };
+      } else { alert(`AI failed: ${data.error}`); }
+    } catch (err: any) { alert(`Enhancement failed: ${err.message}`); }
+    finally { setAiEnhancing(false); }
+  }
 
-  const applyAiSuggestion = () => {
+  function applyAiSuggestion() {
     if (!aiSuggestions) return;
+    setFormData(p => ({ ...p, mainCaption: aiSuggestions.enhancedCaption }));
+    setShowAiPanel(false); setActiveTab('platforms');
+  }
 
-    setFormData((prev) => ({
-      ...prev,
-      mainCaption: aiSuggestions.enhancedCaption,
-    }));
+  /* ─── submit ──────────────────────── */
 
-    setShowAiComparison(false);
-    setActiveTab('platforms');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (activeTab !== 'preview') {
-      console.warn(
-        'Form submission only allowed from preview tab. Current tab:',
-        activeTab,
-      );
-      return;
-    }
-
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    if (!formData.mainCaption.trim()) {
-      alert('Please write a caption');
-      return;
-    }
-
-    if (formData.platforms.length === 0) {
-      alert('Please select at least one platform');
-      return;
-    }
-
-    if (
-      scheduleMode !== 'now' &&
-      (!formData.scheduledDate || !formData.scheduledTime)
-    ) {
-      alert('Please set a schedule time');
-      return;
-    }
+    if (activeTab !== 'preview') return;
+    if (!user) { router.push('/login'); return; }
+    if (!formData.mainCaption.trim())   { alert('Please write a caption.'); return; }
+    if (!formData.platforms.length)     { alert('Select at least one platform.'); return; }
+    if (scheduleMode !== 'now' && (!formData.scheduledDate || !formData.scheduledTime)) { alert('Set a schedule time.'); return; }
 
     setLoading(true);
-
     try {
-      const postsRef = collection(db, 'posts');
-      const scheduledTime =
-        scheduleMode === 'now'
-          ? new Date()
-          : new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
-
-      const postDocRef = await addDoc(postsRef, {
-        userId: user.uid,
-        caption: formData.mainCaption,
-        platforms: formData.platforms,
-        platformContent,
-        imageUrl: formData.imageUrl || null,
-        videoUrl: formData.videoUrl || null,
-        scheduledTime,
-        status: scheduleMode === 'now' ? 'publishing' : 'scheduled',
-        scheduleMode,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
+      const scheduledTime = scheduleMode === 'now' ? new Date() : new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+      const ref = await addDoc(collection(db,'posts'), { userId: user.uid, caption: formData.mainCaption, platforms: formData.platforms, platformContent, imageUrl: formData.imageUrl||null, videoUrl: formData.videoUrl||null, scheduledTime, status: scheduleMode==='now'?'publishing':'scheduled', scheduleMode, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
       if (scheduleMode === 'now') {
-        try {
-          const publishResponse = await authFetch('/api/posts/publish', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              postId: postDocRef.id,
-              platforms: formData.platforms,
-              caption: formData.mainCaption,
-              imageUrl: formData.imageUrl || null,
-              videoUrl: formData.videoUrl || null,
-              platformContent,
-            }),
-          });
-
-          const publishData = await publishResponse.json();
-
-          if (!publishResponse.ok || !publishData.success) {
-            alert(
-              `Post saved but failed to publish. You can retry from dashboard.\n${
-                publishData.error || ''
-              }`,
-            );
-          } else {
-            alert('Post published successfully to all platforms!');
-          }
-        } catch (publishError) {
-          console.error('Error publishing post:', publishError);
-          alert(
-            'Post saved but failed to publish. Please try again from dashboard.',
-          );
-        }
-      } else {
-        alert('Post scheduled successfully! It will be auto-published.');
-      }
-
-      setFormData({
-        mainCaption: '',
-        platforms: [],
-        imageUrl: '',
-        videoUrl: '',
-        scheduledDate: '',
-        scheduledTime: new Date(Date.now() + 3600000)
-          .toISOString()
-          .slice(11, 16),
-      });
-
-      setPlatformContent({
-        youtube: { title: '', description: '', caption: '', hashtags: [], tags: [] },
-        twitter: { caption: '', hashtags: [], tags: [] },
-        linkedin: { caption: '', hashtags: [], tags: [] },
-        instagram: { caption: '', hashtags: [], tags: [] },
-        facebook: { caption: '', hashtags: [], tags: [] },
-        threads: { caption: '', hashtags: [], tags: [] },
-      });
-
+        const pr = await authFetch('/api/posts/publish', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ postId: ref.id, platforms: formData.platforms, caption: formData.mainCaption, imageUrl: formData.imageUrl||null, videoUrl: formData.videoUrl||null, platformContent }) });
+        const pd = await pr.json();
+        alert(!pr.ok || !pd.success ? `Saved but failed to publish. Retry from dashboard.\n${pd.error||''}` : 'Published successfully!');
+      } else { alert('Scheduled! Auto-published at the set time.'); }
+      setFormData({ mainCaption:'', platforms:[], imageUrl:'', videoUrl:'', scheduledDate:'', scheduledTime: new Date(Date.now()+3_600_000).toISOString().slice(11,16) });
+      setPlatformContent(EMPTY_PLATFORM_CONTENT);
       router.push('/dashboard');
-    } catch (error) {
-      console.error('Error creating post:', error);
-      alert('Failed to create post');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); alert('Failed to create post.'); }
+    finally { setLoading(false); }
+  }
+
+  /* ─── navigation guards ───────────── */
+
+  const canGoTo: Record<TabId, boolean> = {
+    content:   true,
+    platforms: !!formData.mainCaption.trim(),
+    schedule:  !!formData.mainCaption.trim() && formData.platforms.length > 0,
+    preview:   !!formData.mainCaption.trim() && formData.platforms.length > 0 && (scheduleMode==='now' || (!!formData.scheduledDate && !!formData.scheduledTime)),
   };
 
-  const updatePlatformContent = (
-    platform: keyof PlatformSettings,
-    field: string,
-    value: any,
-  ) => {
-    setPlatformContent((prev) => ({
-      ...prev,
-      [platform]: {
-        ...prev[platform],
-        [field]: value,
-      },
-    }));
-  };
+  function goNext() {
+    const i = TABS.indexOf(activeTab);
+    if (activeTab==='content'   && !formData.mainCaption.trim())                                               { alert('Write a caption to continue.'); return; }
+    if (activeTab==='platforms' && !formData.platforms.length)                                                 { alert('Select at least one platform.'); return; }
+    if (activeTab==='schedule'  && scheduleMode!=='now' && (!formData.scheduledDate||!formData.scheduledTime)) { alert('Choose a date and time.'); return; }
+    setActiveTab(TABS[i+1]);
+  }
+  function goPrev() { setActiveTab(TABS[TABS.indexOf(activeTab)-1]); }
 
-  const canGoToPlatforms = !!formData.mainCaption.trim();
-  const canGoToSchedule = canGoToPlatforms && formData.platforms.length > 0;
-  const canGoToPreview =
-    canGoToSchedule &&
-    (scheduleMode === 'now' ||
-      (formData.scheduledDate && formData.scheduledTime));
-
-  const goNext = () => {
-    const idx = orderedTabs.indexOf(activeTab);
-
-    if (activeTab === 'content' && !formData.mainCaption.trim()) {
-      alert('Please write a caption to continue.');
-      return;
-    }
-    if (activeTab === 'platforms' && formData.platforms.length === 0) {
-      alert('Please select at least one platform.');
-      return;
-    }
-    if (
-      activeTab === 'schedule' &&
-      scheduleMode !== 'now' &&
-      (!formData.scheduledDate || !formData.scheduledTime)
-    ) {
-      alert('Please choose a schedule date and time.');
-      return;
-    }
-
-    setActiveTab(orderedTabs[idx + 1] as TabId);
-  };
-
-  const goPrev = () => {
-    const idx = orderedTabs.indexOf(activeTab);
-    setActiveTab(orderedTabs[idx - 1] as TabId);
-  };
-
-  const handleCustomSchedule = () => {
+  function handleCustomSchedule() {
     setScheduleMode('custom');
-    setFormData((prev) => ({
-      ...prev,
-      scheduledDate:
-        prev.scheduledDate || new Date().toISOString().split('T')[0],
-    }));
-  };
+    setFormData(p => ({ ...p, scheduledDate: p.scheduledDate || fmtDate(new Date()) }));
+  }
 
-  const platformErrors = formData.platforms.flatMap((platform) => {
-    const rules = PLATFORM_RULES[platform];
-    if (!rules) return [];
+  /* ─── validation ──────────────────── */
+
+  const platformErrors = formData.platforms.flatMap(p => {
+    const r = PLATFORM_RULES[p]; if (!r) return [];
+    const cap = p==='youtube' ? (platformContent.youtube.description||'') : (platformContent[p as keyof PlatformSettings]?.caption||'');
     const errs: string[] = [];
-    const caption = platform === 'youtube'
-      ? (platformContent.youtube.description || '')
-      : (platformContent[platform as keyof PlatformSettings]?.caption || '');
-    if (caption.length > rules.captionMax)
-      errs.push(`${platform}: caption exceeds ${rules.captionMax} chars`);
-    if (rules.requiresTitle && !platformContent.youtube.title?.trim())
-      errs.push('YouTube: title is required');
-    if (platform === 'youtube' && (platformContent.youtube.title?.length || 0) > 100)
-      errs.push('YouTube: title exceeds 100 chars');
+    if (r.requiresTitle && !platformContent.youtube.title?.trim()) errs.push('YouTube: title required');
+    if (p==='youtube' && (platformContent.youtube.title?.length||0)>100) errs.push('YouTube: title > 100 chars');
+    if (cap.length > r.captionMax) errs.push(`${p}: caption > ${r.captionMax} chars`);
     return errs;
   });
 
-  const canSubmit =
-    !loading &&
-    formData.platforms.length > 0 &&
-    !!formData.mainCaption.trim() &&
-    platformErrors.length === 0 &&
-    (scheduleMode === 'now' ||
-      (formData.scheduledDate && formData.scheduledTime));
+  const canSubmit = !loading && formData.platforms.length>0 && !!formData.mainCaption.trim() && platformErrors.length===0 && (scheduleMode==='now' || (!!formData.scheduledDate && !!formData.scheduledTime));
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-transparent border-t-purple-500 border-r-blue-500 rounded-full animate-spin mx-auto mb-6" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Zap className="w-8 h-8 text-purple-400 animate-pulse" />
-            </div>
-          </div>
-          <p className="text-gray-300 text-lg mt-4 font-medium">
-            Preparing your workspace...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  /* ─── loading / unauthenticated ────── */
+  if (authLoading) return (
+    <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+      <p className="font-display italic text-stone-600" style={{ fontSize:'1.5rem' }}>Loading…</p>
+    </div>
+  );
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
-
-  const steps: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'content', label: 'Content', icon: <PenTool size={18} /> },
-    { id: 'platforms', label: 'Platforms', icon: <Globe size={18} /> },
-    { id: 'schedule', label: 'Schedule', icon: <CalendarIcon size={18} /> },
-    { id: 'preview', label: 'Preview', icon: <Eye size={18} /> },
-  ];
-
+  /* ─── render ──────────────────────── */
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-              Create Content
-            </h1>
-            <p className="text-gray-400 text-sm">
-              Craft, optimize, and schedule posts across all platforms
-            </p>
-          </div>
+    <div className="min-h-screen bg-[#0a0a0b] grain">
+      <div className="max-w-[880px] mx-auto px-6 md:px-10 py-16">
 
+        {/* ── page header ─────────────────────────────── */}
+        <div className="mb-12 pb-10 border-b border-stone-800 flex items-end justify-between gap-6">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-3">
+              StarlingPost
+            </p>
+            <h1
+              className="font-display italic text-stone-100 leading-none"
+              style={{ fontSize:'clamp(2rem,5vw,3rem)', fontVariationSettings:'"opsz" 144' }}
+            >
+              New post.
+            </h1>
+          </div>
           <Link
             href="/dashboard"
-            className="px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 border border-gray-700 text-gray-300 hover:text-white transition-colors flex items-center gap-2 text-sm"
+            className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-600 hover:text-stone-300 transition-colors flex-shrink-0"
           >
-            <ChevronLeft size={18} />
-            Back to Dashboard
+            <ChevronLeft size={12} />
+            Dashboard
           </Link>
         </div>
 
-        <div className="mb-8">
-          <div className="relative mb-6">
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-800 -translate-y-1/2" />
-            <div className="relative flex justify-between">
-              {steps.map((step, index) => {
-                const isActive = activeTab === step.id;
-                const isCompleted =
-                  steps.findIndex((s) => s.id === activeTab) > index;
-
-                const canClick =
-                  step.id === 'content' ||
-                  (step.id === 'platforms' && canGoToPlatforms) ||
-                  (step.id === 'schedule' && canGoToSchedule) ||
-                  (step.id === 'preview' && canGoToPreview);
-
-                return (
-                  <div
-                    key={step.id}
-                    className="flex flex-col items-center relative z-10"
-                  >
-                    <button
-                      type="button"
-                      disabled={!canClick}
-                      onClick={() => canClick && setActiveTab(step.id)}
-                      className={`flex items-center justify-center w-11 h-11 rounded-full text-sm transition-all ${
-                        isActive
-                          ? 'bg-cyan-500 text-white shadow shadow-cyan-500/40'
-                          : isCompleted
-                          ? 'bg-emerald-600/20 border border-emerald-400/60 text-emerald-300'
-                          : 'bg-gray-900 border border-gray-700 text-gray-400'
-                      } ${
-                        !canClick ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        step.icon
-                      )}
-                    </button>
-                    <span
-                      className={`mt-2 text-xs font-medium ${
-                        isActive
-                          ? 'text-cyan-400'
-                          : isCompleted
-                          ? 'text-emerald-400'
-                          : 'text-gray-500'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+        {/* ── step indicator ───────────────────────────── */}
+        <div className="mb-10">
+          <div className="flex items-center gap-0 border-b border-stone-800">
+            {TABS.map((tab, idx) => {
+              const isActive    = activeTab === tab;
+              const isCompleted = TABS.indexOf(activeTab) > idx;
+              const clickable   = canGoTo[tab];
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  disabled={!clickable}
+                  onClick={() => clickable && setActiveTab(tab)}
+                  className={[
+                    'flex items-center gap-2 px-5 py-4 border-b-2 -mb-px transition-all',
+                    isActive    ? 'border-[#d4ff3a]'  : 'border-transparent',
+                    !clickable  ? 'cursor-not-allowed' : 'cursor-pointer',
+                  ].join(' ')}
+                >
+                  <span className={`font-mono text-[9px] tabular-nums ${isActive ? 'text-[#d4ff3a]' : isCompleted ? 'text-stone-600' : 'text-stone-800'}`}>
+                    0{idx + 1}
+                  </span>
+                  <span className={`font-mono text-[10px] uppercase tracking-[0.2em] ${isActive ? 'text-stone-100' : isCompleted ? 'text-stone-500 hover:text-stone-300' : 'text-stone-700'}`}>
+                    {tab}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
+
+          {/* ════════════════════════════════════════════════
+              STEP 1 · CONTENT
+          ════════════════════════════════════════════════ */}
           {activeTab === 'content' && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-xl bg-gray-800">
-                      <Upload className="w-6 h-6 text-purple-400" />
-                    </div>
+            <div className="space-y-6">
+
+              {/* caption + media two-col */}
+              <div className={sectionBox}>
+                <div className={sectionHead}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-2">Step 01</p>
+                  <h2
+                    className="font-display italic text-stone-100 leading-none"
+                    style={{ fontSize:'clamp(1.5rem,3vw,2rem)', fontVariationSettings:'"opsz" 80' }}
+                  >
+                    Write your caption.
+                  </h2>
+                </div>
+
+                <div className="grid md:grid-cols-[260px_1fr] divide-y md:divide-y-0 md:divide-x divide-stone-800">
+
+                  {/* LEFT · media */}
+                  <div className="p-8 space-y-6">
                     <div>
-                      <h3 className="text-lg font-bold text-white">
-                        Upload Media
-                      </h3>
-                      <p className="text-xs text-gray-400">
-                        Images, videos, or GIFs (optional)
+                      <p className={label}>Media</p>
+                      <FileUpload
+                        onUploadComplete={(url, type) =>
+                          setFormData(p => type === 'image' ? { ...p, imageUrl: url } : { ...p, videoUrl: url })
+                        }
+                        acceptedTypes="image,video"
+                        maxSizeMB={100}
+                      />
+                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-stone-700 mt-3">
+                        Optional — text only if skipped
                       </p>
                     </div>
-                  </div>
 
-                  <FileUpload
-                    onUploadComplete={(url, type) => {
-                      if (type === 'image') {
-                        setFormData((prev) => ({ ...prev, imageUrl: url }));
-                      } else {
-                        setFormData((prev) => ({ ...prev, videoUrl: url }));
-                      }
-                    }}
-                    acceptedTypes="image,video"
-                    maxSizeMB={100}
-                  />
+                    {(formData.imageUrl || formData.videoUrl) && (
+                      <div className="border border-stone-800 p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#d4ff3a]" />
+                          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#d4ff3a]">Uploaded</p>
+                        </div>
+                        {formData.imageUrl && <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-stone-600">· Image attached</p>}
+                        {formData.videoUrl && <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-stone-600 mt-1">· Video attached</p>}
+                      </div>
+                    )}
 
-                  <p className="mt-2 text-xs text-gray-500">
-                    If you skip this, we will publish a text-only post.
-                  </p>
-
-                  {(formData.imageUrl || formData.videoUrl) && (
-                    <div className="mt-6 p-4 bg-gray-950 rounded-xl border border-gray-800">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-semibold text-gray-300">
-                          Uploaded Files
-                        </h4>
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        {formData.imageUrl && (
-                          <div className="flex items-center gap-2 text-cyan-400 truncate">
-                            <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                            <span>Image uploaded</span>
-                          </div>
-                        )}
-                        {formData.videoUrl && (
-                          <div className="flex items-center gap-2 text-purple-400 truncate">
-                            <div className="w-2 h-2 rounded-full bg-purple-400" />
-                            <span>Video uploaded</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setShowProTips((v) => !v)}
-                    className="w-full flex items-center justify-between px-6 py-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-cyan-500/10">
-                        <Zap className="w-5 h-5 text-cyan-400" />
-                      </div>
-                      <h4 className="font-semibold text-cyan-300 text-sm">
-                        Pro Tips
-                      </h4>
-                    </div>
-                    <ChevronRight
-                      className={`w-4 h-4 text-gray-400 transition-transform ${
-                        showProTips ? 'rotate-90' : ''
-                      }`}
-                    />
-                  </button>
-
-                  {showProTips && (
-                    <div className="px-6 pb-4 space-y-3 text-xs text-gray-300">
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5" />
-                        <span>Use emojis to make captions feel human.</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5" />
-                        <span>
-                          3–5 focused hashtags usually work better than 20+.
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5" />
-                        <span>Always include a clear call-to-action.</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-gray-800">
-                        <MessageSquare className="w-6 h-6 text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white">
-                          Content Editor
-                        </h3>
-                        <p className="text-xs text-gray-400">
-                          Write your main caption
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAiEnhance}
-                      disabled={aiEnhancing || !formData.mainCaption}
-                      className="px-4 py-2 rounded-lg bg-purple-600 text-xs font-semibold text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {aiEnhancing ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          <span>Enhancing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          <span>AI Enhance</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="relative">
-                    <textarea
-                      placeholder="What's on your mind? Start with one strong idea you want to share..."
-                      value={formData.mainCaption}
-                      onChange={(e) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          mainCaption: e.target.value,
-                        }));
-                        setCharacterCount(e.target.value.length);
-                      }}
-                      className="w-full px-4 py-4 rounded-xl bg-gray-950 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-gray-500 min-h-64 resize-none focus:ring-1 focus:ring-cyan-500/30"
-                    />
-                    <div className="absolute bottom-3 right-3">
-                      <div
-                        className={`px-2 py-1 rounded-lg text-[11px] font-medium ${
-                          characterCount > 2200
-                            ? 'bg-red-500/20 text-red-400'
-                            : characterCount > 1800
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-emerald-500/20 text-emerald-400'
-                        }`}
+                    {/* pro tips */}
+                    <div className="border-t border-stone-900 pt-5">
+                      <button
+                        type="button"
+                        onClick={() => setShowProTips(v => !v)}
+                        className="flex items-center justify-between w-full group"
                       >
-                        {characterCount}/2800
-                      </div>
+                        <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-stone-700 group-hover:text-stone-500 transition-colors">
+                          Tips
+                        </p>
+                        <ChevronRight size={11} className={`text-stone-800 transition-transform ${showProTips ? 'rotate-90' : ''}`} />
+                      </button>
+                      {showProTips && (
+                        <ul className="mt-4 space-y-2.5">
+                          {['Emojis make captions feel human, not spam.', '3–5 hashtags beat 20+ every time.', 'End every post with a clear action.'].map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="w-1 h-1 rounded-full bg-stone-800 mt-1.5 flex-shrink-0" />
+                              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-700">{tip}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
 
-                  {formData.mainCaption.includes('#') && (
-                    <div className="mt-4 p-4 bg-gray-950 rounded-xl border border-gray-800">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Hash className="w-4 h-4 text-cyan-400" />
-                        <h4 className="text-xs font-semibold text-gray-300">
-                          Hashtag Preview
-                        </h4>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(formData.mainCaption.match(/#[\w]+/g) || [])
-                          .slice(0, 8)
-                          .map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded-full text-xs"
-                            >
+                  {/* RIGHT · caption editor */}
+                  <div className="p-8">
+                    <div className="flex items-center justify-between mb-5">
+                      <p className={label}>Caption</p>
+                      <button
+                        type="button"
+                        onClick={handleAiEnhance}
+                        disabled={aiEnhancing || !formData.mainCaption.trim()}
+                        className="flex items-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] font-mono text-[9px] uppercase tracking-[0.2em] font-bold px-4 py-2 hover:bg-[#bff020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {aiEnhancing
+                          ? <><RefreshCw size={10} className="animate-spin" /> Enhancing…</>
+                          : <><Sparkles size={10} /> AI Enhance</>}
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <textarea
+                        value={formData.mainCaption}
+                        onChange={e => { setFormData(p => ({ ...p, mainCaption: e.target.value })); setCharCount(e.target.value.length); }}
+                        placeholder="Start with one strong idea you want to share…"
+                        className={textareaBase + ' min-h-[200px]'}
+                      />
+                      <span className={`absolute bottom-3 right-3 font-mono text-[10px] ${charCount > 2200 ? 'text-[#ff5e3a]' : 'text-stone-800'}`}>
+                        {charCount}
+                      </span>
+                    </div>
+
+                    {/* hashtag chips */}
+                    {formData.mainCaption.includes('#') && (
+                      <div className="mt-4 border-t border-stone-900 pt-4">
+                        <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-stone-700 mb-3">Detected hashtags</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(formData.mainCaption.match(/#[\w]+/g) || []).slice(0, 8).map((tag, i) => (
+                            <span key={i} className="font-mono text-[9px] uppercase tracking-[0.08em] border border-stone-800 text-stone-600 px-2 py-0.5">
                               {tag}
                             </span>
                           ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const text = formData.mainCaption;
-                        setFormData((prev) => ({
-                          ...prev,
-                          mainCaption: text + ' 🚀',
-                        }));
-                      }}
-                      className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 hover:text-white flex items-center gap-2"
-                    >
-                      <span>🚀</span>
-                      <span>Add Emoji</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const text = formData.mainCaption;
-                        setFormData((prev) => ({
-                          ...prev,
-                          mainCaption: text + ' #viral',
-                        }));
-                      }}
-                      className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 hover:text-white flex items-center gap-2"
-                    >
-                      <Hash className="w-4 h-4" />
-                      <span>Add Hashtag</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const text = formData.mainCaption;
-                        setFormData((prev) => ({
-                          ...prev,
-                          mainCaption: text + ' 👉 Like & Follow!',
-                        }));
-                      }}
-                      className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-xs text-gray-300 hover:text-white flex items-center gap-2"
-                    >
-                      <Target className="w-4 h-4" />
-                      <span>Add CTA</span>
-                    </button>
+                    {/* quick insert */}
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {[['Emoji', ' 🚀'], ['#viral', ' #viral'], ['CTA', ' 👉 Like & Follow!']].map(([lbl, txt]) => (
+                        <button
+                          key={lbl}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, mainCaption: p.mainCaption + txt }))}
+                          className="font-mono text-[9px] uppercase tracking-[0.15em] border border-stone-800 text-stone-700 px-3 py-1.5 hover:border-stone-600 hover:text-stone-400 transition-colors"
+                        >
+                          + {lbl}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* AI comparison panel */}
+                    {showAiPanel && aiSuggestions && (
+                      <div className="mt-6 border border-[#d4ff3a]/30 bg-[#d4ff3a]/[0.04] p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#d4ff3a]" />
+                            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#d4ff3a]">AI suggestion ready</p>
+                          </div>
+                          <button type="button" onClick={() => setShowAiPanel(false)} className="font-mono text-[9px] uppercase tracking-[0.15em] text-stone-700 hover:text-stone-400 transition-colors">
+                            dismiss
+                          </button>
+                        </div>
+                        <p className="text-stone-400 text-sm leading-relaxed mb-5 line-clamp-4">
+                          {aiSuggestions.enhancedCaption}
+                        </p>
+                        <div className="flex gap-3">
+                          <button type="button" onClick={applyAiSuggestion} className="font-mono text-[10px] uppercase tracking-[0.2em] font-bold bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2 hover:bg-[#bff020] transition-colors">
+                            Apply →
+                          </button>
+                          <button type="button" onClick={() => setShowAiPanel(false)} className="font-mono text-[10px] uppercase tracking-[0.2em] border border-stone-800 text-stone-500 px-5 py-2 hover:text-stone-300 transition-colors">
+                            Keep original
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-gray-800">
-                      <Eye className="w-6 h-6 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-white">
-                        Quick Preview
-                      </h3>
-                      <p className="text-xs text-gray-400">
-                        How your content might look on each feed
-                      </p>
-                    </div>
+              {/* quick platform preview */}
+              {formData.mainCaption && (
+                <div className={sectionBox}>
+                  <div className="border-b border-stone-800 px-8 py-4">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-600">Platform preview</p>
                   </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'].map((platform) => (
-                      <div
-                        key={platform}
-                        className="bg-gray-950 rounded-xl p-4 border border-gray-800"
-                      >
-                        <div className="flex items-center gap-2 mb-3">
-                          {platformIcons[platform]}
-                          <span className="text-xs font-semibold text-gray-300 capitalize">
-                            {platform}
-                          </span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y divide-stone-800">
+                    {PLATFORMS.map(p => (
+                      <div key={p.id} className="p-5">
+                        <div className={`flex items-center gap-2 mb-3 ${p.color}`}>
+                          {p.icon}
+                          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-stone-600">{p.name}</span>
                         </div>
-                        <div className="text-xs text-gray-400 line-clamp-3">
-                          {formData.mainCaption.substring(0, 80) ||
-                            'Start typing your caption to see a preview.'}
-                        </div>
+                        <p className="text-stone-600 text-xs leading-relaxed line-clamp-3">
+                          {formData.mainCaption.substring(0, 80)}
+                        </p>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
+          {/* ════════════════════════════════════════════════
+              STEP 2 · PLATFORMS
+          ════════════════════════════════════════════════ */}
           {activeTab === 'platforms' && (
-            <div className="space-y-8">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-gray-800">
-                    <Globe className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Select Platforms
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Choose where to publish your content
-                    </p>
-                  </div>
+            <div className="space-y-6">
+
+              {/* selector */}
+              <div className={sectionBox}>
+                <div className={sectionHead}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-2">Step 02</p>
+                  <h2
+                    className="font-display italic text-stone-100 leading-none"
+                    style={{ fontSize:'clamp(1.5rem,3vw,2rem)', fontVariationSettings:'"opsz" 80' }}
+                  >
+                    Where should this live?
+                  </h2>
                 </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    {
-                      id: 'youtube',
-                      name: 'YouTube',
-                      color: 'from-red-500 to-red-700',
-                      stats: '2.7B users',
-                    },
-                    {
-                      id: 'twitter',
-                      name: 'Twitter/X',
-                      color: 'from-blue-400 to-blue-600',
-                      stats: '550M users',
-                    },
-                    {
-                      id: 'linkedin',
-                      name: 'LinkedIn',
-                      color: 'from-blue-600 to-blue-800',
-                      stats: '950M users',
-                    },
-                    {
-                      id: 'instagram',
-                      name: 'Instagram',
-                      color: 'from-pink-500 to-purple-600',
-                      stats: '2B users',
-                    },
-                    {
-                      id: 'facebook',
-                      name: 'Facebook',
-                      color: 'from-blue-500 to-blue-700',
-                      stats: '3B users',
-                    },
-                    {
-                      id: 'threads',
-                      name: 'Threads',
-                      color: 'from-gray-600 to-gray-900',
-                      stats: '300M users',
-                    },
-                  ].map((platform) => {
-                    const isSelected = formData.platforms.includes(platform.id);
-
+                <div className="grid grid-cols-2 md:grid-cols-3">
+                  {PLATFORMS.map((p, idx) => {
+                    const sel = formData.platforms.includes(p.id);
+                    const border = [
+                      idx < PLATFORMS.length - (PLATFORMS.length % 3 || 3) ? '' : '',
+                      'border-b border-r border-stone-800',
+                    ].join(' ');
                     return (
-                      <div
-                        key={platform.id}
-                        onClick={() => togglePlatform(platform.id)}
-                        className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all text-sm ${
-                          isSelected
-                            ? `border-transparent bg-gradient-to-br ${platform.color}`
-                            : 'border-gray-800 hover:border-gray-700 bg-gray-950'
-                        }`}
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => togglePlatform(p.id)}
+                        className={[
+                          'group p-7 text-left border-b border-r border-stone-800 transition-colors',
+                          sel ? 'bg-[#d4ff3a]/[0.04]' : 'hover:bg-stone-900/50',
+                        ].join(' ')}
                       >
-                        <div className="flex items-center justify-between mb-4">
-                          <div
-                            className={`p-3 rounded-xl ${
-                              isSelected ? 'bg-white/15' : 'bg-gray-900'
-                            }`}
-                          >
-                            {platformIcons[platform.id]}
-                          </div>
-                          <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                              isSelected ? 'border-white' : 'border-gray-600'
-                            }`}
-                          >
-                            {isSelected && (
-                              <div className="w-2 h-2 bg-white rounded-full" />
-                            )}
+                        <div className="flex items-start justify-between mb-4">
+                          <span className={`${p.color} ${sel ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'} transition-opacity`}>
+                            {p.icon}
+                          </span>
+                          <div className={`w-[14px] h-[14px] border flex items-center justify-center flex-shrink-0 transition-colors ${sel ? 'border-[#d4ff3a] bg-[#d4ff3a]' : 'border-stone-700'}`}>
+                            {sel && <span className="text-[#0a0a0b] text-[8px] font-bold leading-none">✓</span>}
                           </div>
                         </div>
-
-                        <h4
-                          className={`text-sm font-semibold mb-1 ${
-                            isSelected ? 'text-white' : 'text-gray-200'
-                          }`}
-                        >
-                          {platform.name}
-                        </h4>
-
-                        <p
-                          className={`text-xs ${
-                            isSelected ? 'text-white/85' : 'text-gray-400'
-                          }`}
-                        >
-                          {platform.stats}
+                        <p className={`font-mono text-[10px] uppercase tracking-[0.2em] mb-1 transition-colors ${sel ? 'text-stone-200' : 'text-stone-600 group-hover:text-stone-400'}`}>
+                          {p.name}
                         </p>
-
-                        {isSelected && (
-                          <div className="absolute -top-2 -right-2">
-                            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-white" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-800">{p.users}</p>
+                      </button>
                     );
                   })}
                 </div>
 
-                <div className="mt-6 p-4 bg-gray-950 rounded-xl border border-gray-800 flex items-center gap-3 text-xs">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-gray-300">
-                    {formData.platforms.length} platform
-                    {formData.platforms.length !== 1 ? 's' : ''} selected
-                  </span>
+                <div className="border-t border-stone-800 px-8 py-4">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-stone-700">
+                    {formData.platforms.length} platform{formData.platforms.length !== 1 ? 's' : ''} selected
+                  </p>
                 </div>
               </div>
 
-              {/* ── Platform Validation Panel ── */}
+              {/* validation */}
               {formData.platforms.length > 0 && (
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <ShieldCheck className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-sm font-bold text-white">Content Validation</h3>
-                    <span className="text-xs text-gray-500 ml-1">— checks per platform before publishing</span>
+                <div className={sectionBox}>
+                  <div className="border-b border-stone-800 px-8 py-5">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500">Content validation</p>
                   </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 divide-x divide-y divide-stone-800">
+                    {formData.platforms.map(pid => {
+                      const meta  = PLATFORMS.find(p => p.id === pid)!;
+                      const rules = PLATFORM_RULES[pid];
+                      if (!rules || !meta) return null;
+                      const cap = pid==='youtube' ? (platformContent.youtube.description||'') : (platformContent[pid as keyof PlatformSettings]?.caption||'');
+                      const ttl = platformContent.youtube.title || '';
 
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {formData.platforms.map((platform) => {
-                      const rules = PLATFORM_RULES[platform];
-                      if (!rules) return null;
-                      const caption = platform === 'youtube'
-                        ? (platformContent.youtube.description || '')
-                        : (platformContent[platform as keyof PlatformSettings]?.caption || '');
-                      const title = platformContent.youtube.title || '';
-                      const captionLen = caption.length;
-
-                      type Issue = { type: 'error' | 'warn'; msg: string };
+                      type Issue = { t: 'err'|'warn'; m: string };
                       const issues: Issue[] = [];
+                      if (rules.requiresTitle && !ttl.trim())                      issues.push({ t:'err',  m:'YouTube title required' });
+                      if (rules.requiresTitle && ttl.length > (rules.titleMax||100))  issues.push({ t:'err',  m:`Title > ${rules.titleMax} chars` });
+                      if (cap.length > rules.captionMax)                           issues.push({ t:'err',  m:`Caption > ${rules.captionMax}` });
+                      if (pid==='twitter' && cap.length > 240 && cap.length <= 280) issues.push({ t:'warn', m:`${280-cap.length} chars left` });
+                      if (rules.requiresVideo && !formData.videoUrl)               issues.push({ t:'err',  m:'Video required' });
+                      if (pid==='instagram' && !formData.imageUrl && !formData.videoUrl) issues.push({ t:'err', m:'Image or video required' });
 
-                      if (rules.requiresTitle && !title.trim())
-                        issues.push({ type: 'error', msg: 'YouTube title is required' });
-                      if (rules.requiresTitle && title.length > (rules.titleMax || 100))
-                        issues.push({ type: 'error', msg: `Title too long (${title.length}/${rules.titleMax})` });
-                      if (captionLen > rules.captionMax)
-                        issues.push({ type: 'error', msg: `Caption too long (${captionLen}/${rules.captionMax} chars)` });
-                      if (platform === 'twitter' && captionLen > 240 && captionLen <= 280)
-                        issues.push({ type: 'warn', msg: `${280 - captionLen} chars remaining` });
-                      if (rules.requiresVideo && !formData.videoUrl)
-                        issues.push({ type: 'error', msg: 'Video file required for YouTube' });
-                      if (!rules.allowsImage && formData.imageUrl && !formData.videoUrl)
-                        issues.push({ type: 'warn', msg: `Images not supported on ${platform}` });
-                      if (formData.imageUrl && !formData.videoUrl && !rules.allowsImage)
-                        issues.push({ type: 'error', msg: `${platform} does not support standalone images` });
-                      if (platform === 'instagram' && !formData.imageUrl && !formData.videoUrl)
-                        issues.push({ type: 'error', msg: 'Instagram requires an image or video' });
-
-                      const hasError = issues.some(i => i.type === 'error');
-                      const hasWarn = issues.some(i => i.type === 'warn');
-                      const allGood = issues.length === 0 && (captionLen > 0 || !!title);
+                      const hasErr  = issues.some(i => i.t==='err');
+                      const hasWarn = issues.some(i => i.t==='warn');
+                      const good    = !hasErr && !hasWarn && (cap.length>0 || !!ttl);
 
                       return (
-                        <div
-                          key={platform}
-                          className={`rounded-xl border p-4 ${
-                            hasError
-                              ? 'border-red-500/30 bg-red-500/5'
-                              : hasWarn
-                              ? 'border-amber-500/30 bg-amber-500/5'
-                              : allGood
-                              ? 'border-emerald-500/30 bg-emerald-500/5'
-                              : 'border-gray-800 bg-gray-950'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-3">
-                            {platformIcons[platform]}
-                            <span className="text-xs font-semibold text-white capitalize">{platform}</span>
-                            {hasError && <XCircle size={13} className="ml-auto text-red-400" />}
-                            {!hasError && hasWarn && <AlertCircle size={13} className="ml-auto text-amber-400" />}
-                            {allGood && !hasError && !hasWarn && <CheckCircle size={13} className="ml-auto text-emerald-400" />}
+                        <div key={pid} className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className={`flex items-center gap-2 ${meta.color}`}>
+                              {meta.icon}
+                              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-stone-600">{meta.name}</span>
+                            </div>
+                            {hasErr  && <XCircle    size={12} className="text-[#ff5e3a]"  />}
+                            {!hasErr && hasWarn && <AlertCircle size={12} className="text-amber-400" />}
+                            {good    && <CheckCircle size={12} className="text-[#d4ff3a]" />}
                           </div>
 
-                          {/* Character count bar */}
                           {rules.captionMax > 0 && (
-                            <div className="mb-3">
-                              <div className="flex justify-between text-[10px] mb-1">
-                                <span className="text-gray-500">{platform === 'youtube' ? 'Description' : 'Caption'}</span>
-                                <span className={
-                                  captionLen > rules.captionMax ? 'text-red-400' :
-                                  captionLen > rules.captionMax * 0.85 ? 'text-amber-400' :
-                                  'text-gray-500'
-                                }>
-                                  {captionLen}/{rules.captionMax}
+                            <div className="mb-4">
+                              <div className="flex justify-between font-mono text-[9px] uppercase tracking-[0.08em] mb-1.5">
+                                <span className="text-stone-700">{pid==='youtube' ? 'Desc' : 'Caption'}</span>
+                                <span className={cap.length > rules.captionMax ? 'text-[#ff5e3a]' : cap.length > rules.captionMax*0.85 ? 'text-amber-400' : 'text-stone-700'}>
+                                  {cap.length}/{rules.captionMax}
                                 </span>
                               </div>
-                              <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                              <div className="h-px bg-stone-900 overflow-hidden">
                                 <div
-                                  className={`h-full rounded-full transition-all ${
-                                    captionLen > rules.captionMax ? 'bg-red-500' :
-                                    captionLen > rules.captionMax * 0.85 ? 'bg-amber-500' :
-                                    'bg-emerald-500'
-                                  }`}
-                                  style={{ width: `${Math.min(100, (captionLen / rules.captionMax) * 100)}%` }}
+                                  className={`h-full ${cap.length > rules.captionMax ? 'bg-[#ff5e3a]' : cap.length > rules.captionMax*0.85 ? 'bg-amber-500' : 'bg-[#d4ff3a]'}`}
+                                  style={{ width:`${Math.min(100,(cap.length/rules.captionMax)*100)}%` }}
                                 />
                               </div>
                             </div>
                           )}
 
-                          {/* Media allowed */}
-                          <div className="text-[10px] text-gray-500 space-y-0.5 mb-3">
-                            <div className="flex gap-1">
-                              <span className={rules.allowsImage ? 'text-emerald-400' : 'text-gray-700'}>
-                                {rules.allowsImage ? '✓' : '✕'}
-                              </span>
-                              <span>Image: {rules.allowsImage ? rules.imageFormats : 'Not supported'}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              <span className={rules.allowsVideo ? 'text-emerald-400' : 'text-gray-700'}>
-                                {rules.allowsVideo ? '✓' : '✕'}
-                              </span>
-                              <span>Video: {rules.allowsVideo ? rules.videoFormats : 'Not supported'}</span>
-                            </div>
+                          <div className="mb-3 space-y-0.5">
+                            {[['Image', rules.allowsImage], ['Video', rules.allowsVideo]].map(([lbl, ok]) => (
+                              <p key={String(lbl)} className="font-mono text-[9px] uppercase tracking-[0.08em]">
+                                <span className={ok ? 'text-[#d4ff3a]' : 'text-stone-800'}>{ok ? '✓' : '✕'}</span>
+                                {' '}<span className="text-stone-800">{String(lbl)}</span>
+                              </p>
+                            ))}
                           </div>
 
-                          {/* Issues */}
-                          {issues.map((issue, i) => (
-                            <div key={i} className={`flex items-start gap-1.5 text-[10px] mt-1 ${
-                              issue.type === 'error' ? 'text-red-400' : 'text-amber-400'
-                            }`}>
-                              {issue.type === 'error'
-                                ? <XCircle size={11} className="flex-shrink-0 mt-0.5" />
-                                : <AlertCircle size={11} className="flex-shrink-0 mt-0.5" />}
-                              {issue.msg}
+                          {issues.map((iss, i) => (
+                            <div key={i} className={`flex items-start gap-1 font-mono text-[9px] uppercase tracking-[0.08em] mt-1 ${iss.t==='err' ? 'text-[#ff5e3a]' : 'text-amber-400'}`}>
+                              {iss.t==='err' ? <XCircle size={9} className="mt-0.5 flex-shrink-0" /> : <AlertCircle size={9} className="mt-0.5 flex-shrink-0" />}
+                              {iss.m}
                             </div>
                           ))}
-                          {allGood && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 mt-1">
-                              <CheckCircle size={11} />
-                              Ready to publish
-                            </div>
+                          {good && (
+                            <p className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.08em] text-[#d4ff3a] mt-1">
+                              <CheckCircle size={9} /> Ready
+                            </p>
                           )}
                         </div>
                       );
@@ -1328,553 +703,315 @@ export default function CreatePostPage() {
                 </div>
               )}
 
-              {formData.platforms.map((platform) => (
-                <div
-                  key={platform}
-                  className="bg-gray-900 border border-gray-800 rounded-2xl p-8"
-                >
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-xl bg-gray-800">
-                        {platformIcons[platform]}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white capitalize">
-                          {platform} Content
+              {/* per-platform editors */}
+              {formData.platforms.map(pid => {
+                const meta  = PLATFORMS.find(p => p.id === pid)!;
+                const rules = PLATFORM_RULES[pid];
+                const pc    = platformContent[pid as keyof PlatformSettings];
+                const capLen = pc?.caption?.length || 0;
+
+                return (
+                  <div key={pid} className={sectionBox}>
+                    <div className={`${sectionHead} flex items-center justify-between`}>
+                      <div className={`flex items-center gap-3 ${meta.color}`}>
+                        {meta.icon}
+                        <h3
+                          className="font-display italic text-stone-100"
+                          style={{ fontSize:'1.1rem', fontVariationSettings:'"opsz" 80' }}
+                        >
+                          {meta.name}
                         </h3>
-                        <p className="text-xs text-gray-400">
-                          Optimized specifically for {platform}
-                        </p>
                       </div>
+                      {pid !== 'youtube' && (
+                        <span className={`font-mono text-[9px] uppercase tracking-[0.15em] ${capLen > (rules?.captionMax||0) ? 'text-[#ff5e3a]' : 'text-stone-700'}`}>
+                          {capLen}/{rules?.captionMax}
+                        </span>
+                      )}
                     </div>
-                    {/* Per-platform char limit badge */}
-                    {platform !== 'youtube' && (() => {
-                      const rules = PLATFORM_RULES[platform];
-                      const caption = platformContent[platform as keyof PlatformSettings]?.caption || '';
-                      const len = caption.length;
-                      const max = rules?.captionMax || 9999;
-                      const pct = len / max;
-                      return (
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                          len > max ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                          pct > 0.85 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
-                          'bg-gray-800 border-gray-700 text-gray-400'
-                        }`}>
-                          {len > max ? <XCircle size={12} /> : pct > 0.85 ? <AlertCircle size={12} /> : <CheckCircle size={12} />}
-                          {len}/{max} chars
-                          {len > max && ' · over limit'}
-                        </div>
-                      );
-                    })()}
-                  </div>
 
-                  {platform === 'youtube' ? (
-                    <div className="grid md:grid-cols-2 gap-6 text-sm">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-300 mb-2">
-                            Video Title
-                          </label>
-                          <input
-                            type="text"
-                            value={platformContent.youtube.title}
-                            onChange={(e) =>
-                              updatePlatformContent(
-                                'youtube',
-                                'title',
-                                e.target.value,
-                              )
-                            }
-                            maxLength={100}
-                            className="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-gray-500"
-                            placeholder="Catchy title for maximum clicks"
-                          />
-                          <div className="mt-1 text-[11px] text-gray-500 text-right">
-                            {(platformContent.youtube?.title?.length ?? 0)}/100
+                    <div className="p-8">
+                      {pid === 'youtube' ? (
+                        <div className="grid md:grid-cols-2 gap-8">
+                          <div className="space-y-7">
+                            <div>
+                              <label className={label}>Video title</label>
+                              <input type="text" value={platformContent.youtube.title} onChange={e => updatePlatform('youtube','title',e.target.value)} maxLength={100} placeholder="Catchy title for maximum clicks" className={inputBase} />
+                              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-800 mt-1 text-right">{platformContent.youtube?.title?.length ?? 0}/100</p>
+                            </div>
+                            <div>
+                              <label className={label}>Tags</label>
+                              <input type="text" value={platformContent.youtube.tags?.join(', ')||''} onChange={e => updatePlatform('youtube','tags',e.target.value.split(',').map(t=>t.trim()))} placeholder="coding, tech, tutorial" className={inputBase} />
+                              <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-800 mt-1">Comma separated</p>
+                            </div>
+                          </div>
+                          <div>
+                            <label className={label}>Description</label>
+                            <textarea value={platformContent.youtube.description} onChange={e => updatePlatform('youtube','description',e.target.value)} rows={8} placeholder="Detailed description with timestamps and links" className={textareaBase} />
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-300 mb-2">
-                            Tags
-                          </label>
-                          <input
-                            type="text"
-                            value={
-                              platformContent.youtube.tags?.join(', ') || ''
-                            }
-                            onChange={(e) =>
-                              updatePlatformContent(
-                                'youtube',
-                                'tags',
-                                e.target.value
-                                  .split(',')
-                                  .map((t) => t.trim()),
-                              )
-                            }
-                            className="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-gray-500"
-                            placeholder="coding, tech, tutorial, development"
-                          />
-                          <div className="mt-1 text-[11px] text-gray-500">
-                            Comma separated tags for SEO
+                      ) : (
+                        <div className="space-y-7">
+                          <div>
+                            <label className={label}>Caption</label>
+                            <textarea value={pc?.caption||''} onChange={e => updatePlatform(pid as keyof PlatformSettings,'caption',e.target.value)} rows={5} placeholder={`Write your ${meta.name} caption…`} className={textareaBase} />
                           </div>
+                          {(pc?.hashtags?.length||0) > 0 && (
+                            <div>
+                              <label className={label}>Hashtags</label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {pc?.hashtags?.map((tag, i) => (
+                                  <span key={i} className="font-mono text-[9px] uppercase tracking-[0.08em] border border-stone-800 text-stone-600 px-2 py-0.5">{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-2">
-                          Description
-                        </label>
-                        <textarea
-                          value={platformContent.youtube.description}
-                          onChange={(e) =>
-                            updatePlatformContent(
-                              'youtube',
-                              'description',
-                              e.target.value,
-                            )
-                          }
-                          rows={8}
-                          className="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-gray-500 resize-none"
-                          placeholder="Detailed description with timestamps, links, and calls to action"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6 text-sm">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-2">
-                          Caption
-                        </label>
-                        <textarea
-                          value={
-                            platformContent[
-                              platform as keyof PlatformSettings
-                            ]?.caption || ''
-                          }
-                          onChange={(e) =>
-                            updatePlatformContent(
-                              platform as keyof PlatformSettings,
-                              'caption',
-                              e.target.value,
-                            )
-                          }
-                          rows={5}
-                          className="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white placeholder-gray-500 resize-none"
-                          placeholder={`Write your ${platform} caption...`}
-                        />
-                      </div>
+                      )}
 
-                      {platformContent[
-                        platform as keyof PlatformSettings
-                      ]?.hashtags?.length > 0 && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-300 mb-2">
-                            Hashtags
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {platformContent[
-                              platform as keyof PlatformSettings
-                            ]?.hashtags?.map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded-full text-xs"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                      {PLATFORM_TIPS[pid as PlatformId] && (
+                        <div className="mt-7 pt-6 border-t border-stone-900 flex items-start gap-3">
+                          <AlertCircle size={11} className="text-stone-700 mt-0.5 flex-shrink-0" />
+                          <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-700 leading-relaxed">
+                            {PLATFORM_TIPS[pid as PlatformId]}
+                          </p>
                         </div>
                       )}
                     </div>
-                  )}
-
-                  <div className="mt-6 p-4 bg-gray-950 rounded-xl border border-gray-800 text-xs">
-                    <div className="flex items-center gap-2 mb-1">
-                      <AlertCircle className="w-4 h-4 text-amber-400" />
-                      <span className="font-semibold text-amber-400">
-                        {platform} Tips
-                      </span>
-                    </div>
-                    <p className="text-gray-400">
-                      {platformTips[platform] ??
-                        'Write concise, engaging copy tailored to this platform.'}
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
+          {/* ════════════════════════════════════════════════
+              STEP 3 · SCHEDULE
+          ════════════════════════════════════════════════ */}
           {activeTab === 'schedule' && (
-            <div className="space-y-8">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-gray-800">
-                    <CalendarIcon className="w-6 h-6 text-amber-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Schedule Your Post
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Choose when to publish your content
-                    </p>
-                  </div>
+            <div className="space-y-6">
+              <div className={sectionBox}>
+                <div className={sectionHead}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-2">Step 03</p>
+                  <h2
+                    className="font-display italic text-stone-100 leading-none"
+                    style={{ fontSize:'clamp(1.5rem,3vw,2rem)', fontVariationSettings:'"opsz" 80' }}
+                  >
+                    When should this go live?
+                  </h2>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6 mb-8 text-sm">
+                {/* mode cards */}
+                <div className="grid md:grid-cols-2 border-b border-stone-800 divide-y md:divide-y-0 md:divide-x divide-stone-800">
+                  {/* publish now */}
                   <div
                     onClick={() => setScheduleMode('now')}
-                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${
-                      scheduleMode === 'now'
-                        ? 'border-cyan-500 bg-cyan-500/10'
-                        : 'border-gray-800 hover:border-gray-700 bg-gray-950'
-                    }`}
+                    className={`p-8 cursor-pointer transition-colors ${scheduleMode==='now' ? 'bg-[#d4ff3a]/[0.04]' : 'hover:bg-stone-900/40'}`}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className={`p-3 rounded-lg ${
-                          scheduleMode === 'now'
-                            ? 'bg-cyan-500/20 text-cyan-400'
-                            : 'bg-gray-900 text-gray-400'
-                        }`}
-                      >
-                        <Zap className="w-5 h-5" />
+                    <div className="flex items-start justify-between mb-5">
+                      <p className={`font-mono text-[10px] uppercase tracking-[0.25em] ${scheduleMode==='now' ? 'text-[#d4ff3a]' : 'text-stone-600'}`}>
+                        Publish now
+                      </p>
+                      <div className={`w-[14px] h-[14px] border flex-shrink-0 flex items-center justify-center ${scheduleMode==='now' ? 'border-[#d4ff3a]' : 'border-stone-700'}`}>
+                        {scheduleMode==='now' && <div className="w-[6px] h-[6px] bg-[#d4ff3a]" />}
                       </div>
-                      <h4 className="text-sm font-bold text-white">
-                        Publish Now
-                      </h4>
                     </div>
-                    <p className="text-xs text-gray-400 mb-3">
-                      Post immediately to all selected platforms.
+                    <p
+                      className="font-display italic text-stone-400 mb-3"
+                      style={{ fontSize:'1.3rem', fontVariationSettings:'"opsz" 80' }}
+                    >
+                      Live in seconds.
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-medium ${
-                          scheduleMode === 'now'
-                            ? 'text-cyan-400'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        Instant Delivery
-                      </span>
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          scheduleMode === 'now'
-                            ? 'border-cyan-500'
-                            : 'border-gray-600'
-                        }`}
-                      >
-                        {scheduleMode === 'now' && (
-                          <div className="w-2 h-2 bg-cyan-500 rounded-full" />
-                        )}
-                      </div>
-                    </div>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-700 leading-relaxed">
+                      Posts immediately to all selected platforms.
+                    </p>
                   </div>
 
+                  {/* schedule */}
                   <div
                     onClick={handleCustomSchedule}
-                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${
-                      scheduleMode === 'custom'
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-gray-800 hover:border-gray-700 bg-gray-950'
-                    }`}
+                    className={`p-8 cursor-pointer transition-colors ${scheduleMode==='custom' ? 'bg-[#d4ff3a]/[0.04]' : 'hover:bg-stone-900/40'}`}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className={`p-3 rounded-lg ${
-                          scheduleMode === 'custom'
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'bg-gray-900 text-gray-400'
-                        }`}
-                      >
-                        <Settings className="w-5 h-5" />
-                      </div>
-                      <h4 className="text-sm font-bold text-white">
-                        Custom Time
-                      </h4>
-                    </div>
-                    <p className="text-xs text-gray-400 mb-3">
-                      Set your own date and time for posting.
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-medium ${
-                          scheduleMode === 'custom'
-                            ? 'text-blue-400'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        Manual Schedule
-                      </span>
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          scheduleMode === 'custom'
-                            ? 'border-blue-500'
-                            : 'border-gray-600'
-                        }`}
-                      >
-                        {scheduleMode === 'custom' && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                        )}
+                    <div className="flex items-start justify-between mb-5">
+                      <p className={`font-mono text-[10px] uppercase tracking-[0.25em] ${scheduleMode==='custom' ? 'text-[#d4ff3a]' : 'text-stone-600'}`}>
+                        Schedule
+                      </p>
+                      <div className={`w-[14px] h-[14px] border flex-shrink-0 flex items-center justify-center ${scheduleMode==='custom' ? 'border-[#d4ff3a]' : 'border-stone-700'}`}>
+                        {scheduleMode==='custom' && <div className="w-[6px] h-[6px] bg-[#d4ff3a]" />}
                       </div>
                     </div>
-                  </div>
-
-                  <div className="p-6 rounded-2xl border-2 border-gray-900 bg-gray-950 text-xs text-gray-400 flex flex-col justify-center">
-                    <p className="mb-1">
-                      Tip: Scheduling at a consistent time each week can improve
-                      engagement.
+                    <p
+                      className="font-display italic text-stone-400 mb-3"
+                      style={{ fontSize:'1.3rem', fontVariationSettings:'"opsz" 80' }}
+                    >
+                      Pick your moment.
                     </p>
-                    <p>Use analytics later to refine your best posting times.</p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-stone-700 leading-relaxed">
+                      Set a date and time. Auto-published by cron.
+                    </p>
                   </div>
                 </div>
 
+                {/* custom date/time */}
                 {scheduleMode === 'custom' && (
-                  <div className="bg-gray-950 rounded-2xl p-6 border border-gray-800 text-sm">
-                    <h4 className="text-sm font-bold text-white mb-4">
-                      Set Date & Time
-                    </h4>
-                    <div className="grid md:grid-cols-2 gap-6">
+                  <div className="border-b border-stone-800 p-8">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 mb-8">Date & time</p>
+                    <div className="grid md:grid-cols-2 gap-10">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-2">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            Date
-                          </div>
-                        </label>
-                        <input
-                          type="date"
-                          value={formData.scheduledDate}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              scheduledDate: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white"
-                          required={scheduleMode === 'custom'}
-                        />
+                        <label className={label}>Date</label>
+                        <input type="date" value={formData.scheduledDate} onChange={e => setFormData(p => ({ ...p, scheduledDate: e.target.value }))} className={inputBase} required={scheduleMode==='custom'} />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-300 mb-2">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            Time
-                          </div>
-                        </label>
-                        <input
-                          type="time"
-                          value={formData.scheduledTime}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              scheduledTime: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-800 focus:border-cyan-500 focus:outline-none text-sm text-white"
-                          required={scheduleMode === 'custom'}
-                        />
+                        <label className={label}>Time</label>
+                        <input type="time" value={formData.scheduledTime} onChange={e => setFormData(p => ({ ...p, scheduledTime: e.target.value }))} className={inputBase} required={scheduleMode==='custom'} />
                       </div>
                     </div>
                   </div>
                 )}
 
-                {scheduleMode !== 'now' &&
-                  formData.scheduledDate &&
-                  formData.scheduledTime && (
-                    <div className="mt-6 p-6 bg-gray-950 border border-gray-800 rounded-2xl text-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-xs text-cyan-300 mb-1">
-                            Selected Schedule
-                          </div>
-                          <div className="text-lg font-bold text-white">
-                            {formatTimeDisplay(
-                              formData.scheduledDate,
-                              formData.scheduledTime,
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-4 rounded-xl bg-gray-900">
-                          <CalendarIcon className="w-7 h-7 text-cyan-400" />
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                        <Bell className="w-4 h-4" />
-                        <span>
-                          You will be able to track this scheduled post in your
-                          dashboard.
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                {/* confirmation */}
+                {scheduleMode !== 'now' && formData.scheduledDate && formData.scheduledTime && (
+                  <div className="border-b border-stone-800 px-8 py-6">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-stone-600 mb-2">Scheduled for</p>
+                    <p className="font-display italic text-stone-100" style={{ fontSize:'1.5rem', fontVariationSettings:'"opsz" 80' }}>
+                      {fmtDateTime(formData.scheduledDate, formData.scheduledTime)}
+                    </p>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-stone-700 mt-2">
+                      Track from dashboard after scheduling
+                    </p>
+                  </div>
+                )}
+
+                <div className="px-8 py-5">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-stone-800">
+                    Consistent timing each week builds audience habits and improves reach.
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
+          {/* ════════════════════════════════════════════════
+              STEP 4 · PREVIEW
+          ════════════════════════════════════════════════ */}
           {activeTab === 'preview' && (
-            <div className="space-y-8">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-xl bg-gray-800">
-                    <Eye className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      Final Preview
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Review your content before publishing
-                    </p>
-                  </div>
+            <div className="space-y-6">
+              <div className={sectionBox}>
+                <div className={sectionHead}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-2">Step 04</p>
+                  <h2
+                    className="font-display italic text-stone-100 leading-none"
+                    style={{ fontSize:'clamp(1.5rem,3vw,2rem)', fontVariationSettings:'"opsz" 80' }}
+                  >
+                    Final review.
+                  </h2>
                 </div>
 
-                <div className="grid md:grid-cols-4 gap-4 mb-8 text-sm">
-                  <div className="p-4 bg-gray-950 rounded-xl border border-gray-800">
-                    <div className="text-xs text-gray-400 mb-1">Platforms</div>
-                    <div className="text-xl font-bold text-white">
-                      {formData.platforms.length}
-                    </div>
-                  </div>
-                  <div className="p-4 bg-gray-950 rounded-xl border border-gray-800">
-                    <div className="text-xs text-gray-400 mb-1">Schedule</div>
-                    <div className="text-sm font-bold text-white">
-                      {scheduleMode === 'now' ? 'Immediate' : 'Scheduled'}
-                    </div>
-                  </div>
-                  <div className="p-4 bg-gray-950 rounded-xl border border-gray-800">
-                    <div className="text-xs text-gray-400 mb-1">
-                      Characters
-                    </div>
-                    <div className="text-xl font-bold text-white">
-                      {formData.mainCaption.length}
-                    </div>
-                  </div>
-                  <div className="p-4 bg-gray-950 rounded-xl border border-gray-800">
-                    <div className="text-xs text-gray-400 mb-1">Media</div>
-                    <div className="text-sm font-bold text-white">
-                      {(formData.imageUrl ? 1 : 0) +
-                        (formData.videoUrl ? 1 : 0)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-                  {formData.platforms.map((platform) => (
-                    <div
-                      key={platform}
-                      className="bg-gray-950 rounded-2xl border border-gray-800 overflow-hidden"
-                    >
-                      <div className="p-4 bg-gray-900">
-                        <div className="flex items-center gap-2">
-                          {platformIcons[platform]}
-                          <span className="font-semibold text-white text-sm capitalize">
-                            {platform}
-                          </span>
-                        </div>
+                {/* stats */}
+                <div className="grid grid-cols-4 border-b border-stone-800 divide-x divide-stone-800">
+                  {[
+                    { n: String(formData.platforms.length), l: 'Platforms' },
+                    { n: scheduleMode==='now' ? 'Now' : 'Timed', l: 'Delivery' },
+                    { n: String(formData.mainCaption.length), l: 'Characters' },
+                    { n: String((formData.imageUrl?1:0)+(formData.videoUrl?1:0)), l: 'Media' },
+                  ].map(s => (
+                    <div key={s.l} className="py-6 text-center">
+                      <div
+                        className="font-display italic text-stone-100 leading-none mb-1"
+                        style={{ fontSize:'1.6rem', fontVariationSettings:'"opsz" 80' }}
+                      >
+                        {s.n}
                       </div>
-                      <div className="p-4">
-                        {(formData.imageUrl || formData.videoUrl) && (
-                          <div className="mb-4 rounded-lg overflow-hidden bg-gray-900">
-                            {formData.imageUrl ? (
-                              <img
-                                src={formData.imageUrl}
-                                alt="Preview"
-                                className="w-full h-40 object-cover"
-                              />
-                            ) : formData.videoUrl ? (
-                              <div className="w-full h-40 bg-gray-900 flex items-center justify-center">
-                                <Video className="w-10 h-10 text-gray-600" />
-                              </div>
-                            ) : null}
-                          </div>
-                        )}
-
-                        {platform === 'youtube' ? (
-                          <>
-                            <div className="font-semibold text-sm mb-2 text-white line-clamp-2">
-                              {platformContent.youtube.title ||
-                                'Untitled Video'}
-                            </div>
-                            <div className="text-xs text-gray-400 line-clamp-3">
-                              {platformContent.youtube.description}
-                            </div>
-                            {platformContent.youtube.tags &&
-                              platformContent.youtube.tags.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-1">
-                                  {platformContent.youtube.tags
-                                    .slice(0, 3)
-                                    .map((tag, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="px-2 py-1 bg-gray-900 rounded text-[11px] text-gray-400"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                </div>
-                              )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="text-xs text-gray-300 whitespace-pre-wrap line-clamp-6 mb-3">
-                              {
-                                platformContent[
-                                  platform as keyof PlatformSettings
-                                ]?.caption
-                              }
-                            </div>
-                            {platformContent[
-                              platform as keyof PlatformSettings
-                            ]?.hashtags?.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {platformContent[
-                                  platform as keyof PlatformSettings
-                                ]?.hashtags
-                                  ?.slice(0, 5)
-                                  .map((tag, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-[11px] text-cyan-400"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-stone-700">{s.l}</p>
                     </div>
                   ))}
                 </div>
 
-                {formData.platforms.length === 0 && (
-                  <div className="text-center py-12 text-sm">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-900 flex items-center justify-center">
-                      <Globe className="w-8 h-8 text-gray-600" />
-                    </div>
-                    <h4 className="text-base font-semibold text-gray-200 mb-1">
-                      No Platforms Selected
-                    </h4>
-                    <p className="text-gray-400">
-                      Go back and select at least one platform to publish to.
-                    </p>
+                {/* platform cards */}
+                {formData.platforms.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 border-b border-stone-800 divide-x divide-y divide-stone-800">
+                    {formData.platforms.map(pid => {
+                      const meta = PLATFORMS.find(p => p.id === pid)!;
+                      const pc   = platformContent[pid as keyof PlatformSettings];
+                      return (
+                        <div key={pid} className="p-6">
+                          <div className={`flex items-center gap-2 mb-4 ${meta.color}`}>
+                            {meta.icon}
+                            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-stone-600">{meta.name}</span>
+                          </div>
+
+                          {(formData.imageUrl || formData.videoUrl) && (
+                            <div className="mb-4 border border-stone-800 bg-stone-900" style={{ height:100, overflow:'hidden' }}>
+                              {formData.imageUrl
+                                // eslint-disable-next-line @next/next/no-img-element
+                                ? <img src={formData.imageUrl} alt="" className="w-full h-full object-cover" />
+                                : <div className="w-full h-full flex items-center justify-center"><VideoIcon className="w-7 h-7 text-stone-700" /></div>}
+                            </div>
+                          )}
+
+                          {pid === 'youtube' ? (
+                            <>
+                              <p className="text-stone-200 text-sm font-medium leading-snug mb-2 line-clamp-2">
+                                {platformContent.youtube.title || 'Untitled Video'}
+                              </p>
+                              <p className="text-stone-600 text-xs leading-relaxed line-clamp-3">
+                                {platformContent.youtube.description}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-stone-500 text-xs leading-relaxed whitespace-pre-wrap line-clamp-4 mb-2">
+                                {pc?.caption}
+                              </p>
+                              {(pc?.hashtags?.length||0) > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {pc?.hashtags?.slice(0,4).map((tag,i) => (
+                                    <span key={i} className="font-mono text-[9px] text-stone-700">{tag}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-16 text-center border-b border-stone-800">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-700">No platforms selected</p>
+                    <p className="font-display italic text-stone-600 mt-2" style={{ fontSize:'1rem' }}>Go back and choose where to publish.</p>
                   </div>
                 )}
+
+                {/* errors */}
+                {platformErrors.length > 0 && (
+                  <div className="border-b border-stone-800 px-8 py-5 bg-[#ff5e3a]/[0.04]">
+                    {platformErrors.map((e,i) => (
+                      <div key={i} className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#ff5e3a] mb-1">
+                        <XCircle size={10} />{e}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="px-8 py-5">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.15em] text-stone-700">
+                    {scheduleMode !== 'now' && formData.scheduledDate
+                      ? `Scheduled · ${fmtDateTime(formData.scheduledDate, formData.scheduledTime)}`
+                      : 'Publishing to all selected platforms immediately.'}
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
+          {/* ── nav buttons ───────────────────────────────── */}
           <div className="flex gap-4 mt-8">
             {activeTab !== 'content' && (
               <button
                 type="button"
                 onClick={goPrev}
-                className="px-6 py-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-xs text-gray-300 hover:text-white rounded-xl font-semibold transition-colors flex items-center gap-2"
+                className="flex items-center gap-2 border border-stone-800 text-stone-600 hover:text-stone-200 hover:border-stone-600 font-mono text-[10px] uppercase tracking-[0.2em] px-6 py-3.5 transition-colors"
               >
-                <ChevronLeft size={18} />
-                Previous
+                <ChevronLeft size={12} /> Previous
               </button>
             )}
 
@@ -1882,77 +1019,28 @@ export default function CreatePostPage() {
               <button
                 type="button"
                 onClick={goNext}
-                className="flex-1 px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-semibold text-white transition-colors flex items-center justify-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] font-mono text-[10px] uppercase tracking-[0.25em] font-bold py-3.5 hover:bg-[#bff020] transition-colors"
               >
-                <span>Continue</span>
-                <ChevronRight size={18} />
+                Continue <ChevronRight size={12} />
               </button>
             ) : (
-              <div className="flex-1 flex flex-col gap-2">
-                {platformErrors.length > 0 && (
-                  <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs space-y-0.5">
-                    {platformErrors.map((e, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
-                        <XCircle size={11} />
-                        {e}
-                      </div>
-                    ))}
-                  </div>
-                )}
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="w-full px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold text-white transition-colors flex items-center justify-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] font-mono text-[10px] uppercase tracking-[0.25em] font-bold py-3.5 hover:bg-[#bff020] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : scheduleMode === 'now' ? (
-                  <>
-                    <Zap className="w-4 h-4" />
-                    <span>
-                      Publish to {formData.platforms.length} Platform
-                      {formData.platforms.length !== 1 ? 's' : ''}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <CalendarIcon className="w-4 h-4" />
-                    <span>
-                      Schedule for {formData.platforms.length} Platform
-                      {formData.platforms.length !== 1 ? 's' : ''}
-                    </span>
-                  </>
-                )}
+                {loading
+                  ? <><RefreshCw size={11} className="animate-spin" /> Publishing…</>
+                  : scheduleMode === 'now'
+                    ? `Publish to ${formData.platforms.length} platform${formData.platforms.length!==1?'s':''} →`
+                    : `Schedule for ${formData.platforms.length} platform${formData.platforms.length!==1?'s':''} →`}
               </button>
-              </div>
             )}
           </div>
         </form>
       </div>
 
-      <PremiumModal
-        open={showPremiumModal}
-        onClose={() => setShowPremiumModal(false)}
-      />
+      <PremiumModal open={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
     </div>
   );
 }
-
-const Video = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-    />
-  </svg>
-);
