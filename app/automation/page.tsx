@@ -5,29 +5,13 @@ import { authFetch } from '@/lib/authClient';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Link2,
-  MessageCircle,
-  Plus,
-  Trash2,
-  ToggleLeft,
-  ToggleRight,
-  Zap,
-  Youtube,
-  Twitter,
-  Linkedin,
-  Facebook,
-  Sparkles,
-  RefreshCw,
-  Bot,
-  Play,
-  CheckCircle,
-  AlertCircle,
-  Pencil,
-  X,
+  Link2, MessageCircle, Plus, Trash2, Zap,
+  Youtube, Twitter, Linkedin, Facebook,
+  RefreshCw, Bot, Play, CheckCircle, AlertCircle, Pencil, X,
 } from 'lucide-react';
 
 const InstagramIconSm = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-400">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
     <circle cx="12" cy="12" r="4" />
     <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
@@ -59,50 +43,81 @@ interface AutoReplyTemplate {
 }
 
 const platformIcons: Record<string, React.ReactNode> = {
-  youtube: <Youtube size={14} className="text-red-400" />,
-  twitter: <Twitter size={14} className="text-sky-400" />,
-  linkedin: <Linkedin size={14} className="text-blue-400" />,
+  youtube:   <Youtube   size={13} className="text-stone-400" />,
+  twitter:   <Twitter   size={13} className="text-stone-400" />,
+  linkedin:  <Linkedin  size={13} className="text-stone-400" />,
   instagram: <InstagramIconSm />,
-  facebook: <Facebook size={14} className="text-blue-500" />,
-  threads: <MessageCircle size={14} className="text-gray-200" />,
+  facebook:  <Facebook  size={13} className="text-stone-400" />,
+  threads:   <MessageCircle size={13} className="text-stone-400" />,
+};
+
+const platformTones: Record<string, string> = {
+  youtube: '#f87171', twitter: '#7dd3fc', linkedin: '#93c5fd',
+  instagram: '#f9a8d4', facebook: '#60a5fa', threads: '#d6d3d1',
 };
 
 const betaPlatforms = ['youtube', 'twitter', 'linkedin', 'instagram', 'facebook', 'threads'];
 const comingSoonPlatforms = new Set<string>();
 
+// ─── Shared primitives ────────────────────────────────────────────────────────
+
+function Eyebrow({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+const inputCls = `
+  w-full bg-transparent border-0 border-b border-stone-800
+  focus:border-[#d4ff3a] focus:outline-none focus:ring-0
+  text-stone-100 placeholder-stone-700 text-sm py-3
+  transition-colors duration-200
+`;
+
+const textareaCls = `
+  w-full bg-transparent border-0 border-b border-stone-800
+  focus:border-[#d4ff3a] focus:outline-none focus:ring-0
+  text-stone-100 placeholder-stone-700 text-sm py-3
+  resize-none transition-colors duration-200
+`;
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 export default function AutomationPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'link-me' | 'auto-reply'>('link-me');
-  const [linkMeRules, setLinkMeRules] = useState<LinkMeRule[]>([]);
-  const [autoReplyTemplates, setAutoReplyTemplates] = useState<AutoReplyTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [testRunning, setTestRunning] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [activeTab,            setActiveTab]            = useState<'link-me' | 'auto-reply'>('link-me');
+  const [linkMeRules,          setLinkMeRules]          = useState<LinkMeRule[]>([]);
+  const [autoReplyTemplates,   setAutoReplyTemplates]   = useState<AutoReplyTemplate[]>([]);
+  const [loading,              setLoading]              = useState(true);
+  const [testRunning,          setTestRunning]          = useState(false);
+  const [testResult,           setTestResult]           = useState<{ ok: boolean; message: string } | null>(null);
 
   // Link Me form
   const [showLinkMeForm, setShowLinkMeForm] = useState(false);
-  const [lmKeyword, setLmKeyword] = useState('');
-  const [lmReply, setLmReply] = useState('');
-  const [lmPlatforms, setLmPlatforms] = useState<string[]>([]);
-  const [lmSaving, setLmSaving] = useState(false);
-  const [lmScope, setLmScope] = useState<'recent' | 'custom'>('recent');
-  const [lmRecentCount, setLmRecentCount] = useState(5);
-  const [lmCustomUrls, setLmCustomUrls] = useState<string[]>([]);
-  const [lmUrlInput, setLmUrlInput] = useState('');
+  const [lmKeyword,      setLmKeyword]      = useState('');
+  const [lmReply,        setLmReply]        = useState('');
+  const [lmPlatforms,    setLmPlatforms]    = useState<string[]>([]);
+  const [lmSaving,       setLmSaving]       = useState(false);
+  const [lmScope,        setLmScope]        = useState<'recent' | 'custom'>('recent');
+  const [lmRecentCount,  setLmRecentCount]  = useState(5);
+  const [lmCustomUrls,   setLmCustomUrls]   = useState<string[]>([]);
+  const [lmUrlInput,     setLmUrlInput]     = useState('');
 
   // Auto Reply form
-  const [showArForm, setShowArForm] = useState(false);
-  const [arName, setArName] = useState('');
-  const [arMessage, setArMessage] = useState('');
-  const [arPlatforms, setArPlatforms] = useState<string[]>([]);
-  const [arUseAI, setArUseAI] = useState(false);
-  const [arSaving, setArSaving] = useState(false);
-  const [arScope, setArScope] = useState<'recent' | 'custom'>('recent');
-  const [arRecentCount, setArRecentCount] = useState(5);
+  const [showArForm,   setShowArForm]   = useState(false);
+  const [arName,       setArName]       = useState('');
+  const [arMessage,    setArMessage]    = useState('');
+  const [arPlatforms,  setArPlatforms]  = useState<string[]>([]);
+  const [arUseAI,      setArUseAI]      = useState(false);
+  const [arSaving,     setArSaving]     = useState(false);
+  const [arScope,      setArScope]      = useState<'recent' | 'custom'>('recent');
+  const [arRecentCount,setArRecentCount]= useState(5);
   const [arCustomUrls, setArCustomUrls] = useState<string[]>([]);
-  const [arUrlInput, setArUrlInput] = useState('');
+  const [arUrlInput,   setArUrlInput]   = useState('');
 
   // Editing state
   const [editingLmId, setEditingLmId] = useState<string | null>(null);
@@ -121,14 +136,8 @@ export default function AutomationPage() {
         authFetch('/api/automation/link-me'),
         authFetch('/api/automation/auto-reply'),
       ]);
-      if (lmRes.ok) {
-        const d = await lmRes.json();
-        setLinkMeRules(d.rules || []);
-      }
-      if (arRes.ok) {
-        const d = await arRes.json();
-        setAutoReplyTemplates(d.templates || []);
-      }
+      if (lmRes.ok) { const d = await lmRes.json(); setLinkMeRules(d.rules || []); }
+      if (arRes.ok) { const d = await arRes.json(); setAutoReplyTemplates(d.templates || []); }
     } catch (err) {
       console.error('Failed to load automation data', err);
     } finally {
@@ -136,200 +145,120 @@ export default function AutomationPage() {
     }
   };
 
-  const togglePlatform = (
-    platform: string,
-    list: string[],
-    setter: (v: string[]) => void,
-  ) => {
-    setter(
-      list.includes(platform)
-        ? list.filter((p) => p !== platform)
-        : [...list, platform],
-    );
-  };
+  const togglePlatform = (p: string, list: string[], setter: (v: string[]) => void) =>
+    setter(list.includes(p) ? list.filter(x => x !== p) : [...list, p]);
 
-  // ---- Link Me handlers ----
+  // ── Link Me handlers ──────────────────────────────────────────────────────
+
   const saveLinkMeRule = async () => {
     if (!lmKeyword.trim() || !lmReply.trim() || lmPlatforms.length === 0) return;
     if (lmScope === 'custom' && lmCustomUrls.length === 0) return;
     setLmSaving(true);
     try {
-      const body = JSON.stringify({
-        keyword: lmKeyword,
-        replyMessage: lmReply,
-        platforms: lmPlatforms,
-        postScope: lmScope,
-        recentCount: lmRecentCount,
-        customUrls: lmCustomUrls,
-      });
+      const body = JSON.stringify({ keyword: lmKeyword, replyMessage: lmReply, platforms: lmPlatforms, postScope: lmScope, recentCount: lmRecentCount, customUrls: lmCustomUrls });
       const res = editingLmId
-        ? await authFetch(`/api/automation/link-me/${editingLmId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          })
-        : await authFetch('/api/automation/link-me', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          });
+        ? await authFetch(`/api/automation/link-me/${editingLmId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body })
+        : await authFetch('/api/automation/link-me',                { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body });
       if (res.ok) {
         const rule = await res.json();
-        if (editingLmId) {
-          setLinkMeRules((prev) => prev.map((r) => (r.id === editingLmId ? { ...r, ...rule } : r)));
-        } else {
-          setLinkMeRules((prev) => [rule, ...prev]);
-        }
-        setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
-        setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
-        setEditingLmId(null);
-        setShowLinkMeForm(false);
+        if (editingLmId) setLinkMeRules(prev => prev.map(r => r.id === editingLmId ? { ...r, ...rule } : r));
+        else             setLinkMeRules(prev => [rule, ...prev]);
+        resetLmForm();
       } else {
         const data = await res.json().catch(() => ({}));
         setTestResult({ ok: false, message: data.error || 'Failed to save' });
       }
-    } finally {
-      setLmSaving(false);
-    }
+    } finally { setLmSaving(false); }
+  };
+
+  const resetLmForm = () => {
+    setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
+    setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
+    setEditingLmId(null); setShowLinkMeForm(false);
   };
 
   const toggleLinkMeRule = async (rule: LinkMeRule) => {
-    setLinkMeRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
-    );
-    const res = await authFetch(`/api/automation/link-me/${rule.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !rule.isActive }),
-    });
+    setLinkMeRules(prev => prev.map(r => r.id === rule.id ? { ...r, isActive: !r.isActive } : r));
+    const res = await authFetch(`/api/automation/link-me/${rule.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !rule.isActive }) });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setTestResult({ ok: false, message: data.error || 'Failed to save' });
-      setLinkMeRules((prev) =>
-        prev.map((r) => (r.id === rule.id ? { ...r, isActive: rule.isActive } : r)),
-      );
+      setLinkMeRules(prev => prev.map(r => r.id === rule.id ? { ...r, isActive: rule.isActive } : r));
     }
   };
 
   const deleteLinkMeRule = async (id: string) => {
-    const prevRules = linkMeRules;
-    setLinkMeRules((prev) => prev.filter((r) => r.id !== id));
+    const prev = linkMeRules;
+    setLinkMeRules(p => p.filter(r => r.id !== id));
     const res = await authFetch(`/api/automation/link-me/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setTestResult({ ok: false, message: data.error || 'Failed to save' });
-      setLinkMeRules(prevRules);
-    }
+    if (!res.ok) { const data = await res.json().catch(() => ({})); setTestResult({ ok: false, message: data.error || 'Failed to delete' }); setLinkMeRules(prev); }
   };
 
   const editLinkMeRule = (rule: LinkMeRule) => {
-    setEditingLmId(rule.id);
-    setLmKeyword(rule.keyword);
-    setLmReply(rule.replyMessage);
-    setLmPlatforms(rule.platforms);
-    setLmScope(rule.postScope ?? 'recent');
-    setLmRecentCount(rule.recentCount ?? 5);
-    setLmCustomUrls(rule.customUrls ?? []);
-    setLmUrlInput('');
+    setEditingLmId(rule.id); setLmKeyword(rule.keyword); setLmReply(rule.replyMessage);
+    setLmPlatforms(rule.platforms); setLmScope(rule.postScope ?? 'recent');
+    setLmRecentCount(rule.recentCount ?? 5); setLmCustomUrls(rule.customUrls ?? []); setLmUrlInput('');
     setShowLinkMeForm(true);
   };
 
-  // ---- Auto Reply handlers ----
+  // ── Auto Reply handlers ────────────────────────────────────────────────────
+
   const saveAutoReplyTemplate = async () => {
     if (!arName.trim() || (!arUseAI && !arMessage.trim()) || arPlatforms.length === 0) return;
+    if (arScope === 'custom' && arCustomUrls.length === 0) return;
     setArSaving(true);
     try {
-      const body = JSON.stringify({
-        name: arName,
-        message: arMessage,
-        platforms: arPlatforms,
-        useAI: arUseAI,
-        postScope: arScope,
-        recentCount: arRecentCount,
-        customUrls: arCustomUrls,
-      });
+      const body = JSON.stringify({ name: arName, message: arMessage, platforms: arPlatforms, useAI: arUseAI, postScope: arScope, recentCount: arRecentCount, customUrls: arCustomUrls });
       const res = editingArId
-        ? await authFetch(`/api/automation/auto-reply/${editingArId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          })
-        : await authFetch('/api/automation/auto-reply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          });
+        ? await authFetch(`/api/automation/auto-reply/${editingArId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body })
+        : await authFetch('/api/automation/auto-reply',                { method: 'POST',  headers: { 'Content-Type': 'application/json' }, body });
       if (res.ok) {
         const tmpl = await res.json();
-        if (editingArId) {
-          setAutoReplyTemplates((prev) => prev.map((t) => (t.id === editingArId ? { ...t, ...tmpl } : t)));
-        } else {
-          setAutoReplyTemplates((prev) => [tmpl, ...prev]);
-        }
-        setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
-        setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
-        setEditingArId(null);
-        setShowArForm(false);
+        if (editingArId) setAutoReplyTemplates(prev => prev.map(t => t.id === editingArId ? { ...t, ...tmpl } : t));
+        else             setAutoReplyTemplates(prev => [tmpl, ...prev]);
+        resetArForm();
       } else {
         const data = await res.json().catch(() => ({}));
         setTestResult({ ok: false, message: data.error || 'Failed to save' });
       }
-    } finally {
-      setArSaving(false);
-    }
+    } finally { setArSaving(false); }
+  };
+
+  const resetArForm = () => {
+    setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
+    setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
+    setEditingArId(null); setShowArForm(false);
   };
 
   const toggleAutoReply = async (tmpl: AutoReplyTemplate) => {
-    setAutoReplyTemplates((prev) =>
-      prev.map((t) => (t.id === tmpl.id ? { ...t, isActive: !t.isActive } : t)),
-    );
-    const res = await authFetch(`/api/automation/auto-reply/${tmpl.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !tmpl.isActive }),
-    });
+    setAutoReplyTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, isActive: !t.isActive } : t));
+    const res = await authFetch(`/api/automation/auto-reply/${tmpl.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !tmpl.isActive }) });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setTestResult({ ok: false, message: data.error || 'Failed to save' });
-      setAutoReplyTemplates((prev) =>
-        prev.map((t) => (t.id === tmpl.id ? { ...t, isActive: tmpl.isActive } : t)),
-      );
+      setAutoReplyTemplates(prev => prev.map(t => t.id === tmpl.id ? { ...t, isActive: tmpl.isActive } : t));
     }
   };
 
   const deleteAutoReply = async (id: string) => {
-    const prevTemplates = autoReplyTemplates;
-    setAutoReplyTemplates((prev) => prev.filter((t) => t.id !== id));
+    const prev = autoReplyTemplates;
+    setAutoReplyTemplates(p => p.filter(t => t.id !== id));
     const res = await authFetch(`/api/automation/auto-reply/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setTestResult({ ok: false, message: data.error || 'Failed to save' });
-      setAutoReplyTemplates(prevTemplates);
-    }
+    if (!res.ok) { const data = await res.json().catch(() => ({})); setTestResult({ ok: false, message: data.error || 'Failed to delete' }); setAutoReplyTemplates(prev); }
   };
 
   const editAutoReply = (tmpl: AutoReplyTemplate) => {
-    setEditingArId(tmpl.id);
-    setArName(tmpl.name);
-    setArMessage(tmpl.message);
-    setArPlatforms(tmpl.platforms);
-    setArUseAI(tmpl.useAI);
-    setArScope(tmpl.postScope ?? 'recent');
-    setArRecentCount(tmpl.recentCount ?? 5);
-    setArCustomUrls(tmpl.customUrls ?? []);
-    setArUrlInput('');
+    setEditingArId(tmpl.id); setArName(tmpl.name); setArMessage(tmpl.message);
+    setArPlatforms(tmpl.platforms); setArUseAI(tmpl.useAI);
+    setArScope(tmpl.postScope ?? 'recent'); setArRecentCount(tmpl.recentCount ?? 5);
+    setArCustomUrls(tmpl.customUrls ?? []); setArUrlInput('');
     setShowArForm(true);
   };
 
   const runTestNow = async () => {
-    setTestRunning(true);
-    setTestResult(null);
+    setTestRunning(true); setTestResult(null);
     try {
-      const res = await authFetch('/api/automation/test-run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: activeTab }),
-      });
+      const res  = await authFetch('/api/automation/test-run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: activeTab }) });
       const data = await res.json();
       setTestResult({ ok: res.ok && data.success, message: data.message || data.error || 'Done.' });
     } catch {
@@ -342,277 +271,268 @@ export default function AutomationPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 text-purple-400 animate-spin" />
+      <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border border-stone-800 border-t-[#d4ff3a] rounded-full animate-spin" />
+          <Eyebrow>Loading automation</Eyebrow>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-purple-500/10">
-              <Zap className="w-6 h-6 text-purple-400" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">Automation</h1>
-          </div>
-          <p className="text-gray-400 text-sm ml-[52px]">
-            Auto-engage with your audience using smart comment rules
-          </p>
-        </div>
+  const isLinkMe   = activeTab === 'link-me';
+  const activeRules = isLinkMe
+    ? linkMeRules.filter(r => r.isActive).length
+    : autoReplyTemplates.filter(t => t.isActive).length;
 
-        {/* Test result toast */}
+  // ── Shared URL list ────────────────────────────────────────────────────────
+
+  const UrlList = ({
+    urls, input, onInput, onAdd, onRemove,
+  }: { urls: string[]; input: string; onInput: (v: string) => void; onAdd: () => void; onRemove: (i: number) => void }) => (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={input}
+          onChange={e => onInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }}
+          placeholder="https://youtube.com/watch?v=… or tweet URL"
+          className={inputCls + ' flex-1'}
+        />
+        <button type="button" onClick={onAdd}
+          className="border border-stone-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors">
+          Add
+        </button>
+      </div>
+      {urls.length === 0 && <Eyebrow className="text-stone-700">Add at least one URL</Eyebrow>}
+      {urls.map((url, i) => (
+        <div key={i} className="flex items-center gap-3 border-b border-stone-900 pb-2">
+          <span className="flex-1 font-mono text-[11px] text-stone-400 truncate">{url}</span>
+          <button type="button" onClick={() => onRemove(i)} className="text-stone-700 hover:text-[#ff5e3a] transition-colors">
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── Platform selector ─────────────────────────────────────────────────────
+
+  const PlatformSelector = ({ selected, onToggle }: { selected: string[]; onToggle: (p: string) => void }) => (
+    <div className="flex gap-2 flex-wrap">
+      {betaPlatforms.map(p => {
+        const active = selected.includes(p);
+        const disabled = comingSoonPlatforms.has(p);
+        return (
+          <button key={p} type="button" disabled={disabled}
+            onClick={() => onToggle(p)}
+            style={active ? { borderColor: platformTones[p], color: platformTones[p] } : {}}
+            className={`flex items-center gap-2 px-3 py-1.5 border font-mono text-[10px] uppercase tracking-[0.15em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              active
+                ? 'bg-transparent'
+                : 'border-stone-800 text-stone-500 hover:text-stone-200 hover:border-stone-600'
+            }`}
+          >
+            {active && <span className="w-1 h-1 rounded-full" style={{ background: platformTones[p] }} />}
+            <span>{p}</span>
+            {disabled && <span className="text-amber-500">soon</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ── Scope selector ────────────────────────────────────────────────────────
+
+  const ScopeSelector = ({
+    scope, onScope, count, onCount, urls, urlInput, onUrlInput, onAddUrl, onRemoveUrl,
+  }: {
+    scope: 'recent' | 'custom'; onScope: (s: 'recent' | 'custom') => void;
+    count: number; onCount: (n: number) => void;
+    urls: string[]; urlInput: string; onUrlInput: (v: string) => void;
+    onAddUrl: () => void; onRemoveUrl: (i: number) => void;
+  }) => (
+    <div>
+      <div className="flex gap-2 mb-4">
+        {(['recent', 'custom'] as const).map(s => (
+          <button key={s} type="button" onClick={() => onScope(s)}
+            className={`px-4 py-2 border font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
+              scope === s
+                ? 'border-[#d4ff3a] text-[#d4ff3a] bg-[#d4ff3a]/5'
+                : 'border-stone-800 text-stone-500 hover:text-stone-200 hover:border-stone-600'
+            }`}
+          >
+            {s === 'recent' ? 'Recent posts' : 'Custom URLs'}
+          </button>
+        ))}
+      </div>
+      {scope === 'recent' ? (
+        <div className="flex items-center gap-4">
+          <Eyebrow>Last</Eyebrow>
+          <input type="number" min={1} max={10} value={count}
+            onChange={e => { const n = parseInt(e.target.value, 10); onCount(Math.min(10, Math.max(1, Number.isFinite(n) ? n : 1))); }}
+            className="w-16 bg-transparent border-b border-stone-800 focus:border-[#d4ff3a] focus:outline-none text-stone-100 text-sm py-2 text-center tabular-nums transition-colors"
+          />
+          <Eyebrow>posts</Eyebrow>
+        </div>
+      ) : (
+        <UrlList urls={urls} input={urlInput} onInput={onUrlInput} onAdd={onAddUrl} onRemove={onRemoveUrl} />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0b] grain relative text-stone-100 z-10">
+      <div className="relative max-w-[1000px] mx-auto px-6 md:px-10 py-12 space-y-12 z-10">
+
+        {/* ── Header ── */}
+        <header className="border-b border-stone-800 pb-10">
+          <Eyebrow className="mb-3 block">Automation</Eyebrow>
+          <h1
+            className="font-display italic text-stone-100 leading-none"
+            style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontVariationSettings: '"opsz" 144' }}
+          >
+            Bots
+          </h1>
+          <p className="mt-3 text-sm text-stone-400 max-w-lg">
+            Auto-engage with your audience using smart comment rules and AI-generated replies.
+          </p>
+        </header>
+
+        {/* ── Toast ── */}
         {testResult && (
-          <div className={`flex items-start gap-3 mb-5 px-4 py-3 rounded-xl border text-sm ${
+          <div className={`flex items-start gap-4 border px-5 py-4 ${
             testResult.ok
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-              : 'bg-red-500/10 border-red-500/30 text-red-200'
+              ? 'border-[#d4ff3a]/30 bg-[#d4ff3a]/5'
+              : 'border-[#ff5e3a]/30 bg-[#ff5e3a]/5'
           }`}>
             {testResult.ok
-              ? <CheckCircle size={16} className="mt-0.5 shrink-0" />
-              : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed flex-1">{testResult.message}</pre>
-            <button
-              type="button"
-              onClick={() => setTestResult(null)}
-              className="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
-              title="Dismiss"
-            >
+              ? <CheckCircle size={15} className="text-[#d4ff3a] mt-0.5 flex-shrink-0" />
+              : <AlertCircle size={15} className="text-[#ff5e3a] mt-0.5 flex-shrink-0" />}
+            <pre className="whitespace-pre-wrap text-sm text-stone-200 leading-relaxed flex-1 font-body">{testResult.message}</pre>
+            <button onClick={() => setTestResult(null)} className="text-stone-600 hover:text-stone-300 transition-colors flex-shrink-0">
               <X size={14} />
             </button>
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 p-1 bg-gray-900 rounded-xl w-fit">
-          <button
-            onClick={() => setActiveTab('link-me')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'link-me'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Link2 size={16} />
-            Link Me
-          </button>
-          <button
-            onClick={() => setActiveTab('auto-reply')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'auto-reply'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <MessageCircle size={16} />
-            Auto Reply
-          </button>
+        {/* ── Tabs + actions ── */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex border border-stone-800">
+            {([
+              { id: 'link-me',    Icon: Link2,        label: 'Link Me'     },
+              { id: 'auto-reply', Icon: MessageCircle, label: 'Auto Reply' },
+            ] as const).map(tab => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-[#f4f1ea] text-[#0a0a0b]'
+                    : 'text-stone-500 hover:text-stone-100'
+                }`}
+              >
+                <tab.Icon size={12} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={runTestNow}
+              disabled={testRunning || activeRules === 0}
+              title={activeRules === 0 ? 'Enable at least one rule first' : 'Run now against latest posts'}
+              className="flex items-center gap-2 border border-stone-800 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {testRunning ? <RefreshCw size={11} className="animate-spin" /> : <Play size={11} />}
+              Test Now
+            </button>
+            <button
+              onClick={() => isLinkMe ? setShowLinkMeForm(v => !v) : setShowArForm(v => !v)}
+              className="flex items-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors"
+            >
+              <Plus size={12} />
+              {isLinkMe ? 'Add Rule' : 'Add Template'}
+            </button>
+          </div>
         </div>
 
-        {/* =================== LINK ME TAB =================== */}
+        {/* ── LINK ME TAB ── */}
         {activeTab === 'link-me' && (
-          <div className="space-y-4">
-            <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-5 mb-6">
-              <div className="flex items-start gap-3">
-                <Link2 className="w-5 h-5 text-purple-400 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-semibold text-white mb-1">How Link Me works</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    When someone comments a keyword (e.g. "link", "course", "price") on your post,
-                    the system automatically replies with your configured message — sending them the
-                    resource they asked for, instantly.
-                  </p>
-                </div>
+          <div className="space-y-6">
+
+            {/* Info strip */}
+            <div className="border border-stone-800 px-5 py-4 flex items-start gap-4">
+              <Link2 size={14} className="text-stone-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <Eyebrow className="block mb-2">How Link Me works</Eyebrow>
+                <p className="text-sm text-stone-400 leading-relaxed max-w-2xl">
+                  When someone comments a keyword (e.g. "link", "course", "price") on your post,
+                  the bot automatically replies with your configured message.
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                Rules ({linkMeRules.length})
-              </h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={runTestNow}
-                  disabled={testRunning || linkMeRules.filter(r => r.isActive).length === 0}
-                  title={linkMeRules.filter(r => r.isActive).length === 0 ? 'Enable at least one rule first' : 'Scan latest posts for keyword matches now'}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {testRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-                  Test Now
-                </button>
-                <button
-                  onClick={() => setShowLinkMeForm((v) => !v)}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  <Plus size={16} />
-                  Add Rule
-                </button>
-              </div>
-            </div>
-
-            {/* Add form */}
+            {/* Add / edit form */}
             {showLinkMeForm && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
-                <h3 className="text-sm font-semibold text-white mb-4">{editingLmId ? 'Edit Link Me Rule' : 'New Link Me Rule'}</h3>
-
-                <div className="space-y-4">
+              <div className="border border-stone-800 divide-y divide-stone-800">
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <Eyebrow>{editingLmId ? 'Edit rule' : 'New rule'}</Eyebrow>
+                  <button onClick={resetLmForm} className="text-stone-600 hover:text-stone-300 transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="px-6 py-6 space-y-8">
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Trigger Keyword
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Trigger keyword
                     </label>
-                    <input
-                      type="text"
-                      value={lmKeyword}
-                      onChange={(e) => setLmKeyword(e.target.value)}
+                    <input type="text" value={lmKeyword} onChange={e => setLmKeyword(e.target.value)}
                       placeholder='e.g. "link", "course", "price"'
-                      className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 focus:border-purple-500 focus:outline-none text-sm text-white placeholder-gray-500"
+                      className={inputCls}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Case-insensitive. Matches partial text (e.g. "link" matches "send me the link")
+                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-stone-700 mt-2">
+                      Case-insensitive · partial match
                     </p>
                   </div>
-
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Reply Message
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Reply message
                     </label>
-                    <textarea
-                      value={lmReply}
-                      onChange={(e) => setLmReply(e.target.value)}
-                      rows={3}
-                      placeholder="Hey! Here's the link you asked for: https://..."
-                      className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 focus:border-purple-500 focus:outline-none text-sm text-white placeholder-gray-500 resize-none"
+                    <textarea value={lmReply} onChange={e => setLmReply(e.target.value)} rows={3}
+                      placeholder="Hey! Here's the link you asked for: https://…"
+                      className={textareaCls}
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">
-                      Apply On Platforms
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Platforms
                     </label>
-                    <div className="flex gap-2 flex-wrap">
-                      {betaPlatforms.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          disabled={comingSoonPlatforms.has(p)}
-                          onClick={() => togglePlatform(p, lmPlatforms, setLmPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            lmPlatforms.includes(p)
-                              ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {platformIcons[p]}
-                          <span className="capitalize">{p}</span>
-                          {comingSoonPlatforms.has(p) && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
-                              Soon
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <PlatformSelector selected={lmPlatforms} onToggle={p => togglePlatform(p, lmPlatforms, setLmPlatforms)} />
                   </div>
-
-                  {/* Post scope */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">Post Scope</label>
-                    <div className="flex gap-2 mb-3">
-                      {(['recent', 'custom'] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setLmScope(s)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            lmScope === s
-                              ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {s === 'recent' ? 'Recent posts' : 'Custom URLs'}
-                        </button>
-                      ))}
-                    </div>
-                    {lmScope === 'recent' ? (
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400">Last</span>
-                        <input
-                          type="number"
-                          min={1} max={10}
-                          value={lmRecentCount}
-                          onChange={(e) => {
-                            const n = parseInt(e.target.value, 10);
-                            setLmRecentCount(Math.min(10, Math.max(1, Number.isFinite(n) ? n : 1)));
-                          }}
-                          className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-purple-500 focus:outline-none"
-                        />
-                        <span className="text-xs text-gray-400">posts</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <input
-                            type="url"
-                            value={lmUrlInput}
-                            onChange={(e) => setLmUrlInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const trimmed = lmUrlInput.trim();
-                                if (trimmed.length > 8 && !lmCustomUrls.includes(trimmed)) {
-                                  setLmCustomUrls(prev => [...prev, trimmed]);
-                                  setLmUrlInput('');
-                                }
-                              }
-                            }}
-                            placeholder="https://youtube.com/watch?v=... or tweet URL"
-                            className="flex-1 px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 focus:border-purple-500 focus:outline-none text-xs text-white placeholder-gray-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const trimmed = lmUrlInput.trim();
-                              if (trimmed.length > 8 && !lmCustomUrls.includes(trimmed)) {
-                                setLmCustomUrls(prev => [...prev, trimmed]);
-                                setLmUrlInput('');
-                              }
-                            }}
-                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
-                          >
-                            Add
-                          </button>
-                        </div>
-                        {lmCustomUrls.map((url, i) => (
-                          <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-lg">
-                            <span className="flex-1 text-xs text-gray-300 truncate">{url}</span>
-                            <button type="button" onClick={() => setLmCustomUrls(prev => prev.filter((_, j) => j !== i))} className="text-gray-500 hover:text-red-400 transition-colors">×</button>
-                          </div>
-                        ))}
-                        {lmCustomUrls.length === 0 && <p className="text-xs text-gray-500">Add at least one post URL</p>}
-                      </div>
-                    )}
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Post scope
+                    </label>
+                    <ScopeSelector
+                      scope={lmScope} onScope={setLmScope}
+                      count={lmRecentCount} onCount={setLmRecentCount}
+                      urls={lmCustomUrls} urlInput={lmUrlInput}
+                      onUrlInput={setLmUrlInput}
+                      onAddUrl={() => { const t = lmUrlInput.trim(); if (t.length > 8 && !lmCustomUrls.includes(t)) { setLmCustomUrls(p => [...p, t]); setLmUrlInput(''); } }}
+                      onRemoveUrl={i => setLmCustomUrls(p => p.filter((_, j) => j !== i))}
+                    />
                   </div>
-
                   <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={saveLinkMeRule}
+                    <button onClick={saveLinkMeRule}
                       disabled={lmSaving || !lmKeyword.trim() || !lmReply.trim() || lmPlatforms.length === 0 || (lmScope === 'custom' && lmCustomUrls.length === 0)}
-                      className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                      className="flex items-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] disabled:opacity-50 transition-colors"
                     >
-                      {lmSaving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                      {editingLmId ? 'Update Rule' : 'Save Rule'}
+                      {lmSaving ? <RefreshCw size={11} className="animate-spin" /> : <Plus size={11} />}
+                      {editingLmId ? 'Update' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowLinkMeForm(false);
-                        setEditingLmId(null);
-                        setLmKeyword(''); setLmReply(''); setLmPlatforms([]);
-                        setLmScope('recent'); setLmRecentCount(5); setLmCustomUrls([]); setLmUrlInput('');
-                      }}
-                      className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-xl transition-colors"
-                    >
+                    <button onClick={resetLmForm}
+                      className="border border-stone-800 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors">
                       Cancel
                     </button>
                   </div>
@@ -621,316 +541,173 @@ export default function AutomationPage() {
             )}
 
             {/* Rules list */}
-            {linkMeRules.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 bg-gray-900/50 rounded-2xl border border-gray-800">
-                <Link2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No Link Me rules yet</p>
-                <p className="text-xs mt-1">Add your first rule to start auto-linking</p>
+            <div>
+              <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-0">
+                <Eyebrow>Rules · {linkMeRules.length}</Eyebrow>
+                <Eyebrow>{linkMeRules.filter(r => r.isActive).length} active</Eyebrow>
               </div>
-            ) : (
-              linkMeRules.map((rule) => (
-                <div
-                  key={rule.id}
-                  className={`bg-gray-900 border rounded-2xl p-5 transition-all ${
-                    rule.isActive ? 'border-gray-800' : 'border-gray-800/50 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2.5 py-0.5 bg-purple-500/15 text-purple-300 rounded-full text-xs font-mono font-semibold">
-                          "{rule.keyword}"
-                        </span>
-                        {rule.totalMatches > 0 && (
-                          <span className="text-xs text-gray-500">
-                            {rule.totalMatches} match{rule.totalMatches !== 1 ? 'es' : ''}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-300 mb-3 line-clamp-2">{rule.replyMessage}</p>
-                      <div className="flex gap-1.5 flex-wrap items-center">
-                        {rule.platforms.map((p) => (
-                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400">
-                            {platformIcons[p]}
-                            <span className="capitalize">{p}</span>
-                          </span>
-                        ))}
-                        <span className="px-2 py-0.5 rounded text-xs bg-gray-800/60 text-gray-500">
-                          {rule.postScope === 'custom'
-                            ? `${rule.customUrls?.length ?? 0} URL${(rule.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
-                            : `last ${rule.recentCount ?? 5} posts`}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => toggleLinkMeRule(rule)}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          rule.isActive
-                            ? 'text-purple-400 hover:bg-purple-500/10'
-                            : 'text-gray-600 hover:bg-gray-800'
-                        }`}
-                        title={rule.isActive ? 'Disable rule' : 'Enable rule'}
-                      >
-                        {rule.isActive ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                      </button>
-                      <button
-                        onClick={() => editLinkMeRule(rule)}
-                        className="p-1.5 rounded-lg text-gray-600 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                        title="Edit rule"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteLinkMeRule(rule.id)}
-                        className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
+              {linkMeRules.length === 0 ? (
+                <div className="flex flex-col items-center py-16 gap-3 border border-stone-800 border-t-0">
+                  <Link2 size={20} className="text-stone-700" />
+                  <Eyebrow>No rules yet · add one above</Eyebrow>
                 </div>
-              ))
-            )}
+              ) : (
+                <div className="border border-stone-800 border-t-0 divide-y divide-stone-800">
+                  {linkMeRules.map(rule => (
+                    <div key={rule.id} className={`px-6 py-5 transition-opacity ${rule.isActive ? '' : 'opacity-40'}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-mono text-sm text-[#d4ff3a] tabular-nums">"{rule.keyword}"</span>
+                            {rule.totalMatches > 0 && (
+                              <Eyebrow>{rule.totalMatches} match{rule.totalMatches !== 1 ? 'es' : ''}</Eyebrow>
+                            )}
+                          </div>
+                          <p className="text-sm text-stone-300 mb-3 line-clamp-2 leading-relaxed">{rule.replyMessage}</p>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {rule.platforms.map(p => (
+                              <span key={p} className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-stone-500">
+                                {platformIcons[p]} {p}
+                              </span>
+                            ))}
+                            <span className="font-mono text-[10px] text-stone-600">
+                              {rule.postScope === 'custom'
+                                ? `${rule.customUrls?.length ?? 0} URL${(rule.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
+                                : `last ${rule.recentCount ?? 5} posts`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                          <button onClick={() => toggleLinkMeRule(rule)}
+                            className={`px-3 py-1.5 border font-mono text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                              rule.isActive
+                                ? 'border-[#d4ff3a]/40 text-[#d4ff3a]'
+                                : 'border-stone-800 text-stone-600 hover:text-stone-300'
+                            }`}
+                          >
+                            {rule.isActive ? 'Active' : 'Paused'}
+                          </button>
+                          <button onClick={() => editLinkMeRule(rule)}
+                            className="p-2 text-stone-600 hover:text-stone-200 transition-colors">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteLinkMeRule(rule.id)}
+                            className="p-2 text-stone-700 hover:text-[#ff5e3a] transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* =================== AUTO REPLY TAB =================== */}
+        {/* ── AUTO REPLY TAB ── */}
         {activeTab === 'auto-reply' && (
-          <div className="space-y-4">
-            <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5 mb-6">
-              <div className="flex items-start gap-3">
-                <MessageCircle className="w-5 h-5 text-blue-400 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-semibold text-white mb-1">How Auto Reply works</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Automatically reply to new comments on your posts using a fixed template or
-                    AI-generated responses. Runs every 15 minutes. Use {`{username}`} in your message
-                    to personalize the reply.
-                  </p>
-                </div>
+          <div className="space-y-6">
+
+            {/* Info strip */}
+            <div className="border border-stone-800 px-5 py-4 flex items-start gap-4">
+              <Bot size={14} className="text-stone-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <Eyebrow className="block mb-2">How Auto Reply works</Eyebrow>
+                <p className="text-sm text-stone-400 leading-relaxed max-w-2xl">
+                  Automatically replies to new comments using a fixed template or AI-generated responses.
+                  Runs every 15 minutes. Use{' '}
+                  <code className="font-mono text-[#d4ff3a] text-[11px]">{'{username}'}</code>{' '}
+                  to personalize.
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">
-                Templates ({autoReplyTemplates.length})
-              </h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={runTestNow}
-                  disabled={testRunning || autoReplyTemplates.filter(t => t.isActive).length === 0}
-                  title={autoReplyTemplates.filter(t => t.isActive).length === 0 ? 'Enable at least one template first' : 'Scan latest posts for unanswered comments now'}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {testRunning ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
-                  Test Now
-                </button>
-                <button
-                  onClick={() => setShowArForm((v) => !v)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  <Plus size={16} />
-                  Add Template
-                </button>
-              </div>
-            </div>
-
-            {/* Add form */}
+            {/* Add / edit form */}
             {showArForm && (
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
-                <h3 className="text-sm font-semibold text-white mb-4">{editingArId ? 'Edit Auto Reply Template' : 'New Auto Reply Template'}</h3>
-
-                <div className="space-y-4">
+              <div className="border border-stone-800 divide-y divide-stone-800">
+                <div className="px-6 py-4 flex items-center justify-between">
+                  <Eyebrow>{editingArId ? 'Edit template' : 'New template'}</Eyebrow>
+                  <button onClick={resetArForm} className="text-stone-600 hover:text-stone-300 transition-colors">
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="px-6 py-6 space-y-8">
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Template Name
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Template name
                     </label>
-                    <input
-                      type="text"
-                      value={arName}
-                      onChange={(e) => setArName(e.target.value)}
+                    <input type="text" value={arName} onChange={e => setArName(e.target.value)}
                       placeholder="e.g. Friendly welcome reply"
-                      className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 focus:border-blue-500 focus:outline-none text-sm text-white placeholder-gray-500"
+                      className={inputCls}
                     />
                   </div>
 
                   {/* AI toggle */}
-                  <div className="flex items-center gap-3 p-4 bg-gray-950 rounded-xl border border-gray-800">
-                    <button
-                      type="button"
-                      onClick={() => setArUseAI(!arUseAI)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${
-                        arUseAI ? 'bg-blue-600' : 'bg-gray-700'
-                      }`}
+                  <div className="flex items-start gap-5 border border-stone-800 px-5 py-4">
+                    <button type="button" onClick={() => setArUseAI(!arUseAI)}
+                      className={`relative mt-1 w-10 h-5 flex-shrink-0 transition-colors ${arUseAI ? 'bg-[#d4ff3a]' : 'bg-stone-800'}`}
                     >
-                      <div
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                          arUseAI ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
+                      <div className={`absolute top-0.5 w-4 h-4 bg-[#0a0a0b] transition-transform ${arUseAI ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </button>
                     <div>
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-white">
-                        <Bot size={14} className="text-blue-400" />
-                        AI-generated replies
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap size={13} className="text-stone-400" />
+                        <span className="text-sm text-stone-100 font-medium">AI-generated replies</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Let AI craft unique responses based on the comment content
+                      <p className="text-xs text-stone-500">
+                        Let AI craft unique responses based on each comment's content
                       </p>
                     </div>
                   </div>
 
                   {!arUseAI && (
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                        Reply Message
-                        <span className="ml-2 text-gray-500 font-normal">
-                          Use {`{username}`} for personalization
+                      <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                        Reply message
+                        <span className="ml-3 normal-case tracking-normal text-stone-600">
+                          Use <code className="text-[#d4ff3a]">{'{username}'}</code> to personalize
                         </span>
                       </label>
-                      <textarea
-                        value={arMessage}
-                        onChange={(e) => setArMessage(e.target.value)}
-                        rows={3}
-                        placeholder="Thanks for the comment, {username}! 🙌"
-                        className="w-full px-4 py-2.5 rounded-xl bg-gray-950 border border-gray-800 focus:border-blue-500 focus:outline-none text-sm text-white placeholder-gray-500 resize-none"
+                      <textarea value={arMessage} onChange={e => setArMessage(e.target.value)} rows={3}
+                        placeholder="Thanks for the comment, {username}!"
+                        className={textareaCls}
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">
-                      Apply On Platforms
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Platforms
                     </label>
-                    <div className="flex gap-2 flex-wrap">
-                      {betaPlatforms.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          disabled={comingSoonPlatforms.has(p)}
-                          onClick={() => togglePlatform(p, arPlatforms, setArPlatforms)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            arPlatforms.includes(p)
-                              ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {platformIcons[p]}
-                          <span className="capitalize">{p}</span>
-                          {comingSoonPlatforms.has(p) && (
-                            <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-semibold uppercase tracking-wide">
-                              Soon
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <PlatformSelector selected={arPlatforms} onToggle={p => togglePlatform(p, arPlatforms, setArPlatforms)} />
                   </div>
 
-                  {/* Post scope */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-2">Post Scope</label>
-                    <div className="flex gap-2 mb-3">
-                      {(['recent', 'custom'] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setArScope(s)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            arScope === s
-                              ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300'
-                              : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          {s === 'recent' ? 'Recent posts' : 'Custom URLs'}
-                        </button>
-                      ))}
-                    </div>
-                    {arScope === 'recent' ? (
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400">Last</span>
-                        <input
-                          type="number"
-                          min={1} max={10}
-                          value={arRecentCount}
-                          onChange={(e) => {
-                            const n = parseInt(e.target.value, 10);
-                            setArRecentCount(Math.min(10, Math.max(1, Number.isFinite(n) ? n : 1)));
-                          }}
-                          className="w-16 px-2 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-sm text-white text-center focus:border-blue-500 focus:outline-none"
-                        />
-                        <span className="text-xs text-gray-400">posts</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <input
-                            type="url"
-                            value={arUrlInput}
-                            onChange={(e) => setArUrlInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                const trimmed = arUrlInput.trim();
-                                if (trimmed.length > 8 && !arCustomUrls.includes(trimmed)) {
-                                  setArCustomUrls(prev => [...prev, trimmed]);
-                                  setArUrlInput('');
-                                }
-                              }
-                            }}
-                            placeholder="https://youtube.com/watch?v=... or tweet URL"
-                            className="flex-1 px-3 py-2 rounded-xl bg-gray-950 border border-gray-800 focus:border-blue-500 focus:outline-none text-xs text-white placeholder-gray-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const trimmed = arUrlInput.trim();
-                              if (trimmed.length > 8 && !arCustomUrls.includes(trimmed)) {
-                                setArCustomUrls(prev => [...prev, trimmed]);
-                                setArUrlInput('');
-                              }
-                            }}
-                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-xl transition-colors"
-                          >
-                            Add
-                          </button>
-                        </div>
-                        {arCustomUrls.map((url, i) => (
-                          <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-gray-950 border border-gray-800 rounded-lg">
-                            <span className="flex-1 text-xs text-gray-300 truncate">{url}</span>
-                            <button type="button" onClick={() => setArCustomUrls(prev => prev.filter((_, j) => j !== i))} className="text-gray-500 hover:text-red-400 transition-colors">×</button>
-                          </div>
-                        ))}
-                        {arCustomUrls.length === 0 && <p className="text-xs text-gray-500">Add at least one post URL</p>}
-                      </div>
-                    )}
+                    <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 block mb-3">
+                      Post scope
+                    </label>
+                    <ScopeSelector
+                      scope={arScope} onScope={setArScope}
+                      count={arRecentCount} onCount={setArRecentCount}
+                      urls={arCustomUrls} urlInput={arUrlInput}
+                      onUrlInput={setArUrlInput}
+                      onAddUrl={() => { const t = arUrlInput.trim(); if (t.length > 8 && !arCustomUrls.includes(t)) { setArCustomUrls(p => [...p, t]); setArUrlInput(''); } }}
+                      onRemoveUrl={i => setArCustomUrls(p => p.filter((_, j) => j !== i))}
+                    />
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={saveAutoReplyTemplate}
-                      disabled={
-                        arSaving ||
-                        !arName.trim() ||
-                        (!arUseAI && !arMessage.trim()) ||
-                        arPlatforms.length === 0 ||
-                        (arScope === 'custom' && arCustomUrls.length === 0)
-                      }
-                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                    <button onClick={saveAutoReplyTemplate}
+                      disabled={arSaving || !arName.trim() || (!arUseAI && !arMessage.trim()) || arPlatforms.length === 0 || (arScope === 'custom' && arCustomUrls.length === 0)}
+                      className="flex items-center gap-2 bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] disabled:opacity-50 transition-colors"
                     >
-                      {arSaving ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                      {editingArId ? 'Update Template' : 'Save Template'}
+                      {arSaving ? <RefreshCw size={11} className="animate-spin" /> : <Plus size={11} />}
+                      {editingArId ? 'Update' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowArForm(false);
-                        setEditingArId(null);
-                        setArName(''); setArMessage(''); setArPlatforms([]); setArUseAI(false);
-                        setArScope('recent'); setArRecentCount(5); setArCustomUrls([]); setArUrlInput('');
-                      }}
-                      className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-xl transition-colors"
-                    >
+                    <button onClick={resetArForm}
+                      className="border border-stone-800 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-100 hover:border-stone-600 transition-colors">
                       Cancel
                     </button>
                   </div>
@@ -939,83 +716,85 @@ export default function AutomationPage() {
             )}
 
             {/* Templates list */}
-            {autoReplyTemplates.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 bg-gray-900/50 rounded-2xl border border-gray-800">
-                <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No auto reply templates yet</p>
-                <p className="text-xs mt-1">Add a template to start auto-replying to comments</p>
+            <div>
+              <div className="flex items-center justify-between border-b border-stone-800 pb-3 mb-0">
+                <Eyebrow>Templates · {autoReplyTemplates.length}</Eyebrow>
+                <Eyebrow>{autoReplyTemplates.filter(t => t.isActive).length} active</Eyebrow>
               </div>
-            ) : (
-              autoReplyTemplates.map((tmpl) => (
-                <div
-                  key={tmpl.id}
-                  className={`bg-gray-900 border rounded-2xl p-5 transition-all ${
-                    tmpl.isActive ? 'border-gray-800' : 'border-gray-800/50 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm font-semibold text-white">{tmpl.name}</span>
-                        {tmpl.useAI && (
-                          <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-500/15 text-blue-300 rounded-full text-xs">
-                            <Sparkles size={10} />
-                            AI
-                          </span>
-                        )}
-                      </div>
-                      {!tmpl.useAI && tmpl.message && (
-                        <p className="text-sm text-gray-300 mb-3 line-clamp-2">{tmpl.message}</p>
-                      )}
-                      {tmpl.useAI && (
-                        <p className="text-sm text-gray-500 mb-3 italic">AI generates unique replies</p>
-                      )}
-                      <div className="flex gap-1.5 flex-wrap items-center">
-                        {tmpl.platforms.map((p) => (
-                          <span key={p} className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400">
-                            {platformIcons[p]}
-                            <span className="capitalize">{p}</span>
-                          </span>
-                        ))}
-                        <span className="px-2 py-0.5 rounded text-xs bg-gray-800/60 text-gray-500">
-                          {tmpl.postScope === 'custom'
-                            ? `${tmpl.customUrls?.length ?? 0} URL${(tmpl.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
-                            : `last ${tmpl.recentCount ?? 5} posts`}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => toggleAutoReply(tmpl)}
-                        className={`p-1.5 rounded-lg transition-colors ${
-                          tmpl.isActive
-                            ? 'text-blue-400 hover:bg-blue-500/10'
-                            : 'text-gray-600 hover:bg-gray-800'
-                        }`}
-                      >
-                        {tmpl.isActive ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
-                      </button>
-                      <button
-                        onClick={() => editAutoReply(tmpl)}
-                        className="p-1.5 rounded-lg text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                        title="Edit template"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteAutoReply(tmpl.id)}
-                        className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
+              {autoReplyTemplates.length === 0 ? (
+                <div className="flex flex-col items-center py-16 gap-3 border border-stone-800 border-t-0">
+                  <MessageCircle size={20} className="text-stone-700" />
+                  <Eyebrow>No templates yet · add one above</Eyebrow>
                 </div>
-              ))
-            )}
+              ) : (
+                <div className="border border-stone-800 border-t-0 divide-y divide-stone-800">
+                  {autoReplyTemplates.map(tmpl => (
+                    <div key={tmpl.id} className={`px-6 py-5 transition-opacity ${tmpl.isActive ? '' : 'opacity-40'}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-sm font-medium text-stone-100">{tmpl.name}</span>
+                            {tmpl.useAI && (
+                              <span className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.2em] text-[#d4ff3a] border border-[#d4ff3a]/30 px-2 py-0.5">
+                                <Zap size={9} /> AI
+                              </span>
+                            )}
+                          </div>
+                          {!tmpl.useAI && tmpl.message && (
+                            <p className="text-sm text-stone-300 mb-3 line-clamp-2 leading-relaxed">{tmpl.message}</p>
+                          )}
+                          {tmpl.useAI && (
+                            <p className="text-sm text-stone-600 mb-3 italic">AI generates unique replies per comment</p>
+                          )}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {tmpl.platforms.map(p => (
+                              <span key={p} className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-stone-500">
+                                {platformIcons[p]} {p}
+                              </span>
+                            ))}
+                            <span className="font-mono text-[10px] text-stone-600">
+                              {tmpl.postScope === 'custom'
+                                ? `${tmpl.customUrls?.length ?? 0} URL${(tmpl.customUrls?.length ?? 0) !== 1 ? 's' : ''}`
+                                : `last ${tmpl.recentCount ?? 5} posts`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 mt-0.5">
+                          <button onClick={() => toggleAutoReply(tmpl)}
+                            className={`px-3 py-1.5 border font-mono text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                              tmpl.isActive
+                                ? 'border-[#d4ff3a]/40 text-[#d4ff3a]'
+                                : 'border-stone-800 text-stone-600 hover:text-stone-300'
+                            }`}
+                          >
+                            {tmpl.isActive ? 'Active' : 'Paused'}
+                          </button>
+                          <button onClick={() => editAutoReply(tmpl)}
+                            className="p-2 text-stone-600 hover:text-stone-200 transition-colors">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteAutoReply(tmpl.id)}
+                            className="p-2 text-stone-700 hover:text-[#ff5e3a] transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
+
+        {/* Footer */}
+        <footer className="border-t border-stone-800 pt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <Eyebrow>Automation · cron every 15 min</Eyebrow>
+          <Eyebrow className="text-stone-700">
+            {linkMeRules.length} Link Me · {autoReplyTemplates.length} Auto Reply
+          </Eyebrow>
+        </footer>
       </div>
     </div>
   );

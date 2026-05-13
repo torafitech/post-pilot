@@ -8,47 +8,27 @@ import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
 export default function RegisterPage() {
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [displayName,     setDisplayName]     = useState('');
+  const [email,           setEmail]           = useState('');
+  const [password,        setPassword]        = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mobile, setMobile] = useState<string | undefined>();
+  const [error,           setError]           = useState('');
+  const [loading,         setLoading]         = useState(false);
+  const [mobile,          setMobile]          = useState<string | undefined>();
 
   const { register } = useAuth();
-  const router = useRouter();
+  const router       = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!displayName.trim()) {
-      setError('Display name is required');
-      setLoading(false);
-      return;
-    }
-    if (!mobile) {
-      setError('Mobile number is required');
-      setLoading(false);
-      return;
-    }
-    if (!email.trim()) {
-      setError('Email is required');
-      setLoading(false);
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
+    if (!displayName.trim()) { setError('Display name is required'); setLoading(false); return; }
+    if (!mobile)             { setError('Mobile number is required'); setLoading(false); return; }
+    if (!email.trim())       { setError('Email is required');         setLoading(false); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); setLoading(false); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); setLoading(false); return; }
 
     try {
       await register(email, password, displayName, mobile);
@@ -60,147 +40,175 @@ export default function RegisterPage() {
     }
   };
 
+  const inputCls = `
+    w-full bg-transparent border-0 border-b border-stone-800
+    focus:border-[#d4ff3a] focus:outline-none focus:ring-0
+    text-stone-100 placeholder-stone-700 text-sm py-3
+    transition-colors duration-200
+  `;
+
+  const labelCls = 'block font-mono text-[10px] uppercase tracking-[0.25em] text-stone-500 mb-3';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-4 relative overflow-hidden">
-      {/* soft background gradient like dashboard */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-cyan-100/40 via-white to-purple-100/40" />
+    <div className="min-h-screen bg-[#0a0a0b] grain relative flex items-center justify-center px-6 py-20">
 
-      <div className="relative w-full max-w-md">
-        {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 flex items-center justify-center text-2xl text-white shadow-sm">
-            🚀
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-1">
+      {/* Phone input dark overrides */}
+      <style>{`
+        .phone-editorial .PhoneInput { display: flex; gap: 12px; align-items: center; }
+        .phone-editorial .PhoneInputCountry { display: flex; align-items: center; gap: 6px; }
+        .phone-editorial .PhoneInputCountrySelect {
+          background: transparent; border: none; outline: none;
+          color: #a8a29e; font-size: 12px; cursor: pointer;
+        }
+        .phone-editorial .PhoneInputCountrySelectArrow { color: #57534e; }
+        .phone-editorial .PhoneInputInput {
+          flex: 1; background: transparent; border: none; outline: none;
+          color: #fafaf9; font-size: 14px; padding: 12px 0;
+        }
+        .phone-editorial .PhoneInputInput::placeholder { color: #44403c; }
+      `}</style>
+
+      <div className="w-full max-w-[440px]">
+
+        {/* Wordmark */}
+        <div className="mb-12">
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-3">
             StarlingPost
+          </p>
+          <h1
+            className="font-display italic text-stone-100 leading-none"
+            style={{ fontSize: 'clamp(2.5rem, 6vw, 3.5rem)', fontVariationSettings: '"opsz" 144' }}
+          >
+            Create account
           </h1>
-          <p className="text-slate-500 text-sm">Join thousands of creators</p>
-        </div>
-
-        {/* Form Card (glass / light like dashboard cards) */}
-        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-2xl font-bold mb-6 text-slate-900">Create Account</h2>
-
-          {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-lg mb-6 text-sm">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Display Name */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
-
-            {/* Mobile with react-phone-number-input */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Mobile Number
-              </label>
-              <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 focus-within:border-cyan-500 transition">
-                <PhoneInput
-                  international
-                  defaultCountry="IN"
-                  value={mobile}
-                  onChange={setMobile}
-                  className="text-sm text-slate-900"
-                  placeholder="Enter mobile number"
-                />
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Stored in international format with country code.
-              </p>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-700">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-lg bg-white border border-slate-200 focus:border-cyan-500 focus:ring-0 focus:outline-none transition text-slate-900 placeholder-slate-400 text-sm"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold text-white text-sm shadow-sm transition mt-4"
-            >
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-
-          {/* Login Link */}
-          <p className="text-center text-slate-500 mt-6 text-sm">
-            Already have an account{' '}
-            <Link
-              href="/login"
-              className="text-cyan-600 hover:text-cyan-500 font-semibold"
-            >
-              Sign In
-            </Link>
+          <p className="mt-3 text-sm text-stone-400">
+            One post. Six platforms. Start here.
           </p>
         </div>
 
-        {/* Benefits (light version) */}
-        <div className="mt-8 grid grid-cols-3 gap-4 text-center text-xs">
-          <div>
-            <div className="text-2xl mb-2">✨</div>
-            <p className="text-slate-500">AI-Powered Content</p>
+        {/* Error */}
+        {error && (
+          <div className="flex items-start gap-3 mb-8 border border-[#ff5e3a]/30 bg-[#ff5e3a]/5 px-4 py-3">
+            <span className="w-1 h-1 mt-2 rounded-full bg-[#ff5e3a] flex-shrink-0" />
+            <p className="text-sm text-[#ff5e3a]">{error}</p>
           </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+
           <div>
-            <div className="text-2xl mb-2">📊</div>
-            <p className="text-slate-500">Smart Analytics</p>
+            <label className={labelCls}>Full name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder="Jane Smith"
+              autoComplete="name"
+              className={inputCls}
+            />
           </div>
+
           <div>
-            <div className="text-2xl mb-2">🚀</div>
-            <p className="text-slate-500">Auto Posting</p>
+            <label className={labelCls}>Mobile number</label>
+            <div className="phone-editorial border-b border-stone-800 focus-within:border-[#d4ff3a] transition-colors duration-200">
+              <PhoneInput
+                international
+                defaultCountry="IN"
+                value={mobile}
+                onChange={setMobile}
+                placeholder="Enter mobile number"
+              />
+            </div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-stone-700 mt-2">
+              Stored in international format
+            </p>
           </div>
+
+          <div>
+            <label className={labelCls}>Email address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Confirm password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              className={inputCls}
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="
+                w-full bg-[#d4ff3a] text-[#0a0a0b]
+                font-mono text-[10px] uppercase tracking-[0.25em] font-bold
+                py-4 hover:bg-[#bff020]
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-colors duration-200
+              "
+            >
+              {loading ? 'Creating account…' : 'Create account →'}
+            </button>
+          </div>
+        </form>
+
+        {/* Three pillars */}
+        <div className="mt-10 border border-stone-800 grid grid-cols-3 divide-x divide-stone-800">
+          {[
+            { n: '6',    label: 'Platforms'  },
+            { n: 'AI',   label: 'Enhanced'   },
+            { n: '24/7', label: 'Auto-reply' },
+          ].map(item => (
+            <div key={item.label} className="py-4 text-center">
+              <div
+                className="font-display italic text-stone-100 tabular-nums leading-none mb-1"
+                style={{ fontSize: '1.5rem', fontVariationSettings: '"opsz" 80' }}
+              >
+                {item.n}
+              </div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-stone-600">{item.label}</p>
+            </div>
+          ))}
         </div>
+
+        {/* Footer */}
+        <div className="mt-8 pt-8 border-t border-stone-800 flex items-center justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-600">
+            Have an account?
+          </p>
+          <Link
+            href="/login"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#d4ff3a] hover:text-[#bff020] transition-colors"
+          >
+            Sign in →
+          </Link>
+        </div>
+
       </div>
     </div>
   );

@@ -40,12 +40,17 @@ export function Navbar({ variant }: { variant?: NavbarVariant }) {
     return () => document.removeEventListener('mousedown', handle);
   }, [menuOpen]);
 
+  const isAuthPage = pathname === '/login' || pathname === '/register';
+
   const current: NavbarVariant =
     variant ??
     (pathname === '/'                   ? 'landing'
     : pathname?.includes('/create')     ? 'create'
     : pathname?.includes('/analytics')  ? 'analytics'
     : 'dashboard');
+
+  // Auth pages get no nav — they have their own minimal header
+  if (isAuthPage) return null;
 
   const handleLogout = async () => {
     try { await logout(); router.push('/'); }
