@@ -1,3 +1,29 @@
+import type { Metadata } from 'next';
+import { JsonLd } from '@/components/JsonLd';
+
+export const metadata: Metadata = {
+  title: 'Changelog',
+  description:
+    'All StarlingPost product updates — new features, fixes, and improvements, newest first.',
+  alternates: { canonical: '/changelog' },
+  openGraph: {
+    title: 'Changelog · StarlingPost',
+    description: 'All StarlingPost product updates — new features, fixes, and improvements, newest first.',
+    url: 'https://www.starlingpost.com/changelog',
+  },
+};
+
+const BASE = 'https://www.starlingpost.com';
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
+    { '@type': 'ListItem', position: 2, name: 'Changelog', item: `${BASE}/changelog` },
+  ],
+};
+
 const ENTRIES = [
   {
     version: 'v0.8',
@@ -98,6 +124,7 @@ function formatDate(d: string) {
 export default function ChangelogPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0b] grain pt-20">
+      <JsonLd data={breadcrumbSchema} />
       <div className="max-w-[780px] mx-auto px-6 md:px-10 py-20">
 
         {/* Header */}

@@ -1,85 +1,25 @@
+import type { Metadata } from 'next';
 import { Check, X } from 'lucide-react';
 import Link from 'next/link';
+import { JsonLd } from '@/components/JsonLd';
+import { PLANS, COMPARISON, PRICING_FAQ, type ComparisonVal } from '@/lib/pricing';
 
-const PLANS = [
-  {
-    key:       'starter',
-    label:     'Starter',
-    price:     '$9',
-    per:       '/ month',
-    tone:      'stone' as const,
-    highlight: false,
-    desc:      'For individuals getting started with multi-platform posting.',
-    cta:       'Start 14-day trial',
+export const metadata: Metadata = {
+  title: 'Pricing',
+  description:
+    'StarlingPost plans start at $9/month — 14-day free trial, no credit card required. Starter, Growth, and Agency plans for creators and teams.',
+  alternates: { canonical: '/pricing' },
+  openGraph: {
+    title: 'Pricing · StarlingPost',
+    description:
+      'StarlingPost plans start at $9/month — 14-day free trial, no credit card required. Starter, Growth, and Agency plans for creators and teams.',
+    url: 'https://www.starlingpost.com/pricing',
   },
-  {
-    key:       'growth',
-    label:     'Growth',
-    price:     '$19',
-    per:       '/ month',
-    tone:      'citron' as const,
-    highlight: true,
-    desc:      'For creators and personal brands posting seriously across platforms.',
-    cta:       'Start 14-day trial',
-  },
-  {
-    key:       'agency',
-    label:     'Agency',
-    price:     '$49',
-    per:       '/ month',
-    tone:      'stone' as const,
-    highlight: false,
-    desc:      'For agencies and teams managing multiple clients or brands.',
-    cta:       'Start 14-day trial',
-  },
-];
+};
 
-type Val = boolean | string;
+const BASE = 'https://www.starlingpost.com';
 
-const COMPARISON: { feature: string; starter: Val; growth: Val; agency: Val }[] = [
-  { feature: 'Connected accounts',      starter: '3',        growth: '10',       agency: 'Unlimited'  },
-  { feature: 'Posts per month',         starter: '30',       growth: 'Unlimited', agency: 'Unlimited'  },
-  { feature: 'Automation rules',        starter: '3',        growth: 'Unlimited', agency: 'Unlimited'  },
-  { feature: 'Platforms',               starter: '6',        growth: '6',        agency: '6'          },
-  { feature: 'Post scheduling',         starter: true,       growth: true,       agency: true         },
-  { feature: 'AI caption enhancement',  starter: true,       growth: true,       agency: true         },
-  { feature: 'Link Me auto-reply',      starter: true,       growth: true,       agency: true         },
-  { feature: 'Live platform analytics', starter: false,      growth: true,       agency: true         },
-  { feature: 'Optimal post timing',     starter: false,      growth: true,       agency: true         },
-  { feature: 'Multi-account per platform', starter: false,   growth: true,       agency: true         },
-  { feature: 'Multiple workspaces',     starter: false,      growth: false,      agency: true         },
-  { feature: 'Priority support',        starter: false,      growth: false,      agency: true         },
-  { feature: 'API access',              starter: false,      growth: false,      agency: true         },
-];
-
-const FAQ = [
-  {
-    q: 'Is there a free tier?',
-    a: 'No free tier — every plan starts with a 14-day free trial (no credit card required). After the trial, choose the plan that fits. API calls, AI, and cron jobs all have real costs; a free tier would mean subsidising non-paying users indefinitely.',
-  },
-  {
-    q: 'What happens after the 14-day trial?',
-    a: 'Your account is paused. All your data, posts, and automation rules are preserved for 30 days. Subscribe at any time to resume from exactly where you left off.',
-  },
-  {
-    q: 'Which platforms are supported?',
-    a: 'YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads. Beta is live on YouTube, Twitter/X, and LinkedIn. Instagram, Facebook, and Threads are integrated but pending full API access approvals.',
-  },
-  {
-    q: 'What counts as a post?',
-    a: 'One post creation = one post, regardless of how many platforms it publishes to. Publishing to all 6 platforms simultaneously counts as 1 post.',
-  },
-  {
-    q: 'Can I cancel at any time?',
-    a: 'Yes. Cancel any time and you keep access until the end of your billing period. No lock-in, no cancellation fees.',
-  },
-  {
-    q: 'Can I switch plans?',
-    a: 'Yes. Upgrade or downgrade at any time. Upgrades take effect immediately. Downgrades take effect at the next billing cycle.',
-  },
-];
-
-function Cell({ val, highlight }: { val: Val; highlight: boolean }) {
+function Cell({ val, highlight }: { val: ComparisonVal; highlight: boolean }) {
   if (typeof val === 'boolean') {
     return val
       ? <Check size={14} className={highlight ? 'text-[#d4ff3a]' : 'text-stone-400'} />
@@ -93,8 +33,30 @@ function Cell({ val, highlight }: { val: Val; highlight: boolean }) {
 }
 
 export default function PricingPage() {
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Pricing', item: `${BASE}/pricing` },
+    ],
+  };
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: PRICING_FAQ.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  };
+
   return (
     <main className="min-h-screen bg-[#0a0a0b] grain pt-20">
+      <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={faqSchema} />
+
       <div className="max-w-[1000px] mx-auto px-6 md:px-10 py-20">
 
         {/* Hero */}
@@ -179,7 +141,6 @@ export default function PricingPage() {
         <div className="mb-20">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-6">Full comparison</p>
           <div className="border border-stone-800 overflow-x-auto">
-            {/* Header */}
             <div className="grid grid-cols-4 border-b border-stone-800 px-6 py-3 min-w-[560px]">
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-600">Feature</span>
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-500 text-center">Starter</span>
@@ -204,8 +165,8 @@ export default function PricingPage() {
         <div className="mb-20">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-8">FAQ</p>
           <div className="border border-stone-800">
-            {FAQ.map((item, idx) => (
-              <div key={idx} className={`px-8 py-7 ${idx < FAQ.length - 1 ? 'border-b border-stone-800' : ''}`}>
+            {PRICING_FAQ.map((item, idx) => (
+              <div key={idx} className={`px-8 py-7 ${idx < PRICING_FAQ.length - 1 ? 'border-b border-stone-800' : ''}`}>
                 <h3
                   className="font-display italic text-stone-100 mb-3"
                   style={{ fontSize: '1.1rem', fontVariationSettings: '"opsz" 80' }}

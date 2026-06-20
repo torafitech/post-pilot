@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState, useEffect, MouseEvent } from 'react';
+import { PLANS, HOMEPAGE_FAQ } from '@/lib/pricing';
 
-// ─── Local SVG icons (Lucide removed Instagram/Threads) ───────────────────────
+// ─── Local SVG icons ──────────────────────────────────────────────────────────
 
 const Instagram = ({ size = 20, className = '' }: { size?: number; className?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -37,6 +38,7 @@ type PlatformDef = {
   text: string;
   ring: string;
   caps: string[];
+  comingSoon?: boolean;
 };
 
 const PLATFORMS: PlatformDef[] = [
@@ -47,10 +49,13 @@ const PLATFORMS: PlatformDef[] = [
   { id: 'linkedin',  name: 'LinkedIn',  Icon: Linkedin,    accent: '#60a5fa', text: 'text-blue-400', ring: 'ring-blue-500/40',
     caps: ['UGC posts (image/video)', 'Engagement tracking', 'Comment automation', 'Post scheduling'] },
   { id: 'instagram', name: 'Instagram', Icon: Instagram,   accent: '#f472b6', text: 'text-pink-400', ring: 'ring-pink-500/40',
+    comingSoon: true,
     caps: ['Feed + Reels', 'AI captions + hashtags', 'Insights', 'Multi-account'] },
   { id: 'facebook',  name: 'Facebook',  Icon: Facebook,    accent: '#3b82f6', text: 'text-blue-500', ring: 'ring-blue-600/40',
+    comingSoon: true,
     caps: ['Page posts', 'Photo + video', 'Comment auto-reply', 'Insights'] },
   { id: 'threads',   name: 'Threads',   Icon: ThreadsIcon, accent: '#d4d4d4', text: 'text-gray-300', ring: 'ring-gray-500/40',
+    comingSoon: true,
     caps: ['Text-first posts', 'Image + video', 'Reply automation', 'Long-lived OAuth'] },
 ];
 
@@ -122,7 +127,7 @@ function PlatformConstellation() {
           <div className="relative flex flex-col items-center justify-center w-44 h-44 sm:w-56 sm:h-56 rounded-3xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-white/10 shadow-[0_30px_80px_-20px_rgba(212,255,58,0.25)]">
             <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">one post</div>
             <div className="mt-2 font-display text-3xl sm:text-4xl text-white tracking-tight">→</div>
-            <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--citron)]">six places</div>
+            <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--citron)]">all platforms</div>
           </div>
         </div>
       </motion.div>
@@ -160,9 +165,12 @@ function PlatformConstellation() {
               animationDelay: `${i * 0.6}s`,
             }}
           >
-            <div className={`flex items-center gap-2 rounded-full bg-zinc-900/80 backdrop-blur border border-white/10 px-3 py-2 ring-1 ${p.ring}`}>
+            <div className={`flex items-center gap-2 rounded-full bg-zinc-900/80 backdrop-blur border border-white/10 px-3 py-2 ring-1 ${p.ring} ${p.comingSoon ? 'opacity-50' : ''}`}>
               <p.Icon size={16} className={p.text} />
               <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">{p.name}</span>
+              {p.comingSoon && (
+                <span className="font-mono text-[8px] uppercase tracking-widest text-zinc-600">soon</span>
+              )}
             </div>
           </motion.div>
         );
@@ -275,6 +283,13 @@ export function LandingPage() {
             </div>
           </motion.div>
 
+          {/* GEO definitional sentence — crawlable, visible */}
+          <p className="sr-only">
+            StarlingPost is a social media scheduling and automation tool that publishes a single
+            post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads
+            coming soon.
+          </p>
+
           <motion.div style={{ y: heroY }}>
             <motion.h1
               initial="hidden" animate="visible" variants={reveal(0.05)}
@@ -282,7 +297,7 @@ export function LandingPage() {
             >
               One post.
               <br />
-              <span className="italic font-light text-zinc-400">Six platforms.</span>
+              <span className="italic font-light text-zinc-400">All platforms.</span>
               <br />
               <span className="mark text-white">Zero tab-juggling.</span>
             </motion.h1>
@@ -291,12 +306,16 @@ export function LandingPage() {
           <div className="mt-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-end">
             <motion.div initial="hidden" animate="visible" variants={reveal(0.18)} className="max-w-xl">
               <p className="text-zinc-300 text-lg leading-relaxed">
-                Write once. Publish to <span className="font-display italic">YouTube</span>, <span className="font-display italic">Twitter / X</span>, <span className="font-display italic">LinkedIn</span>, <span className="font-display italic">Instagram</span>, <span className="font-display italic">Facebook</span> and <span className="font-display italic">Threads</span> — with AI captions tuned per platform, smart scheduling, and replies that run while you sleep.
+                Write once. Publish to <span className="font-display italic">YouTube</span>,{' '}
+                <span className="font-display italic">Twitter/X</span>, and{' '}
+                <span className="font-display italic">LinkedIn</span> — with AI captions tuned per
+                platform, smart scheduling, and replies that run while you sleep.{' '}
+                <span className="text-zinc-500">Instagram, Facebook, and Threads coming soon.</span>
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <MagneticLink href="/register" primary>
-                  Start free <ArrowRight size={16} />
+                  Start 14-day trial <ArrowRight size={16} />
                 </MagneticLink>
                 <MagneticLink href="/login">
                   Sign in
@@ -308,7 +327,7 @@ export function LandingPage() {
 
               <div className="mt-10 grid grid-cols-3 gap-6 max-w-md">
                 {[
-                  { v: 6, suffix: '', l: 'platforms' },
+                  { v: 3, suffix: '', l: 'live platforms' },
                   { v: 5, suffix: ' min', l: 'per post' },
                   { v: 12, suffix: 'h', l: 'saved / week' },
                 ].map((s) => (
@@ -336,9 +355,12 @@ export function LandingPage() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-12 px-6 shrink-0">
                 {PLATFORMS.map((p) => (
-                  <div key={p.id + i} className="flex items-center gap-3">
+                  <div key={p.id + i} className={`flex items-center gap-3 ${p.comingSoon ? 'opacity-40' : ''}`}>
                     <p.Icon size={18} className={p.text} />
                     <span className="font-display italic text-2xl text-zinc-400">{p.name}</span>
+                    {p.comingSoon && (
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-700">soon</span>
+                    )}
                     <span className="text-zinc-700">·</span>
                   </div>
                 ))}
@@ -366,11 +388,13 @@ export function LandingPage() {
 
             <div className="space-y-7 text-zinc-400 text-base lg:text-lg leading-relaxed">
               <p>
-                One idea. Six different composers. Six different aspect ratios, character limits, and hashtag etiquettes.
-                You're rewriting the same post six times — and forgetting to reply on half of them.
+                One idea. Three different composers. Three different character limits, hashtag
+                etiquettes, and optimal post times. You're rewriting the same post multiple times
+                — and forgetting to reply on half of them.
               </p>
               <p className="text-white">
-                StarlingPost was built so the next time you have something to say, it takes <span className="font-display italic">five minutes</span> — not an hour.
+                StarlingPost was built so the next time you have something to say, it takes{' '}
+                <span className="font-display italic">five minutes</span> — not an hour.
               </p>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                 {[
@@ -398,12 +422,12 @@ export function LandingPage() {
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
               <span>02</span>
               <span className="h-px flex-1 bg-white/10" />
-              <span>All Platforms · One Roof</span>
+              <span>Platforms</span>
             </div>
             <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight max-w-4xl">
-              Every account.
+              Live now.
               <br />
-              <span className="italic text-zinc-500">Native to each, unified to you.</span>
+              <span className="italic text-zinc-500">More coming soon.</span>
             </h2>
           </motion.div>
 
@@ -413,7 +437,7 @@ export function LandingPage() {
                 key={p.id}
                 initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-10%' }}
                 variants={reveal(i * 0.05)}
-                className="group relative bg-[var(--ink)] p-8 lg:p-10 hover:bg-zinc-900/60 transition-colors"
+                className={`group relative bg-[var(--ink)] p-8 lg:p-10 transition-colors ${p.comingSoon ? 'opacity-50' : 'hover:bg-zinc-900/60'}`}
               >
                 <div className="flex items-start justify-between mb-12">
                   <div
@@ -422,9 +446,17 @@ export function LandingPage() {
                   >
                     <p.Icon size={22} />
                   </div>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-                    0{i + 1}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {p.comingSoon ? (
+                      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-600 border border-zinc-800 px-2 py-0.5">
+                        Coming soon
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--citron)] border border-[var(--citron)]/30 px-2 py-0.5">
+                        Live
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <h3 className="font-display text-3xl tracking-tight text-white">{p.name}</h3>
@@ -432,16 +464,18 @@ export function LandingPage() {
                 <ul className="mt-6 space-y-2.5">
                   {p.caps.map((c) => (
                     <li key={c} className="flex items-start gap-2.5 text-sm text-zinc-400">
-                      <CheckCircle2 size={14} style={{ color: p.accent }} className="mt-0.5 shrink-0" />
+                      <CheckCircle2 size={14} style={{ color: p.comingSoon ? '#52525b' : p.accent }} className="mt-0.5 shrink-0" />
                       {c}
                     </li>
                   ))}
                 </ul>
 
-                <div
-                  className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-700"
-                  style={{ background: p.accent }}
-                />
+                {!p.comingSoon && (
+                  <div
+                    className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-700"
+                    style={{ background: p.accent }}
+                  />
+                )}
               </motion.article>
             ))}
           </div>
@@ -467,7 +501,7 @@ export function LandingPage() {
               span="sm:col-span-4"
               tone="dark"
               kicker="Publish"
-              title="One composer. Six destinations."
+              title="One composer. Three destinations."
               copy="Write your caption once. We auto-rewrite it for each platform — character limits, hashtag etiquette, title length, all handled. Override any per-platform copy in one click."
               icon={<Layers size={20} />}
               accent="var(--citron)"
@@ -495,7 +529,7 @@ export function LandingPage() {
               tone="dark"
               kicker="Link Me"
               title="Keyword → send the link"
-              copy="Someone comments 'link'? They get your link auto-replied. Works on YouTube, Twitter, LinkedIn, Facebook, Threads."
+              copy="Someone comments 'link'? They get your link auto-replied — on YouTube, Twitter/X, and LinkedIn."
               icon={<KeyRound size={20} />}
               accent="var(--coral)"
             />
@@ -513,7 +547,7 @@ export function LandingPage() {
               tone="dark"
               kicker="Analytics"
               title="Real numbers. Not vanity charts."
-              copy="Views, likes, comments, reach across all platforms. YouTube deep-dive. Real-time sync on Pro."
+              copy="Views, likes, comments, reach across all connected platforms. YouTube deep-dive. Real-time sync on Growth and Agency plans."
               icon={<BarChart3 size={20} />}
               accent="#34d399"
             />
@@ -522,7 +556,7 @@ export function LandingPage() {
               tone="dark"
               kicker="For Agencies"
               title="Multi-account, single login"
-              copy="Manage 3 IG accounts, 5 YouTube channels, 4 Twitter handles. Same dashboard, same caption, different audiences."
+              copy="Manage multiple YouTube channels, Twitter handles, and LinkedIn pages. Same dashboard, same caption, different audiences."
               icon={<Globe size={20} />}
               accent="var(--citron)"
             />
@@ -553,14 +587,14 @@ export function LandingPage() {
             </div>
 
             <div className="font-display tracking-tight space-y-5 text-right lg:text-left">
-              <div className="text-3xl text-zinc-500">5 platforms · 12 posts / week</div>
-              <div className="text-5xl lg:text-6xl text-white">= <span className="font-mono">~10 hrs</span> of context-switching</div>
+              <div className="text-3xl text-zinc-500">3 platforms · 12 posts / week</div>
+              <div className="text-5xl lg:text-6xl text-white">= <span className="font-mono">~6 hrs</span> of context-switching</div>
               <div className="text-2xl text-zinc-500 italic">with StarlingPost:</div>
               <div className="text-6xl lg:text-7xl text-[var(--citron)]">
                 <Counter to={1} />h <span className="font-display italic text-zinc-500 text-3xl">/ week</span>
               </div>
               <div className="text-sm font-mono text-zinc-600 mt-4 uppercase tracking-[0.2em]">
-                <Counter to={45} /> hours back · every month
+                <Counter to={20} /> hours back · every month
               </div>
             </div>
           </motion.div>
@@ -583,9 +617,9 @@ export function LandingPage() {
 
           <div className="mt-16 grid lg:grid-cols-3 gap-6 lg:gap-10">
             {[
-              { n: '01', t: 'Connect your accounts', d: 'OAuth into every platform once — YouTube, Twitter, LinkedIn, Instagram, Facebook, Threads. Tokens refresh automatically.' },
-              { n: '02', t: 'Write & enhance', d: 'Type one caption. Hit AI Enhance. Get six tailored versions, hashtag suggestions, optimal post times.' },
-              { n: '03', t: 'Publish & forget', d: 'Post now or schedule. Replies and DMs run on autopilot. Wake up to engagement reports.' },
+              { n: '01', t: 'Connect your accounts', d: 'OAuth into YouTube, Twitter/X, and LinkedIn once — tokens refresh automatically. Instagram, Facebook, and Threads coming soon.' },
+              { n: '02', t: 'Write & enhance', d: 'Type one caption. Hit AI Enhance. Get tailored versions for each platform, hashtag suggestions, and optimal post times.' },
+              { n: '03', t: 'Publish & forget', d: 'Post now or schedule. Replies and keyword triggers run on autopilot. Wake up to engagement reports.' },
             ].map((s, i) => (
               <motion.div
                 key={s.n}
@@ -613,65 +647,48 @@ export function LandingPage() {
             </div>
             <div className="grid lg:grid-cols-[1fr_1fr] gap-12 items-end mb-16">
               <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight">
-                Start free. <br /><span className="italic text-zinc-500">Scale when you scale.</span>
+                14 days free. <br /><span className="italic text-zinc-500">Then pick a plan.</span>
               </h2>
               <p className="text-zinc-400 lg:max-w-md">
-                One account per platform on Free. Three on Pro. Unlimited on Agency — for teams managing many brands.
+                No credit card required for the trial. No free tier — every feature costs real API
+                money and we don't hide that. Starter at $9, Growth at $19, Agency at $49.
               </p>
             </div>
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-5">
-            {[
-              {
-                name: 'Free', price: '$0', per: 'forever',
-                desc: 'For solo creators getting started.',
-                limit: '1 account per platform',
-                features: ['1 acc / platform', 'AI caption enhance', 'Schedule posts', 'Link Me + Auto Reply', 'Daily analytics sync'],
-                cta: 'Start free', accent: 'border-white/10', primary: false,
-              },
-              {
-                name: 'Pro', price: '$19', per: '/ month',
-                desc: 'For growing creators on multiple platforms.',
-                limit: '3 accounts per platform',
-                features: ['3 acc / platform', 'Unlimited AI enhance', 'Optimal time AI', 'Priority reply automation', 'Hourly analytics sync', 'Email support'],
-                cta: 'Go Pro', accent: 'border-[var(--citron)]/50 ring-1 ring-[var(--citron)]/30', primary: true,
-              },
-              {
-                name: 'Agency', price: '$79', per: '/ month',
-                desc: 'For agencies & multi-brand teams.',
-                limit: 'Unlimited accounts',
-                features: ['Unlimited accounts', 'Multi-brand workspace', 'Team seats', 'Real-time analytics', 'API access', 'Slack alerts', 'Dedicated support'],
-                cta: 'Talk to us', accent: 'border-white/10', primary: false,
-              },
-            ].map((tier, i) => (
+            {PLANS.map((plan, i) => (
               <motion.div
-                key={tier.name}
+                key={plan.key}
                 initial="hidden" whileInView="visible" viewport={{ once: true }}
                 variants={reveal(i * 0.08)}
-                className={`relative rounded-3xl border ${tier.accent} bg-[var(--ink)] p-8 lg:p-10 flex flex-col`}
+                className={`relative rounded-3xl border ${
+                  plan.highlight
+                    ? 'border-[var(--citron)]/50 ring-1 ring-[var(--citron)]/30'
+                    : 'border-white/10'
+                } bg-[var(--ink)] p-8 lg:p-10 flex flex-col`}
               >
-                {tier.primary && (
+                {plan.highlight && (
                   <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-[var(--citron)] text-black text-[10px] font-mono uppercase tracking-widest">
                     Most popular
                   </div>
                 )}
 
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500 mb-3">{tier.name}</div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500 mb-3">{plan.label}</div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-display text-6xl tracking-tight">{tier.price}</span>
-                  <span className="text-zinc-500 text-sm">{tier.per}</span>
+                  <span className="font-display text-6xl tracking-tight">{plan.price}</span>
+                  <span className="text-zinc-500 text-sm">{plan.per}</span>
                 </div>
-                <p className="mt-3 text-zinc-400 text-sm">{tier.desc}</p>
+                <p className="mt-3 text-zinc-400 text-sm">{plan.desc}</p>
 
                 <div className="mt-6 pt-6 border-t border-white/5 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-500">
-                  {tier.limit}
+                  {plan.limit}
                 </div>
 
                 <ul className="mt-6 space-y-3 flex-1">
-                  {tier.features.map((f) => (
+                  {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-300">
-                      <CheckCircle2 size={14} className={tier.primary ? 'text-[var(--citron)]' : 'text-zinc-500'} />
+                      <CheckCircle2 size={14} className={plan.highlight ? 'text-[var(--citron)]' : 'text-zinc-500'} />
                       {f}
                     </li>
                   ))}
@@ -680,12 +697,12 @@ export function LandingPage() {
                 <Link
                   href="/register"
                   className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-colors ${
-                    tier.primary
+                    plan.highlight
                       ? 'bg-[var(--citron)] text-black hover:bg-[#e6ff5e]'
                       : 'border border-white/10 text-white hover:bg-white/5'
                   }`}
                 >
-                  {tier.cta} <ArrowUpRight size={15} />
+                  {plan.cta} <ArrowUpRight size={15} />
                 </Link>
               </motion.div>
             ))}
@@ -708,13 +725,7 @@ export function LandingPage() {
           </motion.div>
 
           <div className="space-y-px bg-white/5 border border-white/5 rounded-2xl overflow-hidden">
-            {[
-              { q: 'Which platforms are supported?', a: 'YouTube, Twitter/X, LinkedIn, Instagram, Facebook Pages, and Threads. Each one is integrated natively — no third-party middlemen.' },
-              { q: 'Can I connect multiple accounts on the same platform?', a: 'Yes. The architecture is built around it. Free: 1 account per platform. Pro: 3. Agency: unlimited.' },
-              { q: 'How does AI enhancement work?', a: 'Your caption goes to OpenAI gpt-4o-mini with per-platform rules (length, tone, hashtag style). You see a side-by-side and accept or reject.' },
-              { q: 'Will my comments actually get auto-replied?', a: 'Yes on YouTube, Twitter, LinkedIn, Facebook, and Threads. Instagram is pending Meta App Review for the comment-management scope.' },
-              { q: 'Is this safe to run on my real accounts?', a: 'OAuth is scoped read/write only. Dedup tracking ensures the same comment is never replied to twice. Any rule can be paused instantly.' },
-            ].map((item, i) => (
+            {HOMEPAGE_FAQ.map((item, i) => (
               <details key={i} className="group bg-[var(--ink)]">
                 <summary className="flex items-center justify-between cursor-pointer p-6 lg:p-7 list-none">
                   <span className="font-display text-xl lg:text-2xl tracking-tight pr-6">{item.q}</span>
@@ -742,17 +753,17 @@ export function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-6 lg:px-12 py-32 lg:py-40 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
             <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
-              Six platforms · One workspace · Five minutes
+              YouTube · Twitter/X · LinkedIn · One workspace · Five minutes
             </div>
             <h2 className="font-display text-6xl sm:text-7xl lg:text-9xl leading-[0.88] tracking-tight max-w-5xl mx-auto">
-              Stop posting <span className="italic">six times.</span>
+              Stop posting <span className="italic">three times.</span>
               <br />
               <span className="mark">Start posting once.</span>
             </h2>
 
             <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
               <MagneticLink href="/register" primary>
-                Start free <ArrowRight size={16} />
+                Start 14-day trial <ArrowRight size={16} />
               </MagneticLink>
               <MagneticLink href="/login">Sign in</MagneticLink>
             </div>

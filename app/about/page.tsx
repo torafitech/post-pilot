@@ -1,10 +1,25 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '@/components/JsonLd';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'StarlingPost is a social media scheduling and automation tool for YouTube, Twitter/X, and LinkedIn — built for creators who post seriously.',
+  alternates: { canonical: '/about' },
+  openGraph: {
+    title: 'About · StarlingPost',
+    description:
+      'StarlingPost is a social media scheduling and automation tool for YouTube, Twitter/X, and LinkedIn — built for creators who post seriously.',
+    url: 'https://www.starlingpost.com/about',
+  },
+};
 
 const PILLARS = [
   {
     n: '01',
     title: 'One post, everywhere',
-    body: 'Write once. StarlingPost pushes to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads simultaneously — with per-platform customisation built in.',
+    body: 'Write once. StarlingPost publishes to YouTube, Twitter/X, and LinkedIn simultaneously — with per-platform customisation built in. Instagram, Facebook, and Threads are coming soon.',
   },
   {
     n: '02',
@@ -28,13 +43,26 @@ const STACK = [
   { label: 'Styling',    value: 'Tailwind CSS 4 · Framer Motion'      },
   { label: 'Backend',    value: 'Firebase (Auth + Firestore)'          },
   { label: 'AI',         value: 'OpenAI GPT-4o-mini'                   },
-  { label: 'Platforms',  value: 'YouTube · Twitter/X · LinkedIn · Meta' },
+  { label: 'Platforms',  value: 'YouTube · Twitter/X · LinkedIn (+ Instagram/Facebook/Threads coming soon)' },
   { label: 'Hosting',    value: 'Vercel (with scheduled cron jobs)'    },
 ];
+
+const BASE = 'https://www.starlingpost.com';
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
+    { '@type': 'ListItem', position: 2, name: 'About', item: `${BASE}/about` },
+  ],
+};
 
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0b] grain pt-20">
+      <JsonLd data={breadcrumbSchema} />
+
       <div className="max-w-[1000px] mx-auto px-6 md:px-10 py-20">
 
         {/* Hero */}
@@ -46,9 +74,17 @@ export default function AboutPage() {
           >
             Built for creators<br />who post seriously.
           </h1>
+
+          {/* GEO definitional sentence */}
+          <p className="text-stone-300 text-base leading-relaxed max-w-[600px] mb-6">
+            StarlingPost is a social media scheduling and automation tool that publishes a single
+            post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads
+            coming soon.
+          </p>
+
           <p className="text-stone-400 text-lg leading-relaxed max-w-[560px]">
-            StarlingPost started as a simple frustration: managing six different social media
-            apps, copying the same post six times, adjusting captions for each platform.
+            StarlingPost started as a simple frustration: managing multiple social media apps,
+            copying the same post each time, adjusting captions for each platform.
             There had to be a better way.
           </p>
         </div>
@@ -71,7 +107,7 @@ export default function AboutPage() {
           </div>
           <div className="space-y-4 pt-1">
             {[
-              'Post to 6 platforms in one click',
+              'Post to YouTube, Twitter/X, and LinkedIn in one click',
               'AI-enhanced captions, not AI-generated slop',
               'Automation that respects platform rules',
               'Analytics you can actually act on',
@@ -139,9 +175,8 @@ export default function AboutPage() {
             Beta — YouTube, Twitter/X, LinkedIn
           </h3>
           <p className="text-stone-500 text-sm leading-relaxed max-w-[480px]">
-            We are in active beta on three platforms. Instagram, Facebook, and Threads are
-            integrated but pending full API access approvals. Pinterest and TikTok are in
-            the pipeline.
+            We are in active beta on three platforms. Instagram, Facebook, and Threads are coming
+            soon. Pinterest and TikTok are in the pipeline.
           </p>
         </div>
 
@@ -151,7 +186,7 @@ export default function AboutPage() {
             href="/register"
             className="bg-[#d4ff3a] text-[#0a0a0b] px-8 py-4 font-mono text-[10px] uppercase tracking-[0.25em] font-bold hover:bg-[#bff020] transition-colors"
           >
-            Get started free →
+            Start 14-day trial →
           </Link>
           <Link
             href="/pricing"

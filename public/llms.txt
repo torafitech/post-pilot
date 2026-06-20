@@ -1,0 +1,56 @@
+# StarlingPost
+
+StarlingPost is a social media scheduling and automation tool that publishes a single post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads coming soon.
+
+## What it does
+
+- Write one caption, publish to multiple platforms simultaneously
+- AI caption enhancement via OpenAI gpt-4o-mini (per-platform tone, length, hashtags)
+- Post scheduling: set a time, StarlingPost publishes automatically via Vercel cron
+- Link Me: keyword-triggered auto-reply (someone comments "link" → they receive your link automatically)
+- Auto Reply: template or AI-generated contextual replies to comments, with dedup tracking
+- Analytics: views, likes, comments, reach across connected platforms
+
+## Live platforms (beta)
+
+- YouTube
+- Twitter/X
+- LinkedIn
+
+## Coming soon
+
+- Instagram
+- Facebook
+- Threads
+
+## Pricing (14-day free trial on all plans, no credit card required)
+
+- Starter: $9/month — 3 connected accounts, 30 posts/month, 3 automation rules
+- Growth: $19/month — 10 connected accounts, unlimited posts, live analytics, optimal timing AI
+- Agency: $49/month — unlimited accounts, multiple workspaces, team seats, API access
+
+No free tier.
+
+## Key URLs
+
+- Homepage: https://www.starlingpost.com
+- Pricing: https://www.starlingpost.com/pricing
+- About: https://www.starlingpost.com/about
+- Blog: https://www.starlingpost.com/blog
+- Privacy: https://www.starlingpost.com/privacy
+- Terms: https://www.starlingpost.com/terms
+
+## Tech stack
+
+- Framework: Next.js 16 (App Router), React 19, TypeScript 5
+- Auth & database: Firebase Auth + Firestore
+- AI: OpenAI gpt-4o-mini
+- Hosting: Vercel (with scheduled cron jobs)
+- Social APIs: Twitter API v2, YouTube Data API v3, LinkedIn API
+
+## Social
+
+- Twitter/X: https://twitter.com/starlingpost
+- LinkedIn: https://linkedin.com/company/starlingpost
+- YouTube: https://youtube.com/starlingpost
+- GitHub: https://github.com/torafitech/post-pilot

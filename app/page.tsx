@@ -1,52 +1,25 @@
-// app/page.tsx — server component for SEO + metadata
 import type { Metadata } from 'next';
 import { LandingPage } from '@/components/LandingPage';
+import { JsonLd } from '@/components/JsonLd';
+import { PLANS, HOMEPAGE_FAQ } from '@/lib/pricing';
 
 export const metadata: Metadata = {
-  title: 'StarlingPost — One post, six platforms',
+  title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
   description:
-    'StarlingPost publishes once to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads. AI captions per platform, scheduling, keyword auto-reply, and comment automation — built for creators and agencies.',
-  keywords: [
-    'social media scheduler',
-    'YouTube scheduler',
-    'Twitter scheduler',
-    'LinkedIn automation',
-    'Instagram scheduler',
-    'Facebook page scheduler',
-    'Threads scheduler',
-    'multi platform posting',
-    'AI caption generator',
-    'auto reply comments',
-    'content automation',
-    'social media agency tool',
-  ],
-  authors: [{ name: 'StarlingPost' }],
-  creator: 'StarlingPost',
-  publisher: 'StarlingPost',
-  metadataBase: new URL('https://www.starlingpost.com'),
+    'StarlingPost is a social media scheduling and automation tool — post once to YouTube, Twitter/X, and LinkedIn with AI captions, scheduling, and comment automation.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'StarlingPost — One post, six platforms',
+    title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
     description:
-      'Publish once to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads. AI captions, scheduling, and comment automation in one dashboard.',
+      'Post once to YouTube, Twitter/X, and LinkedIn. AI captions, scheduling, and comment automation in one dashboard. Instagram, Facebook, and Threads coming soon.',
     url: 'https://www.starlingpost.com',
-    siteName: 'StarlingPost',
-    images: [
-      {
-        url: '/images/og-cover.png',
-        width: 1200,
-        height: 630,
-        alt: 'StarlingPost — Social Media Automation Platform',
-      },
-    ],
-    locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'StarlingPost — One post, six platforms',
+    title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
     description:
-      'Publish to YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads from one composer. AI captions + scheduling + comment automation.',
+      'Post once to YouTube, Twitter/X, and LinkedIn. AI captions, scheduling, and comment automation in one dashboard.',
     images: ['/images/og-cover.png'],
     creator: '@starlingpost',
   },
@@ -57,37 +30,40 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'StarlingPost',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  url: 'https://www.starlingpost.com',
-  description:
-    'All-in-one social media scheduling and automation platform for YouTube, Twitter/X, LinkedIn, Instagram, Facebook, and Threads creators and agencies.',
-  offers: {
-    '@type': 'AggregateOffer',
-    lowPrice: '0',
-    highPrice: '79',
-    priceCurrency: 'USD',
-    offerCount: 3,
-  },
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    reviewCount: '412',
-  },
-  author: { '@type': 'Organization', name: 'StarlingPost' },
-};
-
 export default function Home() {
+  const softwareSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'StarlingPost',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    url: 'https://www.starlingpost.com',
+    description:
+      'StarlingPost is a social media scheduling and automation tool that publishes a single post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads coming soon.',
+    offers: PLANS.map((plan) => ({
+      '@type': 'Offer',
+      name: plan.label,
+      price: plan.priceNum.toString(),
+      priceCurrency: 'USD',
+      description: plan.desc,
+    })),
+    author: { '@type': 'Organization', name: 'StarlingPost' },
+  };
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: HOMEPAGE_FAQ.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  };
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={softwareSchema} />
+      <JsonLd data={faqSchema} />
       <LandingPage />
     </>
   );

@@ -1,10 +1,10 @@
-// app/layout.tsx
 import type { Metadata } from 'next';
 import { Fraunces, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { JsonLd } from '@/components/JsonLd';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -28,14 +28,65 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.starlingpost.com'),
   title: {
-    default: 'StarlingPost — One Post, Six Platforms',
-    template: '%s | StarlingPost',
+    default: 'StarlingPost — Post once to YouTube, X & LinkedIn',
+    template: '%s · StarlingPost',
   },
   description:
-    'StarlingPost publishes one post to YouTube, Twitter/X, LinkedIn, Instagram, Facebook and Threads. AI-enhanced captions, scheduling, keyword replies, and auto reply — built for creators and agencies who manage multiple accounts.',
+    'StarlingPost is a social media scheduling and automation tool — post once to YouTube, Twitter/X, and LinkedIn with AI captions, scheduling, and comment automation.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    siteName: 'StarlingPost',
+    url: 'https://www.starlingpost.com',
+    title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
+    description:
+      'StarlingPost is a social media scheduling and automation tool — post once to YouTube, Twitter/X, and LinkedIn with AI captions, scheduling, and comment automation.',
+    images: [
+      {
+        url: '/images/og-cover.png',
+        width: 1200,
+        height: 630,
+        alt: 'StarlingPost',
+        // TODO: create /public/images/og-cover.png (1200×630) before launch
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@starlingpost',
+    creator: '@starlingpost',
+  },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
+  },
+  // TODO: add /public/manifest.json and uncomment:
+  // manifest: '/manifest.json',
+};
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'StarlingPost',
+  url: 'https://www.starlingpost.com',
+  logo: 'https://www.starlingpost.com/images/logo.png',
+  sameAs: [
+    'https://twitter.com/starlingpost',
+    'https://linkedin.com/company/starlingpost',
+    'https://youtube.com/starlingpost',
+    'https://github.com/torafitech/post-pilot',
+  ],
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'StarlingPost',
+  url: 'https://www.starlingpost.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://www.starlingpost.com/blog?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
   },
 };
 
@@ -50,9 +101,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7342126104264680"
           crossOrigin="anonymous"
-        ></script>
+        />
       </head>
       <body className="bg-gray-950 text-white antialiased">
+        <JsonLd data={organizationSchema} />
+        <JsonLd data={websiteSchema} />
         <AuthProvider>
           <Navbar />
           <main className="min-h-screen">{children}</main>
