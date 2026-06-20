@@ -41,15 +41,7 @@ export const metadata: Metadata = {
     title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
     description:
       'StarlingPost is a social media scheduling and automation tool — post once to YouTube, Twitter/X, and LinkedIn with AI captions, scheduling, and comment automation.',
-    images: [
-      {
-        url: '/images/og-cover.png',
-        width: 1200,
-        height: 630,
-        alt: 'StarlingPost',
-        // TODO: create /public/images/og-cover.png (1200×630) before launch
-      },
-    ],
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'StarlingPost' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -58,7 +50,6 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
   },
   // TODO: add /public/manifest.json and uncomment:
   // manifest: '/manifest.json',
