@@ -9,11 +9,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { useWaitlist } from '@/components/Waitlist';
 
 export function Navbar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, userProfile, logout } = useAuth();
+  const { open: openWaitlist } = useWaitlist();
   const [scrolled,  setScrolled]  = useState(false);
   const [menuOpen,  setMenuOpen]  = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -137,12 +139,12 @@ export function Navbar() {
                 >
                   Sign In
                 </button>
-                <Link
-                  href="/register"
-                  className="bg-[#d4ff3a] text-[#0a0a0b] px-5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors"
+                <button
+                  onClick={() => openWaitlist('navbar')}
+                  className="bg-[#d4ff3a] text-[#0a0a0b] px-4 md:px-5 py-2 font-mono text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-[#bff020] transition-colors"
                 >
-                  Get Started
-                </Link>
+                  Get Early Access
+                </button>
               </>
             ) : (
               <Link

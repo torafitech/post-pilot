@@ -7,6 +7,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import { TrackingScripts } from '@/components/TrackingScripts';
+import { WaitlistProvider } from '@/components/Waitlist';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -100,9 +101,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <JsonLd data={organizationSchema} />
         <JsonLd data={websiteSchema} />
         <AuthProvider>
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <WaitlistProvider>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </WaitlistProvider>
         </AuthProvider>
         <TrackingScripts />
         <Analytics />

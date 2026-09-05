@@ -9,7 +9,7 @@ import {
 import { useRef, useState, useEffect } from 'react';
 import { HOMEPAGE_FAQ } from '@/lib/pricing';
 import { FOUNDING_INCLUDES, LAUNCH_PRICING } from '@/lib/launch';
-import { WaitlistButton, WaitlistProvider } from '@/components/Waitlist';
+import { WaitlistButton } from '@/components/Waitlist';
 
 // ─── Local SVG icons ──────────────────────────────────────────────────────────
 
@@ -214,14 +214,6 @@ function FeatureCard({
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
-  return (
-    <WaitlistProvider>
-      <LandingPageInner />
-    </WaitlistProvider>
-  );
-}
-
-function LandingPageInner() {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -60]);
 
