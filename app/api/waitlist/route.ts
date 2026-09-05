@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     name,
     email,
     businessType,
+    profileLink: clean(body.profileLink, 500) ?? '',
     utmSource: clean(body.utmSource, 200),
     utmMedium: clean(body.utmMedium, 200),
     utmCampaign: clean(body.utmCampaign, 200),

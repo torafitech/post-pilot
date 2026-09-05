@@ -35,4 +35,4 @@ export const WAITLIST_COLLECTION = 'waitlist_registrations';
 export const CTA_LABEL = 'Get Early Access — Founding Member Pricing';
 
 export const CONFIRMATION_COPY =
-  "You're on the list — we'll notify you the moment StarlingPost launches, and your founding member price is locked in.";
+  "You're on the list. We'll notify you the moment StarlingPost launches, your founding member price is locked in, and a few early registrants will get hands-on pilot access before that.";

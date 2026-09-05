@@ -99,6 +99,7 @@ function WaitlistModal({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [businessType, setBusinessType] = useState<string>('');
+  const [profileLink, setProfileLink] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -135,6 +136,7 @@ function WaitlistModal({
           name,
           email,
           businessType,
+          profileLink,
           ...utmParams,
           referrer: typeof document !== 'undefined' ? document.referrer : null,
           source,
@@ -164,6 +166,7 @@ function WaitlistModal({
         setName('');
         setEmail('');
         setBusinessType('');
+        setProfileLink('');
         setStatus('idle');
       }
       setError(null);
@@ -238,7 +241,7 @@ function WaitlistModal({
                   for life.
                 </h2>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
-                  Three fields. We&apos;ll email you the moment StarlingPost opens.
+                  We&apos;ll email you the moment StarlingPost opens.
                 </p>
 
                 <form onSubmit={submit} className="mt-7 space-y-4">
@@ -286,6 +289,21 @@ function WaitlistModal({
                     </select>
                   </Field>
 
+                  <Field
+                    label="Your YouTube, X, or LinkedIn profile link"
+                    hint="Optional — helps us prioritize your invite for the hands-on pilot."
+                  >
+                    <input
+                      type="text"
+                      value={profileLink}
+                      onChange={(e) => setProfileLink(e.target.value)}
+                      autoComplete="url"
+                      inputMode="url"
+                      placeholder="e.g. youtube.com/@yourhandle"
+                      className={inputClass}
+                    />
+                  </Field>
+
                   {error && (
                     <p className="text-[13px] text-[var(--coral)] font-mono">{error}</p>
                   )}
@@ -322,13 +340,22 @@ function WaitlistModal({
 const inputClass =
   'w-full bg-transparent border border-white/15 rounded-xl px-4 py-3.5 text-[16px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-[var(--citron)]/60 transition-colors';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
         {label}
       </span>
       <div className="mt-2">{children}</div>
+      {hint && <span className="mt-2 block text-[12px] text-zinc-500">{hint}</span>}
     </label>
   );
 }
