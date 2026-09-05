@@ -138,19 +138,23 @@ export const PRICING_FAQ: FaqItem[] = [
 export const HOMEPAGE_FAQ: FaqItem[] = [
   {
     q: 'Which platforms are supported?',
-    a: 'Beta is live on YouTube, Twitter/X, and LinkedIn. Instagram, Facebook, and Threads are coming soon.',
+    a: 'YouTube, Twitter/X, and LinkedIn are live. Instagram, Facebook, and Threads are coming soon. You post whatever each platform supports — video, image, or text.',
   },
   {
-    q: 'Can I connect multiple accounts on the same platform?',
-    a: 'Yes. Starter plan: 3 accounts total. Growth: 10. Agency: unlimited. Multi-account per platform is available on Growth and Agency plans.',
+    q: 'Do I pay more for each account I connect?',
+    a: 'No. StarlingPost is one flat monthly price with every connected account included — no per-channel fees and no seat fees, unlike per-channel tools. Connect as many accounts as you post from.',
+  },
+  {
+    q: 'Does StarlingPost run ads for me?',
+    a: 'No. StarlingPost works on your organic content only. It grows the reach of the posts you already publish and captures the inbound interest they generate — it does not create, run, or manage paid ad campaigns.',
+  },
+  {
+    q: 'How does lead capture actually work?',
+    a: 'Set a keyword or a reply rule once. When someone comments or mentions you, StarlingPost replies automatically — with your link, a template, or an AI-written response — so warm interest gets an answer within minutes instead of days.',
   },
   {
     q: 'How does AI enhancement work?',
-    a: 'Your caption goes to OpenAI gpt-4o-mini with per-platform rules (length, tone, hashtag style). You see a side-by-side and accept or reject each suggestion.',
-  },
-  {
-    q: 'Does comment auto-reply actually work?',
-    a: 'Yes — on YouTube, Twitter/X, and LinkedIn. Instagram, Facebook, and Threads automation is coming soon.',
+    a: 'Your draft goes to OpenAI gpt-4o-mini with per-platform rules (length, tone, hashtag style) and comes back as a tuned description plus SEO-friendly tags. You see a side-by-side and accept or reject each suggestion.',
   },
   {
     q: 'Is this safe to run on my real accounts?',

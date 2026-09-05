@@ -6,6 +6,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
+import { TrackingScripts } from '@/components/TrackingScripts';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -103,6 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="min-h-screen">{children}</main>
           <Footer />
         </AuthProvider>
+        <TrackingScripts />
         <Analytics />
       </body>
     </html>

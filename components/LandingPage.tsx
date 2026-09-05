@@ -1,14 +1,15 @@
 'use client';
 
-import { motion, useInView, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import {
-  ArrowRight, ArrowUpRight, Calendar, CheckCircle2, Facebook,
+  Calendar, CheckCircle2, Facebook,
   Linkedin, Twitter, Wand2, Youtube,
   BarChart3, Layers, Globe, Bot, KeyRound, ChevronRight,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useRef, useState, useEffect, MouseEvent } from 'react';
-import { PLANS, HOMEPAGE_FAQ } from '@/lib/pricing';
+import { useRef, useState, useEffect } from 'react';
+import { HOMEPAGE_FAQ } from '@/lib/pricing';
+import { FOUNDING_INCLUDES, LAUNCH_PRICING } from '@/lib/launch';
+import { WaitlistButton, WaitlistProvider } from '@/components/Waitlist';
 
 // ─── Local SVG icons ──────────────────────────────────────────────────────────
 
@@ -70,45 +71,6 @@ const reveal = (delay = 0) => ({
   hidden: { opacity: 0, y: 18 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease: [0.21, 1, 0.32, 1] as const } },
 });
-
-// ─── Magnetic CTA ────────────────────────────────────────────────────────────
-
-function MagneticLink({
-  href, children, primary = false,
-}: { href: string; children: React.ReactNode; primary?: boolean }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 200, damping: 18 });
-  const sy = useSpring(y, { stiffness: 200, damping: 18 });
-
-  const onMove = (e: MouseEvent<HTMLAnchorElement>) => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    x.set((e.clientX - cx) * 0.18);
-    y.set((e.clientY - cy) * 0.18);
-  };
-  const onLeave = () => { x.set(0); y.set(0); };
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={{ x: sx, y: sy }}
-      className={`inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium tracking-tight transition-colors ${
-        primary
-          ? 'bg-[var(--citron)] text-black hover:bg-[#e6ff5e]'
-          : 'border border-white/15 text-white hover:bg-white/5'
-      }`}
-    >
-      {children}
-    </motion.a>
-  );
-}
 
 // ─── Hero platform constellation ─────────────────────────────────────────────
 
@@ -252,6 +214,14 @@ function FeatureCard({
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
+  return (
+    <WaitlistProvider>
+      <LandingPageInner />
+    </WaitlistProvider>
+  );
+}
+
+function LandingPageInner() {
   const { scrollYProgress } = useScroll();
   const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -60]);
 
@@ -276,7 +246,7 @@ export function LandingPage() {
           >
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--citron)] animate-pulse" />
-              StarlingPost · Issue 01 · Beta
+              StarlingPost · Early access
             </div>
             <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
               <span>{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
@@ -285,57 +255,55 @@ export function LandingPage() {
 
           {/* GEO definitional sentence — crawlable, visible */}
           <p className="sr-only">
-            StarlingPost is a social media scheduling and automation tool that publishes a single
-            post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads
-            coming soon.
+            StarlingPost is a social media tool for solo freelancers that publishes organic posts
+            to every connected platform from one place, and automatically captures the inbound
+            interest those posts generate — replying to comments and sending your link — across
+            YouTube, Twitter/X, and LinkedIn, with Instagram, Facebook, and Threads coming soon.
           </p>
 
           <motion.div style={{ y: heroY }}>
             <motion.h1
               initial="hidden" animate="visible" variants={reveal(0.05)}
-              className="font-display text-[14vw] sm:text-[10vw] lg:text-[8.5rem] leading-[0.85] tracking-[-0.04em] text-white"
+              className="font-display text-[13vw] sm:text-[9.5vw] lg:text-[7.5rem] leading-[0.88] tracking-[-0.04em] text-white"
             >
-              One post.
+              Your posts reach further.
               <br />
-              <span className="italic font-light text-zinc-400">All platforms.</span>
+              <span className="italic font-light text-zinc-400">The leads they bring back</span>
               <br />
-              <span className="mark text-white">Zero tab-juggling.</span>
+              <span className="mark text-white">answer themselves.</span>
             </motion.h1>
           </motion.div>
 
           <div className="mt-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-end">
             <motion.div initial="hidden" animate="visible" variants={reveal(0.18)} className="max-w-xl">
-              <p className="text-zinc-300 text-lg leading-relaxed">
-                Write once. Publish to <span className="font-display italic">YouTube</span>,{' '}
-                <span className="font-display italic">Twitter/X</span>, and{' '}
-                <span className="font-display italic">LinkedIn</span> — with AI captions tuned per
-                platform, smart scheduling, and replies that run while you sleep.{' '}
-                <span className="text-zinc-500">Instagram, Facebook, and Threads coming soon.</span>
+              <p className="text-zinc-300 text-base sm:text-lg leading-relaxed">
+                For solo <span className="font-display italic">developers</span>,{' '}
+                <span className="font-display italic">designers</span>,{' '}
+                <span className="font-display italic">consultants</span>, and{' '}
+                <span className="font-display italic">marketers</span> building a personal brand
+                alongside client work. Publish your organic content everywhere you post in one
+                click — then let StarlingPost catch every comment and DM it earns and turn it into
+                a lead, while you&apos;re back on billable work.
               </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <MagneticLink href="/register" primary>
-                  Start 14-day trial <ArrowRight size={16} />
-                </MagneticLink>
-                <MagneticLink href="/login">
-                  Sign in
-                </MagneticLink>
-                <div className="ml-2 font-mono text-[11px] text-zinc-500">
-                  No credit card · 2-minute setup
+              <div className="mt-8 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+                <WaitlistButton source="hero" />
+                <div className="font-mono text-[11px] text-zinc-500 sm:ml-1">
+                  No card · Founding price locked for life
                 </div>
               </div>
 
-              <div className="mt-10 grid grid-cols-3 gap-6 max-w-md">
+              <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-6 max-w-md">
                 {[
-                  { v: 3, suffix: '', l: 'live platforms' },
-                  { v: 5, suffix: ' min', l: 'per post' },
-                  { v: 12, suffix: 'h', l: 'saved / week' },
+                  { v: 6, suffix: '', l: 'platforms, one post' },
+                  { v: 0, suffix: '', l: 'per-channel fees' },
+                  { v: 24, suffix: '/7', l: 'inbound capture' },
                 ].map((s) => (
                   <div key={s.l}>
                     <div className="font-display text-3xl sm:text-4xl text-[var(--citron)]">
                       <Counter to={s.v} suffix={s.suffix} />
                     </div>
-                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 leading-relaxed">
                       {s.l}
                     </div>
                   </div>
@@ -343,7 +311,7 @@ export function LandingPage() {
               </div>
             </motion.div>
 
-            <motion.div initial="hidden" animate="visible" variants={reveal(0.28)}>
+            <motion.div initial="hidden" animate="visible" variants={reveal(0.28)} className="hidden sm:block">
               <PlatformConstellation />
             </motion.div>
           </div>
@@ -381,27 +349,29 @@ export function LandingPage() {
 
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
             <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight">
-              You're not a <span className="italic text-zinc-500">creator</span> anymore.
+              The post did its job.
               <br />
-              You're a <span className="mark">tab manager.</span>
+              <span className="mark">You missed the reply.</span>
             </h2>
 
             <div className="space-y-7 text-zinc-400 text-base lg:text-lg leading-relaxed">
               <p>
-                One idea. Three different composers. Three different character limits, hashtag
-                etiquettes, and optimal post times. You're rewriting the same post multiple times
-                — and forgetting to reply on half of them.
+                You&apos;re not running ads. Your reach is earned — a build log, a case study, a hot
+                take that landed. Then someone comments &ldquo;how much?&rdquo; at 11pm while
+                you&apos;re deep in a client sprint, and by the time you surface two days later the
+                thread is cold and they&apos;ve hired someone else.
               </p>
               <p className="text-white">
-                StarlingPost was built so the next time you have something to say, it takes{' '}
-                <span className="font-display italic">five minutes</span> — not an hour.
+                StarlingPost gets that content in front of every audience you have — then answers
+                the people it brings back,{' '}
+                <span className="font-display italic">automatically</span>.
               </p>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                 {[
-                  'Stop switching tabs',
-                  'Stop re-typing captions',
-                  'Stop missing comments',
-                  'Stop forgetting to post',
+                  'Stop re-posting by hand',
+                  'Stop losing warm comments',
+                  'Stop sending links manually',
+                  'Stop guessing what worked',
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2 text-zinc-300 text-sm">
                     <span className="mt-1 h-1 w-3 bg-[var(--coral)]" />
@@ -502,7 +472,7 @@ export function LandingPage() {
               tone="dark"
               kicker="Publish"
               title="One composer. Three destinations."
-              copy="Write your caption once. We auto-rewrite it for each platform — character limits, hashtag etiquette, title length, all handled. Override any per-platform copy in one click."
+              copy="Write once, publish to every connected account in one click — video, image, or text, whatever each platform takes. Character limits, hashtag etiquette, and title length all handled per platform."
               icon={<Layers size={20} />}
               accent="var(--citron)"
             />
@@ -511,7 +481,7 @@ export function LandingPage() {
               tone="bright"
               kicker="AI"
               title="Caption alchemy"
-              copy="GPT-4o-mini tunes captions per platform — hooks, hashtags, CTAs, tone."
+              copy="AI writes your description and generates SEO-friendly tags per platform — hooks, hashtags, tone."
               icon={<Wand2 size={20} />}
               accent="#0a0a0b"
             />
@@ -529,7 +499,7 @@ export function LandingPage() {
               tone="dark"
               kicker="Link Me"
               title="Keyword → send the link"
-              copy="Someone comments 'link'? They get your link auto-replied — on YouTube, Twitter/X, and LinkedIn."
+              copy="Someone comments 'link'? They get your link auto-replied, instantly — on YouTube, Twitter/X, and LinkedIn. Interest becomes a lead while it's still warm."
               icon={<KeyRound size={20} />}
               accent="var(--coral)"
             />
@@ -538,7 +508,7 @@ export function LandingPage() {
               tone="dark"
               kicker="Auto Reply"
               title="Conversations on autopilot"
-              copy="Template or AI-generated replies to every comment. Personalize with {username} or unique per comment."
+              copy="Template or AI-written replies to every comment and mention, so nobody who reaches out gets left on read."
               icon={<Bot size={20} />}
               accent="#60a5fa"
             />
@@ -547,16 +517,16 @@ export function LandingPage() {
               tone="dark"
               kicker="Analytics"
               title="Real numbers. Not vanity charts."
-              copy="Views, likes, comments, reach across all connected platforms. YouTube deep-dive. Real-time sync on Growth and Agency plans."
+              copy="Views, likes, comments, and reach across every connected platform in one dashboard — plus a YouTube deep-dive. One place to see what is actually pulling."
               icon={<BarChart3 size={20} />}
               accent="#34d399"
             />
             <FeatureCard
               span="sm:col-span-3"
               tone="dark"
-              kicker="For Agencies"
-              title="Multi-account, single login"
-              copy="Manage multiple YouTube channels, Twitter handles, and LinkedIn pages. Same dashboard, same caption, different audiences."
+              kicker="No Limits"
+              title="Every account, single login"
+              copy="Multiple YouTube channels, Twitter handles, and LinkedIn pages — your own and your clients'. Same flat price no matter how many you connect."
               icon={<Globe size={20} />}
               accent="var(--citron)"
             />
@@ -645,68 +615,79 @@ export function LandingPage() {
               <span className="h-px flex-1 bg-white/10" />
               <span>Pricing</span>
             </div>
-            <div className="grid lg:grid-cols-[1fr_1fr] gap-12 items-end mb-16">
+            <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12 items-end mb-12 lg:mb-16">
               <h2 className="font-display text-5xl sm:text-6xl lg:text-7xl leading-[0.95] tracking-tight">
-                14 days free. <br /><span className="italic text-zinc-500">Then pick a plan.</span>
+                One flat price. <br />
+                <span className="italic text-zinc-500">Every channel included.</span>
               </h2>
               <p className="text-zinc-400 lg:max-w-md">
-                No credit card required for the trial. No free tier — every feature costs real API
-                money and we don't hide that. Starter at $9, Growth at $19, Agency at $49.
+                Everyone else charges you per channel — add a second YouTube channel or a third
+                client handle and the bill climbs. StarlingPost doesn&apos;t.{' '}
+                <span className="text-white">No per-channel fees, ever.</span> Connect as many
+                accounts as you post from, on one flat rate.
               </p>
             </div>
           </motion.div>
 
-          <div className="grid lg:grid-cols-3 gap-5">
-            {PLANS.map((plan, i) => (
-              <motion.div
-                key={plan.key}
-                initial="hidden" whileInView="visible" viewport={{ once: true }}
-                variants={reveal(i * 0.08)}
-                className={`relative rounded-3xl border ${
-                  plan.highlight
-                    ? 'border-[var(--citron)]/50 ring-1 ring-[var(--citron)]/30'
-                    : 'border-white/10'
-                } bg-[var(--ink)] p-8 lg:p-10 flex flex-col`}
-              >
-                {plan.highlight && (
-                  <div className="absolute -top-3 left-8 px-3 py-1 rounded-full bg-[var(--citron)] text-black text-[10px] font-mono uppercase tracking-widest">
-                    Most popular
-                  </div>
-                )}
+          <motion.div
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={reveal(0)}
+            className="grid lg:grid-cols-[1.1fr_0.9fr] gap-px bg-white/10 border border-white/10 rounded-3xl overflow-hidden"
+          >
+            {/* Price */}
+            <div className="relative bg-[var(--ink)] p-7 sm:p-10 lg:p-12">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--citron)]/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--citron)]">
+                {LAUNCH_PRICING.seatsClaim}
+              </div>
 
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500 mb-3">{plan.label}</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-6xl tracking-tight">{plan.price}</span>
-                  <span className="text-zinc-500 text-sm">{plan.per}</span>
-                </div>
-                <p className="mt-3 text-zinc-400 text-sm">{plan.desc}</p>
+              <div className="mt-7 flex items-baseline gap-3 flex-wrap">
+                <span className="font-display text-2xl sm:text-3xl text-zinc-600 line-through decoration-[var(--coral)] decoration-2">
+                  {LAUNCH_PRICING.currency}
+                  {LAUNCH_PRICING.regularPrice}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-600">
+                  regular
+                </span>
+              </div>
 
-                <div className="mt-6 pt-6 border-t border-white/5 font-mono text-[11px] uppercase tracking-[0.15em] text-zinc-500">
-                  {plan.limit}
-                </div>
+              <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+                <span className="font-display text-6xl sm:text-7xl lg:text-8xl tracking-tight text-white">
+                  {LAUNCH_PRICING.currency}
+                  {LAUNCH_PRICING.foundingPrice}
+                </span>
+                <span className="text-zinc-500 text-sm">{LAUNCH_PRICING.period}</span>
+              </div>
 
-                <ul className="mt-6 space-y-3 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-300">
-                      <CheckCircle2 size={14} className={plan.highlight ? 'text-[var(--citron)]' : 'text-zinc-500'} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+              <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--citron)]">
+                Founding member price
+              </div>
 
-                <Link
-                  href="/register"
-                  className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition-colors ${
-                    plan.highlight
-                      ? 'bg-[var(--citron)] text-black hover:bg-[#e6ff5e]'
-                      : 'border border-white/10 text-white hover:bg-white/5'
-                  }`}
-                >
-                  {plan.cta} <ArrowUpRight size={15} />
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+              <p className="mt-5 text-sm text-zinc-400 leading-relaxed max-w-sm">
+                {LAUNCH_PRICING.lockNote}
+              </p>
+
+              <div className="mt-8">
+                <WaitlistButton source="pricing" />
+              </div>
+            </div>
+
+            {/* What's included */}
+            <div className="bg-[#0f0f11] p-7 sm:p-10 lg:p-12">
+              <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+                Everything included
+              </div>
+              <ul className="mt-6 space-y-3.5">
+                {FOUNDING_INCLUDES.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-[15px] text-zinc-300 leading-snug">
+                    <CheckCircle2 size={15} className="text-[var(--citron)] mt-0.5 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 pt-6 border-t border-white/10 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 leading-relaxed">
+                No per-channel fees · No seat fees · Cancel anytime
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -720,7 +701,7 @@ export function LandingPage() {
               <span>Questions</span>
             </div>
             <h2 className="font-display text-5xl lg:text-6xl leading-[0.95] tracking-tight mb-12">
-              You're going to ask <span className="italic text-zinc-500">these.</span>
+              You&apos;re going to ask <span className="italic text-zinc-500">these.</span>
             </h2>
           </motion.div>
 
@@ -752,26 +733,32 @@ export function LandingPage() {
         />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-12 py-32 lg:py-40 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
-              YouTube · Twitter/X · LinkedIn · One workspace · Five minutes
+            <div className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
+              Organic reach · Inbound capture · One flat price
             </div>
-            <h2 className="font-display text-6xl sm:text-7xl lg:text-9xl leading-[0.88] tracking-tight max-w-5xl mx-auto">
-              Stop posting <span className="italic">three times.</span>
+            <h2 className="font-display text-5xl sm:text-7xl lg:text-9xl leading-[0.88] tracking-tight max-w-5xl mx-auto">
+              Post the work.
               <br />
-              <span className="mark">Start posting once.</span>
+              <span className="mark">Keep the leads.</span>
             </h2>
 
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-              <MagneticLink href="/register" primary>
-                Start 14-day trial <ArrowRight size={16} />
-              </MagneticLink>
-              <MagneticLink href="/login">Sign in</MagneticLink>
+            <p className="mt-7 text-zinc-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+              Founding members lock {LAUNCH_PRICING.currency}
+              {LAUNCH_PRICING.foundingPrice} {LAUNCH_PRICING.period} for life — down from{' '}
+              {LAUNCH_PRICING.currency}
+              {LAUNCH_PRICING.regularPrice}.
+            </p>
+
+            <div className="mt-10 flex justify-center">
+              <div className="w-full sm:w-auto max-w-md">
+                <WaitlistButton source="final-cta" />
+              </div>
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
-              <span>No credit card</span>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-zinc-600">
+              <span>No card</span>
               <span className="hidden sm:inline">·</span>
-              <span>2-minute setup</span>
+              <span>No per-channel fees</span>
               <span className="hidden sm:inline">·</span>
               <span>Cancel anytime</span>
             </div>

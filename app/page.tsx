@@ -1,25 +1,27 @@
 import type { Metadata } from 'next';
 import { LandingPage } from '@/components/LandingPage';
 import { JsonLd } from '@/components/JsonLd';
-import { PLANS, HOMEPAGE_FAQ } from '@/lib/pricing';
+import { HOMEPAGE_FAQ } from '@/lib/pricing';
+import { LAUNCH_PRICING } from '@/lib/launch';
+
+const TITLE = 'StarlingPost — Post everywhere. Capture every lead it brings back.';
+const DESCRIPTION =
+  'StarlingPost helps solo developers, designers, consultants, and marketers grow reach on their organic posts across every platform — then automatically captures the comments and DMs those posts generate as leads. One flat price, no per-channel fees.';
 
 export const metadata: Metadata = {
-  title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
-  description:
-    'StarlingPost is a social media scheduling and automation tool — post once to YouTube, Twitter/X, and LinkedIn with AI captions, scheduling, and comment automation.',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
-    description:
-      'Post once to YouTube, Twitter/X, and LinkedIn. AI captions, scheduling, and comment automation in one dashboard. Instagram, Facebook, and Threads coming soon.',
+    title: TITLE,
+    description: DESCRIPTION,
     url: 'https://www.starlingpost.com',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'StarlingPost — Post once to YouTube, X & LinkedIn',
-    description:
-      'Post once to YouTube, Twitter/X, and LinkedIn. AI captions, scheduling, and comment automation in one dashboard.',
+    title: TITLE,
+    description: DESCRIPTION,
     images: ['/images/og-cover.png'],
     creator: '@starlingpost',
   },
@@ -38,15 +40,15 @@ export default function Home() {
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     url: 'https://www.starlingpost.com',
-    description:
-      'StarlingPost is a social media scheduling and automation tool that publishes a single post to YouTube, Twitter/X, and LinkedIn — with Instagram, Facebook, and Threads coming soon.',
-    offers: PLANS.map((plan) => ({
+    description: DESCRIPTION,
+    offers: {
       '@type': 'Offer',
-      name: plan.label,
-      price: plan.priceNum.toString(),
-      priceCurrency: 'USD',
-      description: plan.desc,
-    })),
+      name: 'Founding Member',
+      price: LAUNCH_PRICING.foundingPrice.toString(),
+      priceCurrency: 'INR',
+      description:
+        'Flat monthly price with every connected account included — no per-channel fees. Founding member rate locked for life.',
+    },
     author: { '@type': 'Organization', name: 'StarlingPost' },
   };
 
