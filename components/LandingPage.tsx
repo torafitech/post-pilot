@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import {
   Calendar, CheckCircle2, Facebook,
   Linkedin, Twitter, Wand2, Youtube,
@@ -72,72 +72,79 @@ const reveal = (delay = 0) => ({
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease: [0.21, 1, 0.32, 1] as const } },
 });
 
-// ─── Hero platform constellation ─────────────────────────────────────────────
+// ─── Hero: the moment the product exists for ─────────────────────────────────
+// A comment lands while you're on client work; the reply goes out without you.
+// One orchestrated load sequence — the only unprompted motion on the page.
 
-function PlatformConstellation() {
+function InboundDemo() {
+  const reduced = useReducedMotion();
+  const step = (delay: number) =>
+    reduced
+      ? { initial: { opacity: 1, y: 0 }, animate: { opacity: 1, y: 0 } }
+      : {
+          initial: { opacity: 0, y: 10 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.55, delay, ease: [0.21, 1, 0.32, 1] as const },
+        };
+
   return (
-    <div className="relative h-[360px] sm:h-[460px] w-full">
-      {/* Center node */}
-      <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.9, ease: [0.21, 1, 0.32, 1] }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-      >
-        <div className="relative">
-          <div className="absolute inset-0 -m-3 rounded-3xl bg-[var(--citron)]/10 blur-2xl" />
-          <div className="relative flex flex-col items-center justify-center w-44 h-44 sm:w-56 sm:h-56 rounded-3xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-white/10 shadow-[0_30px_80px_-20px_rgba(212,255,58,0.25)]">
-            <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">one post</div>
-            <div className="mt-2 font-display text-3xl sm:text-4xl text-white tracking-tight">→</div>
-            <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--citron)]">all platforms</div>
+    <motion.div
+      {...step(0.35)}
+      className="relative w-full max-w-md mx-auto lg:mx-0 border border-white/10 rounded-2xl bg-[#0e0e10] overflow-hidden"
+    >
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/[0.07]">
+        <Youtube size={15} className="text-red-400" />
+        <span className="text-[13px] text-zinc-400">Comment on your latest video</span>
+        <span className="ml-auto text-[12px] text-zinc-600">11:47 pm</span>
+      </div>
+
+      <div className="p-5 space-y-1">
+        <div className="flex gap-3">
+          <div className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-zinc-800 text-zinc-400 grid place-items-center text-[13px] font-medium">
+            M
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] text-zinc-500">@mira.builds</div>
+            <p className="mt-1 text-[15px] text-zinc-200 leading-snug">
+              This is exactly what I need. What do you charge for something like this?
+            </p>
           </div>
         </div>
-      </motion.div>
 
-      {/* Orbital ring */}
-      <svg viewBox="0 0 600 460" className="absolute inset-0 w-full h-full opacity-50">
-        <defs>
-          <linearGradient id="ringGrad" x1="0" x2="1">
-            <stop offset="0" stopColor="rgba(255,255,255,0)" />
-            <stop offset=".5" stopColor="rgba(212,255,58,0.5)" />
-            <stop offset="1" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-        <ellipse cx="300" cy="230" rx="280" ry="180" fill="none" stroke="url(#ringGrad)" strokeWidth="1" strokeDasharray="2 6" />
-      </svg>
+        <motion.div
+          {...step(1.0)}
+          className="ml-4 h-7 w-px bg-gradient-to-b from-white/10 to-[var(--citron)]/50"
+        />
 
-      {/* Six platform chips */}
-      {PLATFORMS.map((p, i) => {
-        const angle = (i / PLATFORMS.length) * Math.PI * 2 - Math.PI / 2;
-        const rx = 44;
-        const ry = 38;
-        const left = 50 + rx * Math.cos(angle);
-        const top = 50 + ry * Math.sin(angle);
-        return (
-          <motion.div
-            key={p.id}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 + i * 0.08, duration: 0.6, ease: [0.21, 1, 0.32, 1] }}
-            className="absolute drift"
-            style={{
-              left: `${left}%`,
-              top: `${top}%`,
-              transform: 'translate(-50%, -50%)',
-              animationDelay: `${i * 0.6}s`,
-            }}
-          >
-            <div className={`flex items-center gap-2 rounded-full bg-zinc-900/80 backdrop-blur border border-white/10 px-3 py-2 ring-1 ${p.ring} ${p.comingSoon ? 'opacity-50' : ''}`}>
-              <p.Icon size={16} className={p.text} />
-              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">{p.name}</span>
-              {p.comingSoon && (
-                <span className="font-mono text-[8px] uppercase tracking-widest text-zinc-600">soon</span>
-              )}
+        <motion.div {...step(1.25)} className="flex gap-3">
+          <div className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-[var(--citron)] text-black grid place-items-center text-[13px] font-semibold">
+            S
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-zinc-300">You</span>
+              <span className="text-[11px] text-zinc-400 border border-white/15 rounded-full px-2 py-0.5">
+                sent by StarlingPost
+              </span>
             </div>
-          </motion.div>
-        );
-      })}
-    </div>
+            <p className="mt-1 text-[15px] text-zinc-200 leading-snug">
+              Thanks Mira — rates and availability are here:{' '}
+              <span className="text-[var(--citron)] underline decoration-[var(--citron)]/40 underline-offset-2">
+                starling.link/mira
+              </span>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      <motion.div
+        {...step(1.75)}
+        className="flex items-center gap-2 px-5 py-3 border-t border-white/[0.07] text-[12px] text-zinc-500"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--citron)]" />
+        Answered in 38 seconds. You were asleep.
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -214,9 +221,6 @@ function FeatureCard({
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 0.15], [0, -60]);
-
   return (
     <div className="bg-[var(--ink)] text-white">
 
@@ -231,20 +235,7 @@ export function LandingPage() {
           }}
         />
 
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-24 pb-12 lg:pt-32 lg:pb-16">
-          <motion.div
-            initial="hidden" animate="visible" variants={reveal(0)}
-            className="flex items-center justify-between mb-12 lg:mb-16"
-          >
-            <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--citron)] animate-pulse" />
-              StarlingPost · Early access
-            </div>
-            <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
-              <span>{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-            </div>
-          </motion.div>
-
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-28 pb-14 lg:pt-36 lg:pb-24">
           {/* GEO definitional sentence — crawlable, visible */}
           <p className="sr-only">
             StarlingPost is a social media tool for solo freelancers that publishes organic posts
@@ -253,59 +244,44 @@ export function LandingPage() {
             YouTube, Twitter/X, and LinkedIn, with Instagram, Facebook, and Threads coming soon.
           </p>
 
-          <motion.div style={{ y: heroY }}>
-            <motion.h1
-              initial="hidden" animate="visible" variants={reveal(0.05)}
-              className="font-display text-[13vw] sm:text-[9.5vw] lg:text-[7.5rem] leading-[0.88] tracking-[-0.04em] text-white"
-            >
-              Your posts reach further.
-              <br />
-              <span className="italic font-light text-zinc-400">The leads they bring back</span>
-              <br />
-              <span className="mark text-white">answer themselves.</span>
-            </motion.h1>
-          </motion.div>
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] gap-12 lg:gap-16 items-center">
+            <div>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.21, 1, 0.32, 1] }}
+                className="font-display text-[clamp(2.6rem,7.4vw,5.75rem)] leading-[0.92] tracking-[-0.035em] text-white text-balance"
+              >
+                Your posts go everywhere.
+                <br />
+                The replies don&apos;t wait for you.
+              </motion.h1>
 
-          <div className="mt-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-end">
-            <motion.div initial="hidden" animate="visible" variants={reveal(0.18)} className="max-w-xl">
-              <p className="text-zinc-300 text-base sm:text-lg leading-relaxed">
-                For solo <span className="font-display italic">developers</span>,{' '}
-                <span className="font-display italic">designers</span>,{' '}
-                <span className="font-display italic">consultants</span>, and{' '}
-                <span className="font-display italic">marketers</span> building a personal brand
-                alongside client work. Publish your organic content everywhere you post in one
-                click — then let StarlingPost catch every comment and DM it earns and turn it into
-                a lead, while you&apos;re back on billable work.
-              </p>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.12, ease: [0.21, 1, 0.32, 1] }}
+                className="mt-7 max-w-[46ch] text-zinc-400 text-[17px] leading-relaxed"
+              >
+                Built for solo developers, designers, consultants, and marketers: one click
+                publishes to every account you own, and the comments it earns get answered
+                without you.
+              </motion.p>
 
-              <div className="mt-8 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.22, ease: [0.21, 1, 0.32, 1] }}
+                className="mt-9 flex flex-col sm:flex-row sm:items-center gap-x-5 gap-y-3"
+              >
                 <WaitlistButton source="hero" />
-                <div className="font-mono text-[11px] text-zinc-500 sm:ml-1">
-                  No card · Founding price locked for life
-                </div>
-              </div>
+                <p className="text-[13px] text-zinc-500">
+                  No card. Founding price locked for life.
+                </p>
+              </motion.div>
+            </div>
 
-              <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-6 max-w-md">
-                {[
-                  { v: 6, suffix: '', l: 'platforms, one post' },
-                  { v: 0, suffix: '', l: 'per-channel fees' },
-                  { v: 24, suffix: '/7', l: 'inbound capture' },
-                ].map((s) => (
-                  <div key={s.l}>
-                    <div className="font-display text-3xl sm:text-4xl text-[var(--citron)]">
-                      <Counter to={s.v} suffix={s.suffix} />
-                    </div>
-                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 leading-relaxed">
-                      {s.l}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div initial="hidden" animate="visible" variants={reveal(0.28)} className="hidden sm:block">
-              <PlatformConstellation />
-            </motion.div>
+            <InboundDemo />
           </div>
         </div>
 
