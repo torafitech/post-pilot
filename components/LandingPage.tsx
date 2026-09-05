@@ -445,7 +445,7 @@ export function LandingPage() {
       </section>
 
       {/* ════════════ FEATURES BENTO ════════════ */}
-      <section className="relative border-t border-white/5">
+      <section id="features" className="relative border-t border-white/5 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 lg:py-32">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-15%' }} variants={fadeUp}>
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
@@ -599,7 +599,7 @@ export function LandingPage() {
       </section>
 
       {/* ════════════ PRICING ════════════ */}
-      <section className="relative border-t border-white/5 bg-[#0c0c0e]">
+      <section id="pricing" className="relative border-t border-white/5 bg-[#0c0c0e] scroll-mt-16">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 lg:py-32">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-15%' }} variants={fadeUp}>
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6">
