@@ -138,7 +138,7 @@ export const PRICING_FAQ: FaqItem[] = [
 export const HOMEPAGE_FAQ: FaqItem[] = [
   {
     q: 'Which platforms are supported?',
-    a: 'YouTube, Twitter/X, and LinkedIn are live. Instagram, Facebook, and Threads are coming soon. You post whatever each platform supports — video, image, or text.',
+    a: 'YouTube, Twitter/X, LinkedIn, Instagram, and Facebook are live. Threads is coming soon. You post whatever each platform supports — video, image, or text.',
   },
   {
     q: 'Do I pay more for each account I connect?',
@@ -162,5 +162,5 @@ export const HOMEPAGE_FAQ: FaqItem[] = [
   },
 ];
 
-export const LIVE_PLATFORMS = ['YouTube', 'Twitter/X', 'LinkedIn'] as const;
-export const COMING_SOON_PLATFORMS = ['Instagram', 'Facebook', 'Threads'] as const;
+export const LIVE_PLATFORMS = ['YouTube', 'Twitter/X', 'LinkedIn', 'Instagram', 'Facebook'] as const;
+export const COMING_SOON_PLATFORMS = ['Threads'] as const;

@@ -50,10 +50,8 @@ const PLATFORMS: PlatformDef[] = [
   { id: 'linkedin',  name: 'LinkedIn',  Icon: Linkedin,    accent: '#60a5fa', text: 'text-blue-400', ring: 'ring-blue-500/40',
     caps: ['UGC posts (image/video)', 'Engagement tracking', 'Comment automation', 'Post scheduling'] },
   { id: 'instagram', name: 'Instagram', Icon: Instagram,   accent: '#f472b6', text: 'text-pink-400', ring: 'ring-pink-500/40',
-    comingSoon: true,
     caps: ['Feed + Reels', 'AI captions + hashtags', 'Insights', 'Multi-account'] },
   { id: 'facebook',  name: 'Facebook',  Icon: Facebook,    accent: '#3b82f6', text: 'text-blue-500', ring: 'ring-blue-600/40',
-    comingSoon: true,
     caps: ['Page posts', 'Photo + video', 'Comment auto-reply', 'Insights'] },
   { id: 'threads',   name: 'Threads',   Icon: ThreadsIcon, accent: '#d4d4d4', text: 'text-gray-300', ring: 'ring-gray-500/40',
     comingSoon: true,
@@ -250,7 +248,7 @@ export function LandingPage() {
             StarlingPost is a social media tool for solo freelancers that publishes organic posts
             to every connected platform from one place, and automatically captures the inbound
             interest those posts generate — replying to comments and sending your link — across
-            YouTube, Twitter/X, and LinkedIn, with Instagram, Facebook, and Threads coming soon.
+            YouTube, Twitter/X, LinkedIn, Instagram, and Facebook, with Threads coming soon.
           </p>
 
           <motion.div style={{ y: heroY }}>
@@ -287,7 +285,7 @@ export function LandingPage() {
 
               <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-6 max-w-md">
                 {[
-                  { v: 6, suffix: '', l: 'platforms, one post' },
+                  { v: 5, suffix: '', l: 'platforms, one post' },
                   { v: 0, suffix: '', l: 'per-channel fees' },
                   { v: 24, suffix: '/7', l: 'inbound capture' },
                 ].map((s) => (
@@ -463,7 +461,7 @@ export function LandingPage() {
               span="sm:col-span-4"
               tone="dark"
               kicker="Publish"
-              title="One composer. Three destinations."
+              title="One composer. Every destination."
               copy="Write once, publish to every connected account in one click — video, image, or text, whatever each platform takes. Character limits, hashtag etiquette, and title length all handled per platform."
               icon={<Layers size={20} />}
               accent="var(--citron)"
@@ -549,7 +547,7 @@ export function LandingPage() {
             </div>
 
             <div className="font-display tracking-tight space-y-5 text-right lg:text-left">
-              <div className="text-3xl text-zinc-500">3 platforms · 12 posts / week</div>
+              <div className="text-3xl text-zinc-500">5 platforms · 12 posts / week</div>
               <div className="text-5xl lg:text-6xl text-white">= <span className="font-mono">~6 hrs</span> of context-switching</div>
               <div className="text-2xl text-zinc-500 italic">with StarlingPost:</div>
               <div className="text-6xl lg:text-7xl text-[var(--citron)]">
@@ -579,7 +577,7 @@ export function LandingPage() {
 
           <div className="mt-16 grid lg:grid-cols-3 gap-6 lg:gap-10">
             {[
-              { n: '01', t: 'Connect your accounts', d: 'OAuth into YouTube, Twitter/X, and LinkedIn once — tokens refresh automatically. Instagram, Facebook, and Threads coming soon.' },
+              { n: '01', t: 'Connect your accounts', d: 'OAuth into YouTube, Twitter/X, LinkedIn, Instagram, and Facebook once — tokens refresh automatically. Threads coming soon.' },
               { n: '02', t: 'Write & enhance', d: 'Type one caption. Hit AI Enhance. Get tailored versions for each platform, hashtag suggestions, and optimal post times.' },
               { n: '03', t: 'Publish & forget', d: 'Post now or schedule. Replies and keyword triggers run on autopilot. Wake up to engagement reports.' },
             ].map((s, i) => (
