@@ -14,9 +14,15 @@ export interface UtmParams {
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  utmContent: string | null;
 }
 
-const EMPTY_UTM: UtmParams = { utmSource: null, utmMedium: null, utmCampaign: null };
+const EMPTY_UTM: UtmParams = {
+  utmSource: null,
+  utmMedium: null,
+  utmCampaign: null,
+  utmContent: null,
+};
 
 declare global {
   interface Window {
@@ -36,6 +42,7 @@ export function captureUtmParams(): UtmParams {
     utmSource: search.get('utm_source'),
     utmMedium: search.get('utm_medium'),
     utmCampaign: search.get('utm_campaign'),
+    utmContent: search.get('utm_content'),
   };
 
   const hasAny = Object.values(fromUrl).some(Boolean);
@@ -74,6 +81,7 @@ export function trackLead(params: { value?: number; currency?: string; utm?: Utm
     utm_source: utm?.utmSource ?? undefined,
     utm_medium: utm?.utmMedium ?? undefined,
     utm_campaign: utm?.utmCampaign ?? undefined,
+    utm_content: utm?.utmContent ?? undefined,
   });
 
   if (GOOGLE_ADS_ID && GOOGLE_ADS_CONVERSION_LABEL) {
@@ -90,6 +98,7 @@ export function trackLead(params: { value?: number; currency?: string; utm?: Utm
     utm_source: utm?.utmSource ?? undefined,
     utm_medium: utm?.utmMedium ?? undefined,
     utm_campaign: utm?.utmCampaign ?? undefined,
+    utm_content: utm?.utmContent ?? undefined,
   });
 }
 

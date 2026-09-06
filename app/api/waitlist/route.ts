@@ -44,17 +44,17 @@ export async function POST(request: NextRequest) {
     utmSource: clean(body.utmSource, 200),
     utmMedium: clean(body.utmMedium, 200),
     utmCampaign: clean(body.utmCampaign, 200),
+    utmContent: clean(body.utmContent, 200),
     referrer: clean(body.referrer, 500),
     userAgent: request.headers.get('user-agent')?.slice(0, 500) ?? null,
     createdAt: adminFieldValue.serverTimestamp(),
   };
 
   try {
-    // Doc id = email so a repeat submit updates instead of duplicating.
-    await adminDb
-      .collection(WAITLIST_COLLECTION)
-      .doc(encodeURIComponent(email))
-      .set(record, { merge: true });
+    // Auto-generated ids: keying on the email overwrote earlier signups from the
+    // same address, and made the address list enumerable to anyone who could read
+    // the collection. Dedupe with a query on the `email` field if it's needed.
+    await adminDb.collection(WAITLIST_COLLECTION).add(record);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
